@@ -168,7 +168,6 @@ Các chức năng sau **không được đề cập trong yêu cầu hiện tạ
 | **O08** | Phân tích dữ liệu nâng cao / AI dự đoán                      | Không được yêu cầu trong phạm vi hiện tại.                                                   |
 | **O09** | Ứng dụng riêng cho bộ phận quản trị ngoài giao diện quản trị | Chưa có yêu cầu xây dựng ứng dụng riêng; hệ thống chỉ yêu cầu giao diện quản trị.            |
 
-> **Lưu ý:** Out of Scope ở đây được xác định dựa trên yêu cầu hiện tại. Các chức năng chưa được đề cập không nên tự động đưa vào phạm vi phát triển. Nếu khách hàng phát sinh yêu cầu mới, BA cần thực hiện đánh giá và quản lý thay đổi phạm vi.
 
 ---
 
@@ -200,3 +199,194 @@ Các chức năng sau **không được đề cập trong yêu cầu hiện tạ
 | **BR21** | **Khả năng mở rộng**                   | Hệ thống phải có khả năng mở rộng khi số lượng khách hàng, tài xế và tải hệ thống tăng.                                                                                                              |
 | **BR22** | **Khả năng mở rộng dịch vụ**           | Hệ thống phải cho phép bổ sung loại dịch vụ, phương thức thanh toán và nhà cung cấp thông báo mới mà hạn chế ảnh hưởng đến các chức năng đang hoạt động.                                             |
 | **BR23** | **Đảm bảo tính liên tục của hệ thống** | Hệ thống phải hạn chế ảnh hưởng của lỗi tại các thành phần như thanh toán hoặc thông báo đến chức năng đặt xe và các chức năng cốt lõi khác.                                                         |
+
+# 6. Xây dựng các Business Process
+## - VD: Đặt chuyến: 
+### B1: Tạo chuyến đi 
+### B2: Xác định điểm đến 
+### B3: Hệ thống xác nhận 
+### B4: Tìm tài xế 
+### B5: Đợi tài xế chấp nhận
+
+Dựa trên yêu cầu của khách hàng, các Business Process chính của CAB System được xác định như sau.
+
+## 6.1. Business Process 01 – Đặt chuyến và tìm tài xế
+
+### B1.1: Khách hàng tạo yêu cầu đặt chuyến
+
+Khách hàng nhập điểm đón, điểm đến và lựa chọn loại xe.
+
+### B1.2: Hệ thống tiếp nhận yêu cầu
+
+Hệ thống kiểm tra và ghi nhận yêu cầu đặt chuyến của khách hàng.
+
+### B1.3: Hệ thống xác định tài xế phù hợp
+
+Hệ thống tìm kiếm các tài xế dựa trên vị trí, trạng thái sẵn sàng và các tiêu chí vận hành.
+
+### B1.4: Hệ thống gửi yêu cầu đến tài xế
+
+Hệ thống gửi thông báo yêu cầu nhận chuyến đến tài xế phù hợp.
+
+### B1.5: Tài xế phản hồi yêu cầu
+
+Tài xế có thể chấp nhận hoặc từ chối chuyến.
+
+### B1.6: Xử lý trường hợp tài xế từ chối hoặc không phản hồi
+
+Nếu tài xế từ chối hoặc không phản hồi trong thời gian quy định, hệ thống tiếp tục tìm và đề xuất tài xế khác.
+
+### B1.7: Xác nhận tài xế
+
+Nếu tài xế chấp nhận, hệ thống xác nhận tài xế cho chuyến đi và thông báo cho khách hàng.
+
+### B1.8: Xử lý trường hợp không tìm được tài xế
+
+Nếu không còn tài xế phù hợp, hệ thống thông báo cho khách hàng rằng không thể tìm được tài xế.
+
+---
+
+## 6.2. Business Process 02 – Thực hiện chuyến đi
+
+### B2.1: Tài xế di chuyển đến điểm đón
+
+Tài xế nhận thông tin chuyến và di chuyển đến vị trí đón khách.
+
+### B2.2: Tài xế cập nhật đã đến điểm đón
+
+Tài xế cập nhật trạng thái đã đến điểm đón và hệ thống thông báo cho khách hàng.
+
+### B2.3: Tài xế đón khách
+
+Sau khi đón khách, tài xế cập nhật trạng thái chuyến.
+
+### B2.4: Tài xế thực hiện chuyến
+
+Tài xế di chuyển từ điểm đón đến điểm đến và hệ thống cập nhật trạng thái chuyến.
+
+### B2.5: Tài xế hoàn thành chuyến
+
+Khi đến điểm đến, tài xế cập nhật trạng thái hoàn thành chuyến.
+
+---
+
+## 6.3. Business Process 03 – Tính cước và thanh toán
+
+### B3.1: Hệ thống xác định cước chuyến đi
+
+Sau khi chuyến hoàn thành, hệ thống xác định số tiền khách hàng phải trả dựa trên loại dịch vụ và thông tin chuyến đi.
+
+### B3.2: Khách hàng lựa chọn phương thức thanh toán
+
+Khách hàng thanh toán bằng tiền mặt hoặc phương thức thanh toán điện tử.
+
+### B3.3: Xử lý thanh toán
+
+Đối với thanh toán điện tử, hệ thống gửi yêu cầu đến đơn vị cung cấp dịch vụ thanh toán.
+
+### B3.4: Nhận kết quả thanh toán
+
+Hệ thống nhận kết quả giao dịch từ đơn vị thanh toán và cập nhật trạng thái thanh toán.
+
+### B3.5: Xử lý thanh toán thất bại
+
+Nếu thanh toán điện tử thất bại, hệ thống thông báo cho khách hàng và thực hiện xử lý lại theo chính sách của doanh nghiệp.
+
+---
+
+## 6.4. Business Process 04 – Thông báo
+
+### B4.1: Phát sinh sự kiện
+
+Hệ thống xác định các sự kiện cần thông báo như tiếp nhận yêu cầu, tài xế nhận chuyến, tài xế đến điểm đón, hoàn thành chuyến hoặc kết quả thanh toán.
+
+### B4.2: Xác định người nhận
+
+Hệ thống xác định khách hàng hoặc tài xế cần nhận thông báo.
+
+### B4.3: Gửi thông báo
+
+Hệ thống gửi thông báo thông qua nhà cung cấp dịch vụ thông báo.
+
+### B4.4: Xử lý kết quả gửi
+
+Hệ thống ghi nhận trạng thái gửi thông báo và xử lý trường hợp gửi không thành công theo chính sách của hệ thống.
+
+---
+
+## 6.5. Business Process 05 – Quản lý và giám sát vận hành
+
+### B5.1: Nhân viên vận hành đăng nhập
+
+Nhân viên vận hành xác thực và truy cập giao diện quản trị theo quyền được cấp.
+
+### B5.2: Theo dõi hoạt động
+
+Nhân viên vận hành theo dõi các chuyến đang diễn ra, trạng thái tài xế và thông tin liên quan.
+
+### B5.3: Quản lý dữ liệu
+
+Nhân viên vận hành quản lý thông tin khách hàng, tài xế, phương tiện và chuyến đi theo quyền được cấp.
+
+### B5.4: Xử lý sự cố
+
+Khi phát sinh chuyến bị lỗi hoặc vấn đề trong quá trình vận hành, nhân viên vận hành kiểm tra và hỗ trợ xử lý.
+
+### B5.5: Tra cứu lịch sử
+
+Nhân viên vận hành tra cứu lịch sử chuyến đi và giao dịch để phục vụ kiểm tra và xử lý sự cố.
+
+---
+
+## 6.6. Business Process 06 – Đánh giá và lưu lịch sử chuyến
+
+### B6.1: Hoàn thành chuyến
+
+Hệ thống ghi nhận chuyến đi đã hoàn thành.
+
+### B6.2: Lưu thông tin chuyến
+
+Hệ thống lưu thông tin chuyến đi và số tiền khách hàng phải trả.
+
+### B6.3: Khách hàng xem lịch sử
+
+Khách hàng có thể tra cứu lịch sử các chuyến đi của mình.
+
+### B6.4: Khách hàng đánh giá tài xế
+
+Sau khi chuyến hoàn thành, khách hàng có thể đánh giá tài xế.
+
+---
+
+## 6.7. Tổng quan Business Process
+
+Quy trình nghiệp vụ cốt lõi của CAB System có thể được tổng quát hóa như sau:
+
+```mermaid
+flowchart LR
+    A["Khách hàng tạo yêu cầu"] --> B["Tiếp nhận yêu cầu"]
+    B --> C["Tìm tài xế phù hợp"]
+    C --> D{"Tài xế chấp nhận?"}
+    D -->|Không / Không phản hồi| C
+    D -->|Có| E["Xác nhận tài xế"]
+    E --> F["Thực hiện chuyến"]
+    F --> G["Hoàn thành chuyến"]
+    G --> H["Tính cước"]
+    H --> I["Thanh toán"]
+    I --> J["Lưu lịch sử"]
+    J --> K["Đánh giá tài xế"]
+```
+
+### Các điểm cần xác nhận với khách hàng
+
+Trong quá trình xây dựng Business Process, một số bước chưa thể xác định chi tiết do khách hàng chưa chốt:
+
+* Thời gian tài xế phải phản hồi yêu cầu.
+* Tiêu chí và thứ tự ưu tiên tài xế.
+* Công thức tính cước.
+* Chính sách hủy chuyến.
+* Cách xử lý khi mất kết nối mạng.
+* Chính sách xử lý lại khi thanh toán điện tử thất bại.
+* Thời gian lưu trữ dữ liệu.
+
+Các nội dung trên cần được Business Analyst xác nhận với các bên liên quan trước khi đặc tả chi tiết các Functional Requirements.
