@@ -1719,30 +1719,63 @@ Một số tiêu chí chưa thể xác định cụ thể vì khách hàng chưa
 
 ## 13.1. Requirements Traceability Matrix (RTM)
 
-Requirements Traceability Matrix (RTM) là bảng ma trận dùng để theo dõi và liên kết các yêu cầu trong toàn bộ quá trình phát triển phần mềm, từ mục tiêu kinh doanh đến kiểm thử.
+Requirements Traceability Matrix (RTM) là ma trận dùng để theo dõi mối quan hệ giữa các yêu cầu từ mục tiêu kinh doanh đến kiểm thử.
 
-RTM giúp đảm bảo mỗi yêu cầu đều được phân tích, triển khai, nghiệm thu và kiểm thử đầy đủ, tránh bỏ sót yêu cầu.
+Mối quan hệ truy xuất:
 
-### 13.2. Ma trận truy xuất yêu cầu
+**BG → BR → FR → UC → AC → TC**
 
-| BG | BR | FR | UC | AC | TC (Test Case) |
-|---|---|---|---|---|---|
-| BG01 – Quản lý hàng hóa | BR01 – Mọi hàng nhập phải được ghi nhận | FR01 – Nhập hàng vào kho | UC01 – Nhập hàng | AC01 – Nhân viên kho nhập được phiếu nhập và hệ thống cập nhật tồn kho | TC01 – Kiểm tra nhập hàng thành công |
-| BG01 – Quản lý hàng hóa | BR02 – Không được bán vượt tồn kho | FR02 – Quản lý tồn kho | UC02 – Kiểm tra tồn kho | AC02 – Số lượng tồn được cập nhật chính xác sau nhập/bán | TC02 – Kiểm tra cập nhật tồn kho |
-| BG02 – Bán hàng | BR03 – Mỗi giao dịch phải có hóa đơn | FR03 – Bán hàng tại quầy | UC03 – Thanh toán tại quầy | AC03 – Thu ngân tạo được hóa đơn và hoàn tất thanh toán | TC03 – Kiểm tra thanh toán |
-| BG02 – Tăng doanh số | BR04 – Đơn hàng đủ điều kiện được áp dụng khuyến mãi | FR04 – Áp dụng khuyến mãi | UC04 – Áp dụng khuyến mãi | AC04 – Hệ thống tự động áp dụng đúng chương trình khuyến mãi | TC04 – Kiểm tra tính khuyến mãi |
-| BG03 – Theo dõi hoạt động kinh doanh | BR05 – Doanh thu phải được tổng hợp theo giao dịch | FR05 – Báo cáo doanh thu | UC05 – Xem báo cáo doanh thu | AC05 – Quản lý xem được báo cáo doanh thu theo khoảng thời gian | TC05 – Kiểm tra báo cáo doanh thu |
+Trong đó:
 
-### 13.3. Ý nghĩa các thành phần
+- **BG (Business Goal):** Mục tiêu kinh doanh.
+- **BR (Business Rule):** Quy tắc nghiệp vụ.
+- **FR (Functional Requirement):** Yêu cầu chức năng.
+- **UC (Use Case):** Trường hợp sử dụng.
+- **AC (Acceptance Criteria):** Tiêu chí chấp nhận.
+- **TC (Test Case):** Ca kiểm thử.
 
-- **BG – Business Goal:** Mục tiêu kinh doanh mà hệ thống cần đạt được.
-- **BR – Business Rule:** Các quy tắc nghiệp vụ mà hệ thống phải tuân thủ.
-- **FR – Functional Requirement:** Các chức năng mà hệ thống phải cung cấp.
-- **UC – Use Case:** Mô tả cách Actor tương tác với hệ thống để thực hiện một chức năng.
-- **AC – Acceptance Criteria:** Các điều kiện để xác định chức năng đã hoàn thành và có thể được nghiệm thu.
-- **TC – Test Case:** Các trường hợp kiểm thử dùng để xác minh hệ thống đáp ứng yêu cầu.
+## 13.2. Sơ đồ truy xuất yêu cầu
 
-### 13.4. Mối quan hệ truy xuất
+```mermaid
+flowchart LR
 
-```text
-BG → BR → FR → UC → AC → TC
+    BG01["BG01<br/>Quản lý hàng hóa"]
+    BG02["BG02<br/>Bán hàng"]
+    BG03["BG03<br/>Theo dõi hoạt động kinh doanh"]
+
+    BR01["BR01<br/>Mọi hàng nhập phải được ghi nhận"]
+    BR02["BR02<br/>Không được bán vượt tồn kho"]
+    BR03["BR03<br/>Mỗi giao dịch phải có hóa đơn"]
+    BR04["BR04<br/>Đơn hàng đủ điều kiện được áp dụng khuyến mãi"]
+    BR05["BR05<br/>Doanh thu phải được tổng hợp"]
+
+    FR01["FR01<br/>Nhập hàng vào kho"]
+    FR02["FR02<br/>Quản lý tồn kho"]
+    FR03["FR03<br/>Bán hàng tại quầy"]
+    FR04["FR04<br/>Áp dụng khuyến mãi"]
+    FR05["FR05<br/>Báo cáo doanh thu"]
+
+    UC01["UC01<br/>Nhập hàng"]
+    UC02["UC02<br/>Kiểm tra tồn kho"]
+    UC03["UC03<br/>Thanh toán tại quầy"]
+    UC04["UC04<br/>Áp dụng khuyến mãi"]
+    UC05["UC05<br/>Xem báo cáo doanh thu"]
+
+    AC01["AC01<br/>Nhập phiếu nhập và cập nhật tồn kho"]
+    AC02["AC02<br/>Cập nhật chính xác số lượng tồn"]
+    AC03["AC03<br/>Tạo hóa đơn và hoàn tất thanh toán"]
+    AC04["AC04<br/>Áp dụng đúng khuyến mãi"]
+    AC05["AC05<br/>Xem báo cáo doanh thu theo thời gian"]
+
+    TC01["TC01<br/>Kiểm tra nhập hàng"]
+    TC02["TC02<br/>Kiểm tra cập nhật tồn kho"]
+    TC03["TC03<br/>Kiểm tra thanh toán"]
+    TC04["TC04<br/>Kiểm tra khuyến mãi"]
+    TC05["TC05<br/>Kiểm tra báo cáo doanh thu"]
+
+    BG01 --> BR01 --> FR01 --> UC01 --> AC01 --> TC01
+    BG01 --> BR02 --> FR02 --> UC02 --> AC02 --> TC02
+    BG02 --> BR03 --> FR03 --> UC03 --> AC03 --> TC03
+    BG02 --> BR04 --> FR04 --> UC04 --> AC04 --> TC04
+    BG03 --> BR05 --> FR05 --> UC05 --> AC05 --> TC05
+```
