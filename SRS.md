@@ -199,6 +199,7 @@ Các chức năng sau **không được đề cập trong yêu cầu hiện tạ
 | **BR21** | **Khả năng mở rộng**                   | Hệ thống phải có khả năng mở rộng khi số lượng khách hàng, tài xế và tải hệ thống tăng.                                                                                                              |
 | **BR22** | **Khả năng mở rộng dịch vụ**           | Hệ thống phải cho phép bổ sung loại dịch vụ, phương thức thanh toán và nhà cung cấp thông báo mới mà hạn chế ảnh hưởng đến các chức năng đang hoạt động.                                             |
 | **BR23** | **Đảm bảo tính liên tục của hệ thống** | Hệ thống phải hạn chế ảnh hưởng của lỗi tại các thành phần như thanh toán hoặc thông báo đến chức năng đặt xe và các chức năng cốt lõi khác.                                                         |
+---
 
 # 6. Xây dựng các Business Process
 ## - VD: Đặt chuyến: 
@@ -584,214 +585,71 @@ Sau khi chuyến hoàn thành, khách hàng có thể đánh giá tài xế.
 | **FR98**  | Hệ thống phải cô lập ảnh hưởng khi dịch vụ thanh toán gặp lỗi.                                        |
 | **FR99**  | Hệ thống phải cô lập ảnh hưởng khi dịch vụ thông báo gặp lỗi.                                         |
 | **FR100** | Hệ thống phải duy trì các chức năng cốt lõi của hệ thống đặt xe khi một thành phần phụ trợ gặp sự cố. |
-
+---
 # 8. Xác định Business Rules và Business Exceptional
 # - VD Business Rules: Chỉ những tài xế tỏng trạng thái sẵn sàng mới được nhận chuyên
 # - VD Business Exceptional: Khi khách hàng tạo chuyến nhưng tìm tài xế quá lâu
 # - VD Business Exceptional: Khi tìm được tài xế rồi nhưng quá thời hạn tài xế không bấm thì phải thoát ra và tìm tài xế khác
 
-## 8.1. Business Rules cho BR01 – Quản lý tài khoản
+## 8.1. Business Rules – Quy tắc nghiệp vụ chính
 
-- **BRULE01:** Khách hàng và tài xế phải được xác thực trước khi sử dụng các chức năng yêu cầu tài khoản.
-- **BRULE02:** Khách hàng được phép cập nhật thông tin cá nhân của mình.
-- **BRULE03:** Tài xế được phép cập nhật thông tin hồ sơ và phương tiện theo quyền được cấp.
+- **BRules01: Chỉ tài xế sẵn sàng mới được nhận chuyến**  
+  Chỉ những tài xế đang ở trạng thái sẵn sàng mới được hệ thống xem xét để phân công chuyến.
 
-## 8.2. Business Rules cho BR02 – Quản lý tài xế và phương tiện
+- **BRules02: Tài xế phải phù hợp với yêu cầu chuyến**  
+  Tài xế được đề xuất phải phù hợp với loại xe/dịch vụ mà khách hàng đã lựa chọn.
 
-- **BRULE04:** Chỉ tài xế ở trạng thái sẵn sàng mới được hệ thống xem xét để nhận chuyến.
-- **BRULE05:** Tài xế được phân công phải có phương tiện phù hợp với loại xe/dịch vụ mà khách hàng lựa chọn.
-- **BRULE06:** Hệ thống phải ghi nhận thông tin vị trí của tài xế để phục vụ việc tìm kiếm và dự kiến thời gian đến.
+- **BRules03: Ưu tiên tài xế phù hợp và gần khách hàng**  
+  Hệ thống phải ưu tiên các tài xế phù hợp và có vị trí gần khách hàng dựa trên các tiêu chí vận hành của doanh nghiệp.
 
-## 8.3. Business Rules cho BR03 – Đặt chuyến
+- **BRules04: Tài xế phải chấp nhận hoặc từ chối chuyến**  
+  Khi nhận được yêu cầu, tài xế phải phản hồi để hệ thống xác định có phân công chuyến hay không.
 
-- **BRULE07:** Khách hàng phải cung cấp điểm đón và điểm đến trước khi gửi yêu cầu đặt chuyến.
-- **BRULE08:** Khách hàng phải lựa chọn loại xe/dịch vụ trước khi gửi yêu cầu đặt chuyến.
-- **BRULE09:** Hệ thống phải ghi nhận yêu cầu đặt chuyến và trạng thái hiện tại của yêu cầu.
+- **BRules05: Chỉ tính cước sau khi chuyến hoàn thành**  
+  Hệ thống xác định số tiền khách hàng phải trả dựa trên loại dịch vụ và thông tin chuyến đi sau khi chuyến hoàn thành.
 
-## 8.4. Business Rules cho BR04 – Tìm kiếm tài xế
+- **BRules06: Hỗ trợ thanh toán tiền mặt và điện tử**  
+  Khách hàng có thể thanh toán bằng tiền mặt hoặc phương thức thanh toán điện tử.
 
-- **BRULE10:** Hệ thống chỉ tìm kiếm các tài xế đang ở trạng thái sẵn sàng.
-- **BRULE11:** Hệ thống phải ưu tiên các tài xế phù hợp và gần khách hàng.
-- **BRULE12:** Việc lựa chọn tài xế phải dựa trên vị trí, trạng thái sẵn sàng và các tiêu chí vận hành của doanh nghiệp.
-- **BRULE13:** Tài xế được đề xuất phải phù hợp với loại xe/dịch vụ mà khách hàng đã lựa chọn.
+- **BRules07: Không lưu thông tin thanh toán nhạy cảm**  
+  Thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán không được lưu trực tiếp trên hệ thống CAB.
 
-> **Lưu ý:** Tiêu chí và thứ tự ưu tiên tài xế cụ thể chưa được khách hàng chốt và cần được xác nhận thêm.
+- **BRules08: Chức năng quản trị phải được phân quyền**  
+  Nhân viên vận hành chỉ được thực hiện các thao tác tương ứng với quyền được cấp.
 
-## 8.5. Business Exceptions cho BR04 – Tìm kiếm tài xế
+- **BRules09: Khách hàng chỉ được đánh giá sau khi hoàn thành chuyến**  
+  Khách hàng có thể đánh giá tài xế sau khi chuyến đi hoàn thành.
 
-- **BE01:** Khi không tìm được tài xế phù hợp, hệ thống phải thông báo rõ ràng cho khách hàng.
-- **BE02:** Khi quá trình tìm tài xế kéo dài quá thời gian quy định, hệ thống phải xử lý theo chính sách của doanh nghiệp và thông báo cho khách hàng.
+- **BRules10: Hệ thống phải gửi thông báo theo các sự kiện chính**  
+  Khách hàng và tài xế phải nhận được thông báo khi có các sự kiện liên quan đến đặt xe, chuyến đi và thanh toán.
 
-> **Lưu ý:** Thời gian xác định việc tìm tài xế là "quá lâu" chưa được khách hàng chốt.
+## 8.2. Business Exceptions – Các trường hợp ngoại lệ
 
-## 8.6. Business Rules cho BR05 – Phân công tài xế
+- **BE01: Không tìm được tài xế**  
+  Khi hệ thống không tìm được tài xế phù hợp, hệ thống phải thông báo cho khách hàng.
 
-- **BRULE14:** Tài xế phải chấp nhận hoặc từ chối yêu cầu chuyến.
-- **BRULE15:** Chuyến chỉ được xác nhận khi tài xế chấp nhận yêu cầu.
-- **BRULE16:** Khi tài xế từ chối hoặc không phản hồi, hệ thống phải tiếp tục tìm tài xế khác.
+- **BE02: Tài xế từ chối chuyến**  
+  Khi tài xế từ chối, hệ thống phải tiếp tục tìm tài xế khác mà không yêu cầu khách hàng tạo lại yêu cầu.
 
-## 8.7. Business Exceptions cho BR05 – Phân công tài xế
+- **BE03: Tài xế không phản hồi**  
+  Khi tài xế không phản hồi trong thời gian quy định, hệ thống phải chuyển sang tìm tài xế khác.
 
-- **BE03:** Khi tài xế từ chối chuyến, hệ thống phải kết thúc yêu cầu đối với tài xế đó và tiếp tục tìm tài xế khác.
-- **BE04:** Khi tài xế không phản hồi trong thời gian quy định, hệ thống phải kết thúc yêu cầu đối với tài xế đó và tiếp tục tìm tài xế khác.
-- **BE05:** Khi không còn tài xế phù hợp để tiếp tục tìm kiếm, hệ thống phải thông báo cho khách hàng rằng không tìm được tài xế.
+- **BE04: Tìm tài xế quá lâu**  
+  Khi quá trình tìm tài xế kéo dài nhưng chưa tìm được tài xế phù hợp, hệ thống phải thông báo cho khách hàng theo chính sách của doanh nghiệp.
 
-> **Lưu ý:** Thời gian tối đa tài xế được phép phản hồi chưa được khách hàng chốt.
+- **BE05: Thanh toán điện tử thất bại**  
+  Khi giao dịch thanh toán điện tử thất bại, hệ thống phải thông báo cho khách hàng và cho phép xử lý lại theo chính sách của doanh nghiệp.
 
-## 8.8. Business Rules cho BR06 – Theo dõi chuyến đi
+- **BE06: Nhà cung cấp thanh toán gặp sự cố**  
+  Khi dịch vụ thanh toán bên ngoài gặp sự cố, lỗi không được làm toàn bộ hệ thống đặt xe ngừng hoạt động.
 
-- **BRULE17:** Khách hàng phải được cung cấp thông tin về tài xế đã nhận chuyến.
-- **BRULE18:** Khách hàng phải được cung cấp thời gian dự kiến tài xế đến.
-- **BRULE19:** Khách hàng phải có khả năng theo dõi trạng thái hiện tại của chuyến đi.
+- **BE07: Nhà cung cấp thông báo gặp sự cố**  
+  Khi dịch vụ thông báo gặp sự cố, lỗi không được làm toàn bộ hệ thống đặt xe ngừng hoạt động.
 
-## 8.9. Business Rules cho BR07 – Cập nhật trạng thái chuyến
+- **BE08: Mất kết nối mạng**  
+  Khi khách hàng hoặc tài xế mất kết nối trong quá trình sử dụng hệ thống, hệ thống phải có cơ chế xử lý phù hợp.
 
-- **BRULE20:** Tài xế phải cập nhật trạng thái khi đến điểm đón.
-- **BRULE21:** Tài xế phải cập nhật trạng thái sau khi đã đón khách.
-- **BRULE22:** Tài xế phải cập nhật trạng thái khi đang thực hiện chuyến.
-- **BRULE23:** Tài xế phải cập nhật trạng thái hoàn thành khi kết thúc chuyến.
-
-## 8.10. Business Rules cho BR08 – Quản lý vị trí tài xế
-
-- **BRULE24:** Hệ thống phải ghi nhận vị trí của tài xế trong thời gian tài xế hoạt động.
-- **BRULE25:** Thông tin vị trí tài xế được sử dụng để hỗ trợ tìm kiếm tài xế.
-- **BRULE26:** Thông tin vị trí tài xế được sử dụng để hỗ trợ xác định thời gian dự kiến tài xế đến.
-
-## 8.11. Business Rules cho BR09 – Tính cước
-
-- **BRULE27:** Hệ thống phải xác định số tiền khách hàng phải trả sau khi chuyến đi hoàn thành.
-- **BRULE28:** Số tiền phải trả phải được xác định dựa trên loại dịch vụ và thông tin chuyến đi.
-
-> **Lưu ý:** Công thức và các quy tắc tính cước cụ thể chưa được khách hàng chốt.
-
-## 8.12. Business Exceptions cho BR09 – Tính cước
-
-- **BE06:** Khi hệ thống không thể xác định được số tiền phải trả, hệ thống phải ghi nhận lỗi và hỗ trợ xử lý theo quy trình vận hành.
-
-> **Lưu ý:** Cách xử lý cụ thể khi không thể tính cước cần được xác nhận với khách hàng.
-
-## 8.13. Business Rules cho BR10 – Thanh toán
-
-- **BRULE29:** Khách hàng có thể thanh toán bằng tiền mặt hoặc phương thức thanh toán điện tử.
-- **BRULE30:** Thanh toán điện tử phải được thực hiện thông qua nhà cung cấp thanh toán bên ngoài.
-- **BRULE31:** Hệ thống CAB không được lưu trực tiếp thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán.
-- **BRULE32:** Hệ thống phải ghi nhận kết quả của giao dịch thanh toán.
-
-## 8.14. Business Exceptions cho BR10 – Thanh toán
-
-- **BE07:** Khi thanh toán điện tử thất bại, hệ thống phải thông báo cho khách hàng.
-- **BE08:** Khi thanh toán điện tử thất bại, hệ thống phải cho phép xử lý lại theo chính sách của doanh nghiệp.
-- **BE09:** Khi nhà cung cấp thanh toán gặp sự cố, lỗi không được làm toàn bộ hệ thống đặt xe ngừng hoạt động.
-
-> **Lưu ý:** Chính sách xử lý lại giao dịch thanh toán chưa được khách hàng chốt.
-
-## 8.15. Business Rules cho BR11 – Xử lý thanh toán thất bại
-
-- **BRULE33:** Hệ thống phải xác định và lưu trạng thái thanh toán thành công hoặc thất bại.
-- **BRULE34:** Khách hàng phải được thông báo về kết quả thanh toán.
-
-## 8.16. Business Exceptions cho BR11 – Xử lý thanh toán thất bại
-
-- **BE10:** Khi giao dịch thanh toán điện tử thất bại, hệ thống phải thông báo cho khách hàng và thực hiện xử lý lại theo chính sách của doanh nghiệp.
-
-## 8.17. Business Rules cho BR12 – Thông báo
-
-- **BRULE35:** Hệ thống phải gửi thông báo khi yêu cầu đặt xe được tiếp nhận.
-- **BRULE36:** Hệ thống phải gửi thông báo khi tài xế nhận chuyến.
-- **BRULE37:** Hệ thống phải gửi thông báo khi tài xế đến điểm đón.
-- **BRULE38:** Hệ thống phải gửi thông báo khi chuyến hoàn thành.
-- **BRULE39:** Hệ thống phải gửi thông báo khi có kết quả thanh toán.
-- **BRULE40:** Tài xế phải nhận được thông báo khi có chuyến mới hoặc có thay đổi liên quan đến chuyến đang thực hiện.
-
-## 8.18. Business Exceptions cho BR12 – Thông báo
-
-- **BE11:** Khi dịch vụ thông báo gặp sự cố, lỗi của dịch vụ thông báo không được làm toàn bộ hệ thống đặt xe ngừng hoạt động.
-
-## 8.19. Business Rules cho BR13 – Lịch sử chuyến đi
-
-- **BRULE41:** Khách hàng phải có khả năng xem lịch sử các chuyến đi của mình.
-- **BRULE42:** Lịch sử chuyến phải bao gồm thông tin chuyến đi và số tiền phải trả.
-
-## 8.20. Business Rules cho BR14 – Đánh giá tài xế
-
-- **BRULE43:** Khách hàng chỉ được đánh giá tài xế sau khi chuyến đi hoàn thành.
-- **BRULE44:** Kết quả đánh giá phải được lưu lại trong hệ thống.
-
-## 8.21. Business Rules cho BR15 – Quản lý vận hành
-
-- **BRULE45:** Nhân viên vận hành phải đăng nhập và được xác thực trước khi truy cập giao diện quản trị.
-- **BRULE46:** Nhân viên vận hành chỉ được thực hiện các chức năng tương ứng với quyền được cấp.
-- **BRULE47:** Nhân viên vận hành được phép quản lý khách hàng, tài xế, phương tiện và chuyến đi theo quyền được cấp.
-
-## 8.22. Business Rules cho BR16 – Giám sát và xử lý sự cố
-
-- **BRULE48:** Nhân viên vận hành phải có khả năng theo dõi các chuyến đang diễn ra.
-- **BRULE49:** Nhân viên vận hành phải có khả năng kiểm tra trạng thái tài xế.
-- **BRULE50:** Nhân viên vận hành phải có khả năng tra cứu lịch sử giao dịch.
-- **BRULE51:** Các trường hợp chuyến bị lỗi phải được hỗ trợ xử lý thông qua bộ phận vận hành.
-
-## 8.23. Business Rules cho BR17 – Phân quyền quản trị
-
-- **BRULE52:** Các chức năng quản trị phải được kiểm soát bằng quyền truy cập.
-- **BRULE53:** Nhân viên không có quyền không được phép thực hiện các thao tác nhạy cảm.
-- **BRULE54:** Các thao tác quản trị quan trọng phải được lưu vết để phục vụ kiểm tra khi có sự cố.
-
-## 8.24. Business Rules cho BR18 – Báo cáo
-
-- **BRULE55:** Hệ thống phải cung cấp dữ liệu về số lượng chuyến.
-- **BRULE56:** Hệ thống phải cung cấp dữ liệu về doanh thu.
-- **BRULE57:** Hệ thống phải cung cấp dữ liệu về tỷ lệ chuyến hoàn thành.
-- **BRULE58:** Hệ thống phải cung cấp dữ liệu về tỷ lệ hủy chuyến.
-- **BRULE59:** Hệ thống phải cung cấp dữ liệu về hiệu quả hoạt động của tài xế.
-
-## 8.25. Business Rules cho BR19 – Bảo vệ dữ liệu
-
-- **BRULE60:** Thông tin cá nhân của khách hàng và tài xế phải được bảo vệ.
-- **BRULE61:** Thông tin phương tiện phải được bảo vệ.
-- **BRULE62:** Dữ liệu vị trí của tài xế phải được bảo vệ.
-- **BRULE63:** Dữ liệu giao dịch phải được bảo vệ.
-
-## 8.26. Business Exceptions cho BR19 – Bảo vệ dữ liệu
-
-- **BE12:** Khi người dùng không có quyền thực hiện thao tác, hệ thống phải từ chối thao tác.
-- **BE13:** Khi xảy ra sự cố liên quan đến dữ liệu hoặc quyền truy cập, các thao tác quan trọng phải được lưu vết để phục vụ kiểm tra.
-
-## 8.27. Business Rules cho BR20 – Audit Log
-
-- **BRULE64:** Hệ thống phải lưu vết các thao tác quản trị quan trọng.
-- **BRULE65:** Thông tin log phải đủ để hỗ trợ truy vết khi xảy ra sự cố.
-- **BRULE66:** Chỉ người có quyền mới được phép tra cứu Audit Log.
-
-## 8.28. Business Rules cho BR21 – Khả năng mở rộng
-
-- **BRULE67:** Hệ thống phải có khả năng mở rộng khi số lượng khách hàng, tài xế và giao dịch tăng.
-- **BRULE68:** Các thành phần của hệ thống phải có khả năng mở rộng độc lập khi tải tăng.
-- **BRULE69:** Lỗi tại một thành phần như thanh toán hoặc thông báo không được làm toàn bộ hệ thống đặt xe ngừng hoạt động.
-
-## 8.29. Business Exceptions cho BR21 – Khả năng mở rộng
-
-- **BE14:** Khi tải hệ thống tăng cao, các thành phần cần được mở rộng mà không làm ảnh hưởng đến toàn bộ hệ thống.
-- **BE15:** Khi một thành phần phụ trợ gặp sự cố, các chức năng cốt lõi của hệ thống đặt xe vẫn phải tiếp tục hoạt động.
-
-## 8.30. Business Rules cho BR22 – Khả năng mở rộng dịch vụ
-
-- **BRULE70:** Hệ thống phải cho phép bổ sung các loại dịch vụ mới trong tương lai.
-- **BRULE71:** Hệ thống phải cho phép bổ sung các phương thức thanh toán mới.
-- **BRULE72:** Hệ thống phải cho phép bổ sung các nhà cung cấp dịch vụ thông báo mới.
-- **BRULE73:** Việc thay đổi một thành phần kỹ thuật không nên yêu cầu xây dựng lại toàn bộ ứng dụng.
-- **BRULE74:** Các chức năng mới phải có khả năng được triển khai từng phần và hạn chế ảnh hưởng đến các chức năng đang hoạt động.
-
-## 8.31. Business Exceptions – Các vấn đề chưa được xác định
-
-Một số trường hợp ngoại lệ chưa có quy tắc xử lý cụ thể do khách hàng chưa chốt:
-
-- **BE16:** Khi khách hàng hoặc tài xế mất kết nối mạng trong quá trình thực hiện chuyến.
-- **BE17:** Khi tài xế không thể cập nhật trạng thái chuyến.
-- **BE18:** Khi hệ thống không thể xác định vị trí hiện tại của tài xế.
-- **BE19:** Khi nhà cung cấp bên ngoài không phản hồi trong quá trình xử lý giao dịch hoặc thông báo.
-
-Các trường hợp trên cần được Business Analyst xác nhận với các bên liên quan trước khi nhóm phát triển xây dựng giải pháp.
-
+---
 # 9. Data Modeling - Xây dựng các Data Model - Nhìn vô để xác định được các thực thể và vẽ lên được sơ đồ ERD
 
 Dựa trên các Business Requirements, Functional Requirements và Business Process đã xác định, hệ thống CAB cần quản lý các nhóm dữ liệu chính liên quan đến khách hàng, tài xế, phương tiện, chuyến đi, thanh toán, thông báo và đánh giá.
@@ -814,144 +672,7 @@ Dựa trên các Business Requirements, Functional Requirements và Business Pro
 | **E12** | **Audit Log** | Lưu vết các thao tác quan trọng trong hệ thống để phục vụ kiểm tra và truy vết. |
 | **E13** | **User/Admin** | Quản lý thông tin tài khoản nhân viên vận hành và quyền truy cập quản trị. |
 
-## 9.2. Các thuộc tính chính của Entity
-
-### Customer
-
-- CustomerID
-- FullName
-- Phone
-- Email
-- Password
-- Status
-
-### Driver
-
-- DriverID
-- FullName
-- Phone
-- Email
-- Password
-- Status
-- AvailabilityStatus
-
-### Vehicle
-
-- VehicleID
-- DriverID
-- VehicleType
-- LicensePlate
-- Status
-
-### Trip
-
-- TripID
-- CustomerID
-- DriverID
-- VehicleID
-- PickupLocation
-- Destination
-- ServiceType
-- TripStatus
-- EstimatedArrivalTime
-- StartTime
-- EndTime
-- Fare
-
-### Trip Status
-
-- TripStatusID
-- TripID
-- Status
-- UpdatedAt
-
-### Driver Location
-
-- LocationID
-- DriverID
-- Latitude
-- Longitude
-- RecordedAt
-
-### Payment
-
-- PaymentID
-- TripID
-- PaymentProviderID
-- Amount
-- PaymentMethod
-- PaymentStatus
-- TransactionTime
-
-> Hệ thống CAB không lưu trực tiếp thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán.
-
-### Payment Provider
-
-- PaymentProviderID
-- ProviderName
-- Status
-
-### Notification
-
-- NotificationID
-- CustomerID
-- DriverID
-- NotificationProviderID
-- NotificationType
-- Content
-- Status
-- SentAt
-
-### Notification Provider
-
-- NotificationProviderID
-- ProviderName
-- ProviderType
-- Status
-
-### Rating
-
-- RatingID
-- TripID
-- CustomerID
-- DriverID
-- RatingValue
-- Comment
-- CreatedAt
-
-### Audit Log
-
-- AuditLogID
-- UserID
-- Action
-- Target
-- CreatedAt
-
-### User/Admin
-
-- UserID
-- FullName
-- Username
-- Password
-- Role
-- Status
-
-## 9.3. Các mối quan hệ chính
-
-- Một **Customer** có thể tạo nhiều **Trip**.
-- Một **Driver** có thể thực hiện nhiều **Trip**.
-- Một **Driver** có thể quản lý/sử dụng một hoặc nhiều **Vehicle**.
-- Một **Trip** thuộc về một **Customer** và có thể được phân công cho một **Driver**.
-- Một **Trip** có nhiều lần cập nhật **Trip Status**.
-- Một **Driver** có nhiều thông tin **Driver Location** theo thời gian.
-- Một **Trip** có thông tin **Payment** tương ứng.
-- Một **Payment** được xử lý thông qua **Payment Provider**.
-- Một **Trip** có thể phát sinh nhiều **Notification**.
-- Một **Notification** được gửi thông qua **Notification Provider**.
-- Một **Trip** có thể có một **Rating** từ Customer đối với Driver.
-- Một **User/Admin** có thể phát sinh nhiều **Audit Log**.
-
-## 9.4. ERD – Entity Relationship Diagram
+## 9.2. ERD – Entity Relationship Diagram
 
 ```mermaid
 erDiagram
@@ -1093,3 +814,72 @@ erDiagram
         string Target
         datetime CreatedAt
     }
+```
+---
+# 10. Thiết kế các Non-Functional Requirements của hệ thống
+
+## 10.1. Performance – Hiệu năng
+
+- **NFR01: Khả năng đáp ứng**  
+  Hệ thống phải có khả năng phục vụ số lượng lớn khách hàng và tài xế trong cùng thời điểm.
+
+- **NFR02: Khả năng xử lý khi nhu cầu tăng cao**  
+  Hệ thống phải hoạt động ổn định trong các thời điểm có lượng yêu cầu đặt xe tăng cao.
+
+## 10.2. Scalability – Khả năng mở rộng
+
+- **NFR03: Khả năng mở rộng hệ thống**  
+  Hệ thống phải có khả năng mở rộng khi số lượng khách hàng, tài xế và giao dịch tăng.
+
+- **NFR04: Khả năng mở rộng độc lập**  
+  Các thành phần của hệ thống phải có khả năng mở rộng độc lập khi tải tăng.
+
+- **NFR05: Khả năng mở rộng chức năng**  
+  Hệ thống phải có kiến trúc linh hoạt để có thể bổ sung loại dịch vụ, phương thức thanh toán và nhà cung cấp thông báo mới trong tương lai.
+
+## 10.3. Availability & Reliability – Tính sẵn sàng và độ tin cậy
+
+- **NFR06: Hệ thống hoạt động ổn định**  
+  Hệ thống phải duy trì hoạt động ổn định trong quá trình phục vụ khách hàng và tài xế.
+
+- **NFR07: Không ảnh hưởng toàn hệ thống khi một thành phần gặp lỗi**  
+  Lỗi xảy ra tại các thành phần như thanh toán hoặc thông báo không được làm toàn bộ hệ thống đặt xe ngừng hoạt động.
+
+- **NFR08: Khả năng xử lý lỗi**  
+  Hệ thống phải có khả năng xử lý các lỗi phát sinh từ các thành phần bên ngoài mà hạn chế ảnh hưởng đến các chức năng chính.
+
+## 10.4. Security – Bảo mật
+
+- **NFR09: Xác thực người dùng**  
+  Khách hàng và tài xế phải được xác thực trước khi sử dụng các chức năng yêu cầu tài khoản.
+
+- **NFR10: Phân quyền truy cập**  
+  Các chức năng quản trị phải được kiểm soát bằng cơ chế phân quyền.
+
+- **NFR11: Bảo vệ dữ liệu**  
+  Thông tin cá nhân, thông tin phương tiện, dữ liệu vị trí và dữ liệu giao dịch phải được bảo vệ.
+
+- **NFR12: Bảo vệ thông tin thanh toán**  
+  Thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán không được lưu trực tiếp trên hệ thống CAB.
+
+- **NFR13: Audit Log**  
+  Hệ thống phải lưu vết các thao tác quan trọng để phục vụ kiểm tra và truy vết khi xảy ra sự cố.
+
+## 10.5. Maintainability & Extensibility – Khả năng bảo trì và mở rộng
+
+- **NFR14: Triển khai chức năng từng phần**  
+  Các chức năng mới phải có khả năng được triển khai từng phần và hạn chế ảnh hưởng đến các chức năng đang hoạt động.
+
+- **NFR15: Thay thế thành phần kỹ thuật**  
+  Hệ thống phải có khả năng thay đổi một số thành phần kỹ thuật mà không phải xây dựng lại toàn bộ ứng dụng.
+
+- **NFR16: Mở rộng kênh thông báo**  
+  Hệ thống phải cho phép bổ sung thêm các kênh hoặc nhà cung cấp thông báo trong tương lai mà không phải thay đổi toàn bộ hệ thống.
+
+## 10.6. Integration – Khả năng tích hợp
+
+- **NFR17: Tích hợp nhà cung cấp thanh toán**  
+  Hệ thống phải có khả năng tích hợp với nhà cung cấp dịch vụ thanh toán bên ngoài.
+
+- **NFR18: Tích hợp nhà cung cấp thông báo**  
+  Hệ thống phải có khả năng tích hợp với các nhà cung cấp dịch vụ thông báo và hỗ trợ mở rộng thêm nhà cung cấp trong tương lai.
