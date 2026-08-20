@@ -1447,4 +1447,269 @@ flowchart LR
   4. Dữ liệu được lưu để phục vụ kiểm tra.
 - **Hậu điều kiện:** Thao tác được ghi nhận vào nhật ký hệ thống.
 
-# 12.
+# 12. Xác định các Acceptance Criterias - Những tiêu chí chấp nhận (AC) - Giúp cho người làm phần mềm xác định được khi nào kết thúc và được nghiệm thu
+
+## 12.1. Acceptance Criteria cho các chức năng chính
+
+### AC01 – Đăng ký tài khoản
+
+- **Given:** Khách hàng chưa có tài khoản.
+- **When:** Khách hàng nhập đầy đủ thông tin hợp lệ và thực hiện đăng ký.
+- **Then:** Hệ thống phải tạo tài khoản thành công và thông báo kết quả cho khách hàng.
+
+- **Given:** Thông tin đăng ký không hợp lệ hoặc tài khoản đã tồn tại.
+- **When:** Khách hàng thực hiện đăng ký.
+- **Then:** Hệ thống phải thông báo lỗi và không tạo tài khoản không hợp lệ.
+
+---
+
+### AC02 – Đăng nhập
+
+- **Given:** Người dùng đã có tài khoản hợp lệ.
+- **When:** Người dùng nhập đúng thông tin đăng nhập.
+- **Then:** Hệ thống phải xác thực thành công và cho phép người dùng truy cập các chức năng tương ứng với quyền của mình.
+
+- **Given:** Thông tin đăng nhập không chính xác.
+- **When:** Người dùng thực hiện đăng nhập.
+- **Then:** Hệ thống phải từ chối đăng nhập và thông báo lỗi.
+
+---
+
+### AC03 – Đặt chuyến
+
+- **Given:** Khách hàng đã đăng nhập.
+- **When:** Khách hàng nhập điểm đón, điểm đến, lựa chọn loại xe và gửi yêu cầu.
+- **Then:** Hệ thống phải ghi nhận yêu cầu đặt chuyến và bắt đầu quá trình tìm tài xế.
+
+- **Given:** Thông tin đặt chuyến không hợp lệ.
+- **When:** Khách hàng gửi yêu cầu.
+- **Then:** Hệ thống phải thông báo lỗi và yêu cầu khách hàng điều chỉnh thông tin.
+
+---
+
+### AC04 – Tìm tài xế
+
+- **Given:** Một yêu cầu đặt chuyến đã được tạo.
+- **When:** Hệ thống bắt đầu tìm tài xế.
+- **Then:** Hệ thống phải xác định các tài xế phù hợp dựa trên vị trí, trạng thái sẵn sàng và các tiêu chí vận hành.
+
+- **Given:** Tài xế được đề xuất từ chối chuyến.
+- **When:** Hệ thống nhận được phản hồi từ chối.
+- **Then:** Hệ thống phải tiếp tục tìm tài xế khác mà không yêu cầu khách hàng tạo lại yêu cầu.
+
+- **Given:** Tài xế không phản hồi.
+- **When:** Thời gian phản hồi theo chính sách doanh nghiệp đã hết.
+- **Then:** Hệ thống phải chuyển sang tìm tài xế khác.
+
+- **Given:** Không còn tài xế phù hợp.
+- **When:** Hệ thống hoàn tất quá trình tìm kiếm.
+- **Then:** Hệ thống phải thông báo rõ ràng cho khách hàng rằng không tìm được tài xế.
+
+---
+
+### AC05 – Nhận chuyến
+
+- **Given:** Tài xế đang ở trạng thái sẵn sàng và nhận được yêu cầu phù hợp.
+- **When:** Tài xế chấp nhận chuyến.
+- **Then:** Hệ thống phải ghi nhận tài xế và phân công tài xế cho chuyến.
+
+- **Given:** Tài xế từ chối chuyến.
+- **When:** Tài xế chọn từ chối.
+- **Then:** Hệ thống phải tiếp tục quá trình tìm tài xế khác.
+
+---
+
+### AC06 – Theo dõi chuyến đi
+
+- **Given:** Khách hàng có một chuyến đang được xử lý.
+- **When:** Trạng thái chuyến hoặc thông tin tài xế thay đổi.
+- **Then:** Hệ thống phải cập nhật trạng thái để khách hàng có thể theo dõi.
+
+- **Given:** Một tài xế đã nhận chuyến.
+- **When:** Khách hàng xem thông tin chuyến.
+- **Then:** Hệ thống phải hiển thị thông tin tài xế và thời gian dự kiến tài xế đến.
+
+---
+
+### AC07 – Cập nhật trạng thái chuyến
+
+- **Given:** Tài xế đã được phân công cho chuyến.
+- **When:** Tài xế cập nhật trạng thái.
+- **Then:** Hệ thống phải ghi nhận các trạng thái tương ứng:
+  - Đã đến điểm đón.
+  - Đã đón khách.
+  - Đang di chuyển.
+  - Hoàn thành chuyến.
+
+- **Given:** Tài xế cập nhật trạng thái chuyến.
+- **When:** Hệ thống nhận được cập nhật.
+- **Then:** Trạng thái chuyến phải được cập nhật để khách hàng có thể theo dõi.
+
+---
+
+### AC08 – Tính cước
+
+- **Given:** Chuyến đi đã hoàn thành.
+- **When:** Hệ thống thực hiện tính cước.
+- **Then:** Hệ thống phải xác định số tiền khách hàng phải trả dựa trên loại dịch vụ và thông tin chuyến đi.
+
+> **Lưu ý:** Công thức tính cước chưa được khách hàng chốt, vì vậy tiêu chí chi tiết về cách tính tiền cần được xác nhận trước khi nghiệm thu.
+
+---
+
+### AC09 – Thanh toán
+
+- **Given:** Chuyến đi đã hoàn thành và hệ thống đã xác định số tiền phải trả.
+- **When:** Khách hàng lựa chọn thanh toán bằng tiền mặt.
+- **Then:** Hệ thống phải ghi nhận phương thức và kết quả thanh toán.
+
+- **Given:** Khách hàng lựa chọn thanh toán điện tử.
+- **When:** Payment Provider xử lý giao dịch thành công.
+- **Then:** Hệ thống phải ghi nhận giao dịch thành công và thông báo kết quả cho khách hàng.
+
+- **Given:** Thanh toán điện tử thất bại.
+- **When:** Payment Provider trả về kết quả thất bại.
+- **Then:** Hệ thống phải thông báo cho khách hàng và cho phép xử lý lại theo chính sách của doanh nghiệp.
+
+- **Given:** Payment Provider gặp sự cố.
+- **When:** Giao dịch không thể xử lý.
+- **Then:** Sự cố thanh toán không được làm toàn bộ hệ thống đặt xe ngừng hoạt động.
+
+---
+
+### AC10 – Gửi thông báo
+
+- **Given:** Một sự kiện cần gửi thông báo xảy ra.
+- **When:** Hệ thống xác định người nhận.
+- **Then:** Hệ thống phải gửi thông báo đến đúng đối tượng.
+
+Hệ thống phải hỗ trợ thông báo cho các sự kiện chính:
+
+- Yêu cầu đặt xe được tiếp nhận.
+- Tài xế nhận chuyến.
+- Tài xế đến điểm đón.
+- Chuyến đi hoàn thành.
+- Thanh toán có kết quả.
+- Có chuyến mới hoặc thay đổi liên quan đến chuyến đối với tài xế.
+
+- **Given:** Nhà cung cấp thông báo gặp sự cố.
+- **When:** Không thể gửi thông báo.
+- **Then:** Sự cố không được làm toàn bộ hệ thống đặt xe ngừng hoạt động.
+
+---
+
+### AC11 – Lịch sử chuyến đi
+
+- **Given:** Khách hàng đã đăng nhập.
+- **When:** Khách hàng truy cập lịch sử chuyến đi.
+- **Then:** Hệ thống phải hiển thị các chuyến đã thực hiện và thông tin liên quan.
+
+---
+
+### AC12 – Đánh giá tài xế
+
+- **Given:** Chuyến đi đã hoàn thành.
+- **When:** Khách hàng thực hiện đánh giá tài xế.
+- **Then:** Hệ thống phải ghi nhận đánh giá.
+
+- **Given:** Chuyến đi chưa hoàn thành.
+- **When:** Khách hàng cố gắng đánh giá tài xế.
+- **Then:** Hệ thống không cho phép đánh giá.
+
+---
+
+### AC13 – Quản lý khách hàng
+
+- **Given:** Nhân viên vận hành đã đăng nhập và có quyền phù hợp.
+- **When:** Nhân viên truy cập chức năng quản lý khách hàng.
+- **Then:** Hệ thống phải cho phép nhân viên tra cứu và thực hiện các thao tác được cấp quyền.
+
+- **Given:** Nhân viên không có quyền thực hiện thao tác.
+- **When:** Nhân viên cố gắng thực hiện thao tác nhạy cảm.
+- **Then:** Hệ thống phải từ chối thao tác.
+
+---
+
+### AC14 – Quản lý tài xế và phương tiện
+
+- **Given:** Nhân viên vận hành có quyền phù hợp.
+- **When:** Nhân viên truy cập thông tin tài xế.
+- **Then:** Hệ thống phải cho phép xem và quản lý thông tin tài xế, hồ sơ và phương tiện theo quyền được cấp.
+
+---
+
+### AC15 – Quản lý chuyến đi
+
+- **Given:** Nhân viên vận hành đã đăng nhập và có quyền phù hợp.
+- **When:** Nhân viên truy cập chức năng quản lý chuyến.
+- **Then:** Hệ thống phải cho phép nhân viên xem các chuyến đang diễn ra, kiểm tra trạng thái tài xế và hỗ trợ xử lý các trường hợp chuyến bị lỗi.
+
+---
+
+### AC16 – Tra cứu lịch sử giao dịch
+
+- **Given:** Nhân viên vận hành có quyền tra cứu.
+- **When:** Nhân viên tìm kiếm lịch sử giao dịch.
+- **Then:** Hệ thống phải hiển thị thông tin giao dịch tương ứng.
+
+- **Given:** Nhân viên không có quyền.
+- **When:** Nhân viên truy cập dữ liệu giao dịch.
+- **Then:** Hệ thống phải từ chối truy cập.
+
+---
+
+### AC17 – Báo cáo hoạt động
+
+- **Given:** Người dùng có quyền xem báo cáo.
+- **When:** Người dùng truy cập chức năng báo cáo.
+- **Then:** Hệ thống phải cung cấp các thông tin:
+  - Số lượng chuyến.
+  - Doanh thu.
+  - Tỷ lệ chuyến hoàn thành.
+  - Tỷ lệ hủy.
+  - Hiệu quả hoạt động của tài xế.
+
+---
+
+### AC18 – Bảo mật và phân quyền
+
+- **Given:** Người dùng chưa được xác thực.
+- **When:** Người dùng truy cập chức năng yêu cầu tài khoản.
+- **Then:** Hệ thống phải yêu cầu xác thực.
+
+- **Given:** Người dùng không có quyền thực hiện một thao tác.
+- **When:** Người dùng cố gắng thực hiện thao tác đó.
+- **Then:** Hệ thống phải từ chối truy cập.
+
+---
+
+### AC19 – Bảo vệ dữ liệu thanh toán
+
+- **Given:** Khách hàng thực hiện thanh toán điện tử.
+- **When:** Giao dịch được xử lý.
+- **Then:** Hệ thống CAB không được lưu trực tiếp thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán.
+
+---
+
+### AC20 – Khả năng mở rộng và độc lập thành phần
+
+- **Given:** Một thành phần như Payment Provider hoặc Notification Provider gặp sự cố.
+- **When:** Thành phần đó không thể hoạt động.
+- **Then:** Các chức năng chính của hệ thống đặt xe không được ngừng hoạt động hoàn toàn.
+
+- **Given:** Doanh nghiệp cần bổ sung loại dịch vụ, phương thức thanh toán hoặc nhà cung cấp thông báo.
+- **When:** Thực hiện mở rộng hệ thống.
+- **Then:** Kiến trúc hệ thống phải cho phép bổ sung mà hạn chế ảnh hưởng đến các chức năng đang hoạt động.
+
+## 12.2. Các Acceptance Criteria cần xác nhận với khách hàng
+
+Một số tiêu chí chưa thể xác định cụ thể vì khách hàng chưa chốt yêu cầu:
+
+- **AC21:** Thời gian tối đa tài xế phải phản hồi yêu cầu chuyến.
+- **AC22:** Thời gian tối đa hệ thống thực hiện tìm tài xế.
+- **AC23:** Tiêu chí và thứ tự ưu tiên tài xế.
+- **AC24:** Công thức và quy tắc tính cước.
+- **AC25:** Chính sách hủy chuyến.
+- **AC26:** Chính sách xử lý khi mất kết nối mạng.
+- **AC27:** Thời gian lưu trữ dữ liệu.
+- **AC28:** Các mức hiệu năng và khả năng chịu tải cụ thể của hệ thống.
