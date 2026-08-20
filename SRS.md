@@ -62,6 +62,9 @@ Hệ thống CAB mới hướng đến các mục tiêu:
 
 ## 2.2. Stakeholders Matrix
 
+Ma trận Stakeholders được sử dụng để thể hiện **tầm ảnh hưởng** và **vai trò** của các bên liên quan đối với hệ thống CAB.
+
+```mermaid
 quadrantChart
     title Stakeholders Matrix - CAB System
     x-axis "Vai trò thấp" --> "Vai trò cao"
@@ -78,3 +81,4 @@ quadrantChart
     "Tài xế": [0.90, 0.50]
     "Đơn vị thanh toán": [0.45, 0.45]
     "Đơn vị cung cấp thông báo": [0.35, 0.30]
+```
