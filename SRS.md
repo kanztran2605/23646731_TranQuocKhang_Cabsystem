@@ -886,7 +886,6 @@ erDiagram
 ---
 
 # 11. Xác định và vẽ các Usecase(UC) - Đặc tả Usecase (Specification)
-# 11. Xác định và vẽ các Use Case (UC) - Đặc tả Use Case (Specification)
 
 ## 11.1. Xác định Actors
 
@@ -1013,3 +1012,437 @@ flowchart LR
     UC13 -.->|include| UC15
     UC06 -.->|include| UC15
     UC10 -.->|include| UC15
+```
+---
+## 11.4. Use Case Specification – Đặc tả Use Case
+
+### UC01 – Đăng ký tài khoản
+
+- **Actor:** Customer
+- **Mục đích:** Cho phép khách hàng tạo tài khoản để sử dụng các chức năng của hệ thống.
+- **Tiền điều kiện:** Khách hàng chưa có tài khoản.
+- **Luồng chính:**
+  1. Khách hàng chọn chức năng đăng ký.
+  2. Khách hàng nhập thông tin đăng ký.
+  3. Hệ thống kiểm tra thông tin.
+  4. Hệ thống tạo tài khoản.
+  5. Hệ thống thông báo đăng ký thành công.
+- **Luồng ngoại lệ:**
+  - Thông tin đăng ký không hợp lệ → Hệ thống yêu cầu khách hàng nhập lại.
+  - Thông tin tài khoản đã tồn tại → Hệ thống thông báo và yêu cầu sử dụng thông tin khác.
+- **Hậu điều kiện:** Tài khoản khách hàng được tạo thành công.
+
+---
+
+### UC02 – Đăng nhập
+
+- **Actor:** Customer, Driver, Operation Staff
+- **Mục đích:** Cho phép người dùng xác thực và truy cập các chức năng tương ứng với quyền của mình.
+- **Tiền điều kiện:** Người dùng đã có tài khoản.
+- **Luồng chính:**
+  1. Người dùng nhập thông tin đăng nhập.
+  2. Hệ thống xác thực thông tin.
+  3. Hệ thống xác định quyền của người dùng.
+  4. Hệ thống cho phép truy cập.
+- **Luồng ngoại lệ:**
+  - Thông tin đăng nhập không chính xác → Hệ thống thông báo lỗi.
+  - Tài khoản không hợp lệ → Hệ thống từ chối đăng nhập.
+- **Hậu điều kiện:** Người dùng đăng nhập thành công.
+
+---
+
+### UC03 – Quản lý thông tin cá nhân
+
+- **Actor:** Customer
+- **Mục đích:** Cho phép khách hàng cập nhật thông tin cá nhân.
+- **Tiền điều kiện:** Khách hàng đã đăng nhập.
+- **Luồng chính:**
+  1. Khách hàng truy cập thông tin cá nhân.
+  2. Khách hàng chỉnh sửa thông tin.
+  3. Khách hàng lưu thay đổi.
+  4. Hệ thống kiểm tra và cập nhật thông tin.
+- **Luồng ngoại lệ:**
+  - Thông tin không hợp lệ → Hệ thống yêu cầu nhập lại.
+- **Hậu điều kiện:** Thông tin cá nhân được cập nhật.
+
+---
+
+### UC04 – Quản lý hồ sơ và phương tiện
+
+- **Actor:** Driver, Operation Staff
+- **Mục đích:** Quản lý thông tin hồ sơ và phương tiện của tài xế.
+- **Tiền điều kiện:** Người dùng đã đăng nhập và có quyền phù hợp.
+- **Luồng chính:**
+  1. Người dùng truy cập thông tin tài xế.
+  2. Người dùng xem hoặc cập nhật hồ sơ.
+  3. Người dùng xem hoặc cập nhật thông tin phương tiện.
+  4. Hệ thống kiểm tra và lưu thông tin.
+- **Luồng ngoại lệ:**
+  - Người dùng không có quyền → Hệ thống từ chối thao tác.
+  - Thông tin không hợp lệ → Hệ thống yêu cầu nhập lại.
+- **Hậu điều kiện:** Thông tin hồ sơ hoặc phương tiện được cập nhật.
+
+---
+
+### UC05 – Cập nhật trạng thái sẵn sàng
+
+- **Actor:** Driver
+- **Mục đích:** Cho phép tài xế chuyển sang trạng thái sẵn sàng để nhận chuyến.
+- **Tiền điều kiện:** Tài xế đã đăng nhập.
+- **Luồng chính:**
+  1. Tài xế truy cập trạng thái hoạt động.
+  2. Tài xế chuyển sang trạng thái sẵn sàng.
+  3. Hệ thống cập nhật trạng thái.
+  4. Hệ thống đưa tài xế vào danh sách có thể được xem xét để phân công.
+- **Luồng ngoại lệ:**
+  - Tài xế không đáp ứng điều kiện hoạt động → Hệ thống không cho phép chuyển sang trạng thái sẵn sàng.
+- **Hậu điều kiện:** Trạng thái tài xế được cập nhật.
+
+---
+
+### UC06 – Đặt chuyến
+
+- **Actor:** Customer
+- **Mục đích:** Cho phép khách hàng tạo yêu cầu đặt xe.
+- **Tiền điều kiện:** Khách hàng đã đăng nhập.
+- **Luồng chính:**
+  1. Khách hàng chọn chức năng đặt chuyến.
+  2. Khách hàng nhập điểm đón.
+  3. Khách hàng nhập điểm đến.
+  4. Khách hàng lựa chọn loại xe/dịch vụ.
+  5. Khách hàng gửi yêu cầu đặt chuyến.
+  6. Hệ thống tiếp nhận yêu cầu.
+  7. Hệ thống bắt đầu tìm tài xế.
+  8. Hệ thống thông báo trạng thái tìm tài xế cho khách hàng.
+- **Luồng ngoại lệ:**
+  - Thông tin chuyến không hợp lệ → Hệ thống yêu cầu khách hàng nhập lại.
+  - Không tìm được tài xế → Hệ thống thông báo cho khách hàng.
+  - Tìm tài xế quá lâu → Hệ thống xử lý theo chính sách của doanh nghiệp.
+- **Hậu điều kiện:** Yêu cầu đặt chuyến được ghi nhận và chuyển sang quá trình tìm tài xế.
+
+---
+
+### UC07 – Tìm tài xế
+
+- **Actor:** System
+- **Mục đích:** Tìm tài xế phù hợp để thực hiện chuyến đi.
+- **Tiền điều kiện:** Khách hàng đã tạo yêu cầu đặt chuyến.
+- **Luồng chính:**
+  1. Hệ thống nhận yêu cầu tìm tài xế.
+  2. Hệ thống xác định vị trí khách hàng.
+  3. Hệ thống xác định các tài xế đang sẵn sàng.
+  4. Hệ thống kiểm tra mức độ phù hợp của tài xế.
+  5. Hệ thống ưu tiên tài xế phù hợp và gần khách hàng.
+  6. Hệ thống gửi yêu cầu chuyến đến tài xế được lựa chọn.
+  7. Hệ thống chờ tài xế phản hồi.
+- **Luồng ngoại lệ:**
+  - Tài xế từ chối → Hệ thống tiếp tục tìm tài xế khác.
+  - Tài xế không phản hồi → Hệ thống tiếp tục tìm tài xế khác.
+  - Không còn tài xế phù hợp → Hệ thống thông báo cho khách hàng.
+  - Tìm tài xế quá lâu → Hệ thống xử lý theo chính sách của doanh nghiệp.
+- **Hậu điều kiện:** Tìm được tài xế phù hợp hoặc thông báo không tìm được tài xế.
+
+---
+
+### UC08 – Phân công tài xế
+
+- **Actor:** System
+- **Mục đích:** Xác nhận tài xế phù hợp cho chuyến đi.
+- **Tiền điều kiện:** Hệ thống đã tìm được tài xế và tài xế chấp nhận chuyến.
+- **Luồng chính:**
+  1. Hệ thống nhận phản hồi chấp nhận chuyến.
+  2. Hệ thống xác nhận tài xế.
+  3. Hệ thống gán tài xế cho chuyến.
+  4. Hệ thống cập nhật trạng thái chuyến.
+  5. Hệ thống thông báo cho khách hàng.
+- **Luồng ngoại lệ:**
+  - Tài xế không còn sẵn sàng → Hệ thống tiếp tục tìm tài xế khác.
+- **Hậu điều kiện:** Tài xế được phân công cho chuyến.
+
+---
+
+### UC09 – Nhận/Từ chối chuyến
+
+- **Actor:** Driver
+- **Mục đích:** Cho phép tài xế phản hồi yêu cầu chuyến.
+- **Tiền điều kiện:** Tài xế đang sẵn sàng và nhận được yêu cầu chuyến phù hợp.
+- **Luồng chính:**
+  1. Hệ thống gửi thông báo chuyến mới.
+  2. Tài xế xem thông tin chuyến.
+  3. Tài xế chọn chấp nhận hoặc từ chối.
+  4. Hệ thống ghi nhận phản hồi.
+  5. Nếu chấp nhận, hệ thống phân công chuyến cho tài xế.
+- **Luồng ngoại lệ:**
+  - Tài xế từ chối → Hệ thống tìm tài xế khác.
+  - Tài xế không phản hồi trong thời gian quy định → Hệ thống tìm tài xế khác.
+- **Hậu điều kiện:** Chuyến được nhận hoặc chuyển sang quá trình tìm tài xế khác.
+
+---
+
+### UC10 – Theo dõi chuyến đi
+
+- **Actor:** Customer
+- **Mục đích:** Cho phép khách hàng theo dõi trạng thái hiện tại của chuyến đi.
+- **Tiền điều kiện:** Khách hàng đã có chuyến đang được xử lý.
+- **Luồng chính:**
+  1. Khách hàng mở thông tin chuyến.
+  2. Hệ thống hiển thị trạng thái chuyến.
+  3. Hệ thống hiển thị thông tin tài xế đã nhận chuyến.
+  4. Hệ thống hiển thị thời gian dự kiến tài xế đến.
+  5. Hệ thống cập nhật trạng thái khi chuyến thay đổi.
+- **Hậu điều kiện:** Khách hàng nắm được trạng thái hiện tại của chuyến.
+
+---
+
+### UC11 – Cập nhật trạng thái chuyến
+
+- **Actor:** Driver
+- **Mục đích:** Cho phép tài xế cập nhật trạng thái trong quá trình thực hiện chuyến.
+- **Tiền điều kiện:** Tài xế đã được phân công cho chuyến.
+- **Luồng chính:**
+  1. Tài xế cập nhật trạng thái "Đã đến điểm đón".
+  2. Tài xế đón khách.
+  3. Tài xế cập nhật trạng thái "Đã đón khách".
+  4. Tài xế bắt đầu di chuyển.
+  5. Tài xế cập nhật trạng thái "Đang di chuyển".
+  6. Tài xế hoàn thành chuyến.
+  7. Tài xế cập nhật trạng thái "Hoàn thành".
+  8. Hệ thống cập nhật trạng thái chuyến.
+  9. Hệ thống thông báo cho khách hàng.
+- **Hậu điều kiện:** Trạng thái chuyến được cập nhật và chuyến được chuyển sang bước tính cước.
+
+---
+
+### UC12 – Tính cước
+
+- **Actor:** System
+- **Mục đích:** Xác định số tiền khách hàng phải trả sau khi chuyến hoàn thành.
+- **Tiền điều kiện:** Chuyến đi đã hoàn thành.
+- **Luồng chính:**
+  1. Hệ thống nhận thông tin chuyến hoàn thành.
+  2. Hệ thống xác định loại dịch vụ.
+  3. Hệ thống lấy thông tin chuyến đi cần thiết để tính cước.
+  4. Hệ thống tính số tiền phải trả.
+  5. Hệ thống ghi nhận số tiền phải trả.
+- **Luồng ngoại lệ:**
+  - Thông tin cần thiết để tính cước không đầy đủ → Hệ thống không hoàn tất tính cước và chuyển sang xử lý theo chính sách.
+- **Hậu điều kiện:** Số tiền khách hàng phải trả được xác định.
+
+> **Lưu ý:** Công thức tính cước chưa được khách hàng chốt nên chưa xác định chi tiết trong Use Case này.
+
+---
+
+### UC13 – Thanh toán chuyến đi
+
+- **Actor:** Customer
+- **Mục đích:** Cho phép khách hàng thanh toán số tiền phải trả.
+- **Tiền điều kiện:** Chuyến đi đã hoàn thành và hệ thống đã xác định số tiền phải trả.
+- **Luồng chính:**
+  1. Hệ thống hiển thị số tiền phải trả.
+  2. Khách hàng lựa chọn phương thức thanh toán.
+  3. Nếu chọn tiền mặt, hệ thống ghi nhận thanh toán tiền mặt.
+  4. Nếu chọn thanh toán điện tử, hệ thống gửi yêu cầu đến Payment Provider.
+  5. Hệ thống nhận kết quả giao dịch.
+  6. Hệ thống cập nhật trạng thái thanh toán.
+  7. Hệ thống thông báo kết quả cho khách hàng.
+- **Luồng ngoại lệ:**
+  - Thanh toán điện tử thất bại → Hệ thống thông báo cho khách hàng và cho phép xử lý lại theo chính sách doanh nghiệp.
+  - Payment Provider gặp sự cố → Hệ thống xử lý lỗi và không làm toàn bộ hệ thống đặt xe ngừng hoạt động.
+- **Hậu điều kiện:** Kết quả thanh toán được ghi nhận.
+
+---
+
+### UC14 – Xử lý thanh toán điện tử
+
+- **Actor:** Payment Provider
+- **Mục đích:** Xử lý giao dịch thanh toán điện tử.
+- **Tiền điều kiện:** Khách hàng lựa chọn phương thức thanh toán điện tử.
+- **Luồng chính:**
+  1. CAB System gửi yêu cầu thanh toán.
+  2. Payment Provider tiếp nhận yêu cầu.
+  3. Payment Provider xử lý giao dịch.
+  4. Payment Provider trả kết quả giao dịch.
+  5. CAB System ghi nhận kết quả.
+- **Luồng ngoại lệ:**
+  - Giao dịch thất bại → Trả kết quả thất bại cho CAB System.
+  - Payment Provider không phản hồi → CAB System xử lý theo cơ chế lỗi.
+- **Hậu điều kiện:** CAB System nhận được kết quả giao dịch.
+
+---
+
+### UC15 – Gửi thông báo
+
+- **Actor:** Notification Provider
+- **Mục đích:** Gửi thông báo đến khách hàng và tài xế.
+- **Tiền điều kiện:** Có sự kiện cần gửi thông báo.
+- **Luồng chính:**
+  1. CAB System phát sinh sự kiện.
+  2. Hệ thống xác định người nhận.
+  3. Hệ thống gửi yêu cầu đến Notification Provider.
+  4. Notification Provider gửi thông báo.
+  5. Hệ thống ghi nhận kết quả gửi.
+- **Luồng ngoại lệ:**
+  - Notification Provider gặp sự cố → Hệ thống ghi nhận lỗi và không làm chức năng đặt xe chính ngừng hoạt động.
+- **Hậu điều kiện:** Thông báo được gửi thành công hoặc được ghi nhận trạng thái gửi thất bại.
+
+---
+
+### UC16 – Xem lịch sử chuyến đi
+
+- **Actor:** Customer
+- **Mục đích:** Cho phép khách hàng xem lại các chuyến đã thực hiện.
+- **Tiền điều kiện:** Khách hàng đã đăng nhập.
+- **Luồng chính:**
+  1. Khách hàng chọn lịch sử chuyến đi.
+  2. Hệ thống truy xuất dữ liệu lịch sử.
+  3. Hệ thống hiển thị danh sách chuyến.
+  4. Khách hàng chọn một chuyến để xem chi tiết.
+- **Hậu điều kiện:** Thông tin lịch sử chuyến được hiển thị.
+
+---
+
+### UC17 – Đánh giá tài xế
+
+- **Actor:** Customer
+- **Mục đích:** Cho phép khách hàng đánh giá tài xế sau chuyến đi.
+- **Tiền điều kiện:** Chuyến đi đã hoàn thành.
+- **Luồng chính:**
+  1. Khách hàng mở thông tin chuyến đã hoàn thành.
+  2. Khách hàng chọn chức năng đánh giá.
+  3. Khách hàng nhập đánh giá.
+  4. Hệ thống kiểm tra thông tin.
+  5. Hệ thống lưu đánh giá.
+- **Luồng ngoại lệ:**
+  - Chuyến chưa hoàn thành → Không cho phép đánh giá.
+- **Hậu điều kiện:** Đánh giá tài xế được lưu.
+
+---
+
+### UC18 – Quản lý chuyến đi
+
+- **Actor:** Operation Staff
+- **Mục đích:** Cho phép nhân viên vận hành theo dõi và quản lý các chuyến đi.
+- **Tiền điều kiện:** Nhân viên đã đăng nhập và có quyền phù hợp.
+- **Luồng chính:**
+  1. Nhân viên truy cập chức năng quản lý chuyến.
+  2. Hệ thống hiển thị danh sách chuyến.
+  3. Nhân viên xem thông tin chuyến.
+  4. Nhân viên kiểm tra trạng thái chuyến.
+  5. Nhân viên theo dõi chuyến đang diễn ra.
+  6. Nhân viên thực hiện thao tác được cấp quyền.
+- **Luồng ngoại lệ:**
+  - Không có quyền → Hệ thống từ chối thao tác.
+  - Chuyến phát sinh lỗi → Chuyển sang UC19.
+- **Hậu điều kiện:** Thông tin chuyến được theo dõi hoặc xử lý.
+
+---
+
+### UC19 – Xử lý chuyến bị lỗi
+
+- **Actor:** Operation Staff
+- **Mục đích:** Hỗ trợ xử lý các trường hợp chuyến đi phát sinh lỗi.
+- **Tiền điều kiện:** Nhân viên vận hành đã đăng nhập và có quyền xử lý.
+- **Luồng chính:**
+  1. Hệ thống hoặc nhân viên phát hiện chuyến bị lỗi.
+  2. Nhân viên xem thông tin chuyến.
+  3. Nhân viên xác định tình trạng chuyến.
+  4. Nhân viên thực hiện thao tác xử lý phù hợp.
+  5. Hệ thống ghi nhận thao tác.
+- **Luồng ngoại lệ:**
+  - Nhân viên không có quyền xử lý → Hệ thống từ chối thao tác.
+- **Hậu điều kiện:** Trường hợp chuyến bị lỗi được xử lý hoặc ghi nhận để tiếp tục xử lý.
+
+---
+
+### UC20 – Quản lý khách hàng
+
+- **Actor:** Operation Staff
+- **Mục đích:** Cho phép nhân viên vận hành quản lý thông tin khách hàng.
+- **Tiền điều kiện:** Nhân viên đã đăng nhập và có quyền phù hợp.
+- **Luồng chính:**
+  1. Nhân viên truy cập danh sách khách hàng.
+  2. Hệ thống hiển thị thông tin khách hàng.
+  3. Nhân viên tra cứu thông tin.
+  4. Nhân viên thực hiện thao tác được cấp quyền.
+  5. Hệ thống ghi nhận thay đổi.
+- **Hậu điều kiện:** Thông tin khách hàng được quản lý theo quyền.
+
+---
+
+### UC21 – Quản lý tài xế
+
+- **Actor:** Operation Staff
+- **Mục đích:** Cho phép nhân viên vận hành quản lý tài xế.
+- **Tiền điều kiện:** Nhân viên đã đăng nhập và có quyền phù hợp.
+- **Luồng chính:**
+  1. Nhân viên truy cập danh sách tài xế.
+  2. Hệ thống hiển thị thông tin tài xế.
+  3. Nhân viên tra cứu hồ sơ và trạng thái tài xế.
+  4. Nhân viên thực hiện thao tác quản lý được cấp quyền.
+  5. Hệ thống ghi nhận thay đổi.
+- **Hậu điều kiện:** Thông tin tài xế được quản lý.
+
+---
+
+### UC22 – Tra cứu lịch sử giao dịch
+
+- **Actor:** Operation Staff
+- **Mục đích:** Cho phép nhân viên vận hành tra cứu lịch sử giao dịch.
+- **Tiền điều kiện:** Nhân viên đã đăng nhập và có quyền phù hợp.
+- **Luồng chính:**
+  1. Nhân viên truy cập lịch sử giao dịch.
+  2. Hệ thống hiển thị danh sách giao dịch.
+  3. Nhân viên tra cứu giao dịch.
+  4. Nhân viên xem chi tiết giao dịch.
+- **Luồng ngoại lệ:**
+  - Không có quyền truy cập → Hệ thống từ chối.
+- **Hậu điều kiện:** Thông tin giao dịch được hiển thị.
+
+---
+
+### UC23 – Xem báo cáo hoạt động
+
+- **Actor:** Management
+- **Mục đích:** Cung cấp dữ liệu phục vụ ban lãnh đạo theo dõi và đánh giá hoạt động kinh doanh.
+- **Tiền điều kiện:** Người dùng có quyền xem báo cáo.
+- **Luồng chính:**
+  1. Ban lãnh đạo truy cập chức năng báo cáo.
+  2. Hệ thống tổng hợp dữ liệu.
+  3. Hệ thống hiển thị số lượng chuyến.
+  4. Hệ thống hiển thị doanh thu.
+  5. Hệ thống hiển thị tỷ lệ chuyến hoàn thành.
+  6. Hệ thống hiển thị tỷ lệ hủy.
+  7. Hệ thống hiển thị hiệu quả hoạt động của tài xế.
+- **Hậu điều kiện:** Báo cáo được hiển thị cho người có quyền.
+
+---
+
+### UC24 – Quản lý phân quyền
+
+- **Actor:** Operation Staff
+- **Mục đích:** Kiểm soát quyền truy cập các chức năng quản trị.
+- **Tiền điều kiện:** Nhân viên có quyền quản lý phân quyền.
+- **Luồng chính:**
+  1. Nhân viên truy cập chức năng phân quyền.
+  2. Hệ thống hiển thị các quyền và người dùng tương ứng.
+  3. Nhân viên lựa chọn quyền cần quản lý.
+  4. Nhân viên thực hiện thay đổi quyền.
+  5. Hệ thống kiểm tra quyền của người thực hiện.
+  6. Hệ thống lưu thay đổi.
+- **Luồng ngoại lệ:**
+  - Người thực hiện không có quyền → Hệ thống từ chối thao tác.
+- **Hậu điều kiện:** Quyền truy cập được cập nhật.
+
+---
+
+### UC25 – Lưu vết thao tác
+
+- **Actor:** System
+- **Mục đích:** Lưu lại các thao tác quan trọng để phục vụ kiểm tra và truy vết khi có sự cố.
+- **Tiền điều kiện:** Có thao tác thuộc nhóm cần lưu vết.
+- **Luồng chính:**
+  1. Người dùng thực hiện thao tác quan trọng.
+  2. Hệ thống xác định thao tác cần lưu vết.
+  3. Hệ thống ghi nhận thông tin thao tác.
+  4. Dữ liệu được lưu để phục vụ kiểm tra.
+- **Hậu điều kiện:** Thao tác được ghi nhận vào nhật ký hệ thống.
