@@ -47,15 +47,34 @@ Hệ thống CAB mới hướng đến các mục tiêu:
 * Lỗi tại một thành phần như thanh toán hoặc thông báo không được làm toàn bộ hệ thống đặt xe ngừng hoạt động.
 * Hệ thống cần có khả năng mở rộng và triển khai thêm chức năng mà hạn chế ảnh hưởng đến các chức năng đang hoạt động.
 
-## 1.6. Key Stakeholders – Các bên liên quan chính
-
-| Stakeholder               | Mối quan tâm chính                                               |
-| ------------------------- | ---------------------------------------------------------------- |
-| Ban lãnh đạo              | Hiệu quả kinh doanh, doanh thu, khả năng mở rộng và báo cáo      |
-| Khách hàng                | Đặt xe nhanh, theo dõi chuyến, thanh toán và trải nghiệm dịch vụ |
-| Tài xế                    | Nhận chuyến, cập nhật trạng thái, quản lý hồ sơ và phương tiện   |
-| Nhân viên vận hành        | Quản lý và giám sát khách hàng, tài xế, chuyến đi và sự cố       |
-| Đơn vị thanh toán         | Xử lý giao dịch thanh toán điện tử                               |
-| Đơn vị cung cấp thông báo | Gửi thông báo đến khách hàng và tài xế                           |
-
 # 2. Xác định stakeholders (Các bên liên quan của hệ thống) - Lập 1 bảng 2 cột: Tên - Vai trò - Vẽ 1 Ma trận tên: Stakeholders Matrix cho biết tầm ảnh hưởng và vai trò của Stakeholders trong hệ thống
+
+## 2.1. Key Stakeholders – Các bên liên quan chính
+
+| Stakeholder | Vai trò |
+|---|---|
+| **Ban lãnh đạo** | Định hướng mục tiêu kinh doanh, phê duyệt các yêu cầu quan trọng, theo dõi doanh thu, hiệu quả hoạt động và khả năng mở rộng của hệ thống. |
+| **Khách hàng** | Sử dụng hệ thống để đăng ký, đặt xe, theo dõi chuyến đi, thanh toán, xem lịch sử chuyến và đánh giá tài xế. |
+| **Tài xế** | Sử dụng hệ thống để quản lý hồ sơ và phương tiện, cập nhật trạng thái hoạt động, nhận hoặc từ chối chuyến, cập nhật trạng thái chuyến và hoàn thành chuyến. |
+| **Nhân viên vận hành** | Quản lý và giám sát khách hàng, tài xế, phương tiện và chuyến đi; theo dõi các chuyến đang diễn ra và xử lý các trường hợp phát sinh. |
+| **Đơn vị thanh toán** | Cung cấp dịch vụ xử lý và xác nhận các giao dịch thanh toán điện tử giữa khách hàng và hệ thống CAB. |
+| **Đơn vị cung cấp thông báo** | Cung cấp các dịch vụ gửi thông báo đến khách hàng và tài xế về trạng thái đặt xe, chuyến đi và thanh toán. |
+
+## 2.2. Stakeholders Matrix
+
+quadrantChart
+    title Stakeholders Matrix - CAB System
+    x-axis "Vai trò thấp" --> "Vai trò cao"
+    y-axis "Tầm ảnh hưởng thấp" --> "Tầm ảnh hưởng cao"
+
+    quadrant-1 "Ảnh hưởng cao - Vai trò cao"
+    quadrant-2 "Ảnh hưởng cao - Vai trò thấp"
+    quadrant-3 "Ảnh hưởng thấp - Vai trò thấp"
+    quadrant-4 "Ảnh hưởng thấp - Vai trò cao"
+
+    "Ban lãnh đạo": [0.75, 0.95]
+    "Nhân viên vận hành": [0.90, 0.75]
+    "Khách hàng": [0.95, 0.55]
+    "Tài xế": [0.90, 0.50]
+    "Đơn vị thanh toán": [0.45, 0.45]
+    "Đơn vị cung cấp thông báo": [0.35, 0.30]
