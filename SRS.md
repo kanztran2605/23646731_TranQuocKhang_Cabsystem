@@ -26,19 +26,7 @@ Công ty ABC cần xây dựng một nền tảng CAB System mới nhằm **tự
 
 Hệ thống đồng thời phải hỗ trợ bộ phận vận hành trong việc quản lý và giám sát hoạt động, đảm bảo an toàn dữ liệu và có khả năng mở rộng để đáp ứng các nhu cầu kinh doanh trong tương lai.
 
-## 1.4. Business Goals – Mục tiêu kinh doanh
-
-Hệ thống CAB mới hướng đến các mục tiêu:
-
-1. Tự động hóa quy trình tìm kiếm và phân công tài xế.
-2. Cải thiện trải nghiệm khách hàng thông qua khả năng theo dõi trạng thái chuyến đi.
-3. Quản lý tập trung và an toàn thông tin thanh toán.
-4. Nâng cao hiệu quả vận hành và khả năng xử lý sự cố.
-5. Cung cấp dữ liệu và báo cáo phục vụ việc quản lý, đánh giá hoạt động kinh doanh.
-6. Đảm bảo hệ thống có khả năng mở rộng khi số lượng người dùng và giao dịch tăng.
-7. Tạo nền tảng linh hoạt để có thể bổ sung dịch vụ, phương thức thanh toán và các kênh thông báo mới trong tương lai.
-
-## 1.5. Business Constraints – Ràng buộc kinh doanh
+## 1.4. Business Constraints – Ràng buộc kinh doanh
 
 * Thời gian xây dựng và triển khai hệ thống là **7 tuần**.
 * Hệ thống phải phục vụ được số lượng lớn khách hàng và tài xế.
@@ -48,8 +36,8 @@ Hệ thống CAB mới hướng đến các mục tiêu:
 * Hệ thống cần có khả năng mở rộng và triển khai thêm chức năng mà hạn chế ảnh hưởng đến các chức năng đang hoạt động.
 
 # 2. Xác định stakeholders (Các bên liên quan của hệ thống):
-# - Lập 1 bảng 2 cột: Tên - Vai trò 
-# - Vẽ 1 Ma trận tên: Stakeholders Matrix cho biết tầm ảnh hưởng và vai trò của Stakeholders trong hệ thống
+## - Lập 1 bảng 2 cột: Tên - Vai trò 
+## - Vẽ 1 Ma trận tên: Stakeholders Matrix cho biết tầm ảnh hưởng và vai trò của Stakeholders trong hệ thống
 
 ## 2.1. Key Stakeholders – Các bên liên quan chính
 
@@ -86,8 +74,8 @@ quadrantChart
 ```
 
 # 3. Xác định Business Goals - Thiết kế các mục tiêu mình thấy 
-# - VD: BG01: Tự động tìm tài xế - Mục đích: Hệ thống này phải có khả năng tự động tìm tài xế 
-# - VD: BG02: Hỗ trợ thanh toán - Mục đích: Hỗ trợ tiền mặt và trực tuyến
+## - VD: BG01: Tự động tìm tài xế - Mục đích: Hệ thống này phải có khả năng tự động tìm tài xế 
+## - VD: BG02: Hỗ trợ thanh toán - Mục đích: Hỗ trợ tiền mặt và trực tuyến
 
 Dựa trên yêu cầu và kỳ vọng của khách hàng, các mục tiêu kinh doanh của hệ thống CAB System được xác định như sau:
 
@@ -104,9 +92,9 @@ Dựa trên yêu cầu và kỳ vọng của khách hàng, các mục tiêu kinh
 
 
 # 4. Xác định phạm vi yêu cầu của mình phải làm(Scope) 
-# - VD: Quản lý khách hàng, Quản lý tài xế,...
-# - Trong bảng MVP phải làm cái gì - Xác định được các module cơ bản dưới góc độ 1 bảng MVP 
-# - Mở rộng: Những cái mà ngoài phạm vi tôi không phải làm/Không nên làm trong đây
+## - VD: Quản lý khách hàng, Quản lý tài xế,...
+## - Trong bảng MVP phải làm cái gì - Xác định được các module cơ bản dưới góc độ 1 bảng MVP 
+## - Mở rộng: Những cái mà ngoài phạm vi tôi không phải làm/Không nên làm trong đây
 
 ## 4.1. In Scope – Phạm vi hệ thống
 
@@ -184,14 +172,31 @@ Các chức năng sau **không được đề cập trong yêu cầu hiện tạ
 
 ---
 
-## 4.4. Future Scope – Khả năng mở rộng trong tương lai
+# 5. Chuyển nhu cầu thành Business Requirements - 1 bảng 3 cột: ID - Tên - Diễn giải
+## - VD: BR01 - Đặt chuyến - Hệ thống phải cung cấp điểm đến, cung cấp điểm đón
 
-Hệ thống được định hướng có khả năng mở rộng, do đó các hạng mục sau có thể được xem xét ở các giai đoạn tiếp theo:
-
-* Bổ sung các loại dịch vụ/loại hình đặt xe mới.
-* Bổ sung các phương thức thanh toán mới.
-* Bổ sung nhà cung cấp thanh toán hoặc thông báo.
-* Mở rộng các kênh thông báo.
-* Mở rộng chức năng báo cáo và phân tích.
-* Bổ sung các chức năng nghiệp vụ mới theo nhu cầu kinh doanh.
-* Thay đổi hoặc nâng cấp các thành phần kỹ thuật mà hạn chế ảnh hưởng đến các chức năng đang hoạt động.
+| ID       | Tên                                    | Diễn giải                                                                                                                                                                                            |
+| -------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **BR01** | **Quản lý tài khoản**                  | Hệ thống phải cho phép khách hàng và tài xế đăng ký, đăng nhập, xác thực và cập nhật thông tin cá nhân theo quyền của từng đối tượng.                                                                |
+| **BR02** | **Quản lý tài xế và phương tiện**      | Hệ thống phải cho phép quản lý hồ sơ tài xế, thông tin phương tiện và trạng thái hoạt động của tài xế.                                                                                               |
+| **BR03** | **Đặt chuyến**                         | Hệ thống phải cho phép khách hàng nhập điểm đón, điểm đến, lựa chọn loại xe và gửi yêu cầu đặt chuyến.                                                                                               |
+| **BR04** | **Tìm kiếm tài xế**                    | Hệ thống phải có khả năng xác định các tài xế phù hợp dựa trên vị trí, trạng thái sẵn sàng và các tiêu chí vận hành được doanh nghiệp xác định.                                                      |
+| **BR05** | **Phân công tài xế**                   | Hệ thống phải hỗ trợ gửi yêu cầu chuyến đến tài xế phù hợp và tiếp tục tìm tài xế khác khi tài xế được đề xuất từ chối hoặc không phản hồi.                                                          |
+| **BR06** | **Theo dõi chuyến đi**                 | Hệ thống phải cho phép khách hàng theo dõi tài xế, thời gian dự kiến đến và trạng thái hiện tại của chuyến đi.                                                                                       |
+| **BR07** | **Cập nhật trạng thái chuyến**         | Hệ thống phải cho phép tài xế cập nhật trạng thái chuyến từ khi đến điểm đón, đón khách, đang di chuyển đến khi hoàn thành chuyến.                                                                   |
+| **BR08** | **Quản lý vị trí tài xế**              | Hệ thống phải lưu và sử dụng thông tin vị trí của tài xế để hỗ trợ tìm tài xế phù hợp và cải thiện khả năng dự kiến thời gian đến.                                                                   |
+| **BR09** | **Tính cước**                          | Hệ thống phải xác định số tiền khách hàng phải trả dựa trên loại dịch vụ và thông tin của chuyến đi.                                                                                                 |
+| **BR10** | **Thanh toán**                         | Hệ thống phải hỗ trợ thanh toán bằng tiền mặt và phương thức thanh toán điện tử thông qua nhà cung cấp thanh toán bên ngoài.                                                                         |
+| **BR11** | **Xử lý thanh toán thất bại**          | Hệ thống phải thông báo cho khách hàng khi thanh toán điện tử thất bại và hỗ trợ xử lý lại theo chính sách của doanh nghiệp.                                                                         |
+| **BR12** | **Thông báo**                          | Hệ thống phải gửi thông báo cho khách hàng và tài xế về các sự kiện quan trọng trong quá trình đặt và thực hiện chuyến, bao gồm kết quả thanh toán.                                                  |
+| **BR13** | **Lịch sử chuyến đi**                  | Hệ thống phải cho phép khách hàng xem lịch sử các chuyến đi và số tiền phải trả.                                                                                                                     |
+| **BR14** | **Đánh giá tài xế**                    | Hệ thống phải cho phép khách hàng đánh giá tài xế sau khi chuyến đi hoàn thành.                                                                                                                      |
+| **BR15** | **Quản lý vận hành**                   | Hệ thống phải cung cấp giao diện quản trị để nhân viên vận hành quản lý khách hàng, tài xế, phương tiện và chuyến đi.                                                                                |
+| **BR16** | **Giám sát và xử lý sự cố**            | Hệ thống phải cho phép nhân viên vận hành theo dõi các chuyến đang diễn ra, kiểm tra trạng thái tài xế và hỗ trợ xử lý các trường hợp chuyến bị lỗi.                                                 |
+| **BR17** | **Phân quyền quản trị**                | Hệ thống phải kiểm soát quyền truy cập đối với các chức năng quản trị, đảm bảo nhân viên thông thường không thể thực hiện các thao tác nhạy cảm.                                                     |
+| **BR18** | **Báo cáo hoạt động**                  | Hệ thống phải cung cấp báo cáo về số lượng chuyến, doanh thu, tỷ lệ chuyến hoàn thành, tỷ lệ hủy và hiệu quả hoạt động của tài xế.                                                                   |
+| **BR19** | **Bảo vệ dữ liệu**                     | Hệ thống phải bảo vệ thông tin cá nhân, thông tin phương tiện, dữ liệu vị trí và dữ liệu giao dịch; thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán không được lưu trực tiếp trên hệ thống CAB. |
+| **BR20** | **Audit Log**                          | Hệ thống phải lưu vết các thao tác quan trọng để phục vụ kiểm tra và xử lý sự cố.                                                                                                                    |
+| **BR21** | **Khả năng mở rộng**                   | Hệ thống phải có khả năng mở rộng khi số lượng khách hàng, tài xế và tải hệ thống tăng.                                                                                                              |
+| **BR22** | **Khả năng mở rộng dịch vụ**           | Hệ thống phải cho phép bổ sung loại dịch vụ, phương thức thanh toán và nhà cung cấp thông báo mới mà hạn chế ảnh hưởng đến các chức năng đang hoạt động.                                             |
+| **BR23** | **Đảm bảo tính liên tục của hệ thống** | Hệ thống phải hạn chế ảnh hưởng của lỗi tại các thành phần như thanh toán hoặc thông báo đến chức năng đặt xe và các chức năng cốt lõi khác.                                                         |
