@@ -1713,3 +1713,36 @@ Một số tiêu chí chưa thể xác định cụ thể vì khách hàng chưa
 - **AC26:** Chính sách xử lý khi mất kết nối mạng.
 - **AC27:** Thời gian lưu trữ dữ liệu.
 - **AC28:** Các mức hiệu năng và khả năng chịu tải cụ thể của hệ thống.
+
+# 13. Truy xuất nguồn gốc yêu cầu - Requirements Traceability - Tạo bảng ma trận truy xuất yêu cầu - Requirements Traceability Matrix - RTM - Các cột: BG - BR - FR - UC - AC - TC(Test Case)
+# 13. Truy xuất nguồn gốc yêu cầu – Requirements Traceability
+
+## 13.1. Requirements Traceability Matrix (RTM)
+
+Requirements Traceability Matrix (RTM) là bảng ma trận dùng để theo dõi và liên kết các yêu cầu trong toàn bộ quá trình phát triển phần mềm, từ mục tiêu kinh doanh đến kiểm thử.
+
+RTM giúp đảm bảo mỗi yêu cầu đều được phân tích, triển khai, nghiệm thu và kiểm thử đầy đủ, tránh bỏ sót yêu cầu.
+
+### 13.2. Ma trận truy xuất yêu cầu
+
+| BG | BR | FR | UC | AC | TC (Test Case) |
+|---|---|---|---|---|---|
+| BG01 – Quản lý hàng hóa | BR01 – Mọi hàng nhập phải được ghi nhận | FR01 – Nhập hàng vào kho | UC01 – Nhập hàng | AC01 – Nhân viên kho nhập được phiếu nhập và hệ thống cập nhật tồn kho | TC01 – Kiểm tra nhập hàng thành công |
+| BG01 – Quản lý hàng hóa | BR02 – Không được bán vượt tồn kho | FR02 – Quản lý tồn kho | UC02 – Kiểm tra tồn kho | AC02 – Số lượng tồn được cập nhật chính xác sau nhập/bán | TC02 – Kiểm tra cập nhật tồn kho |
+| BG02 – Bán hàng | BR03 – Mỗi giao dịch phải có hóa đơn | FR03 – Bán hàng tại quầy | UC03 – Thanh toán tại quầy | AC03 – Thu ngân tạo được hóa đơn và hoàn tất thanh toán | TC03 – Kiểm tra thanh toán |
+| BG02 – Tăng doanh số | BR04 – Đơn hàng đủ điều kiện được áp dụng khuyến mãi | FR04 – Áp dụng khuyến mãi | UC04 – Áp dụng khuyến mãi | AC04 – Hệ thống tự động áp dụng đúng chương trình khuyến mãi | TC04 – Kiểm tra tính khuyến mãi |
+| BG03 – Theo dõi hoạt động kinh doanh | BR05 – Doanh thu phải được tổng hợp theo giao dịch | FR05 – Báo cáo doanh thu | UC05 – Xem báo cáo doanh thu | AC05 – Quản lý xem được báo cáo doanh thu theo khoảng thời gian | TC05 – Kiểm tra báo cáo doanh thu |
+
+### 13.3. Ý nghĩa các thành phần
+
+- **BG – Business Goal:** Mục tiêu kinh doanh mà hệ thống cần đạt được.
+- **BR – Business Rule:** Các quy tắc nghiệp vụ mà hệ thống phải tuân thủ.
+- **FR – Functional Requirement:** Các chức năng mà hệ thống phải cung cấp.
+- **UC – Use Case:** Mô tả cách Actor tương tác với hệ thống để thực hiện một chức năng.
+- **AC – Acceptance Criteria:** Các điều kiện để xác định chức năng đã hoàn thành và có thể được nghiệm thu.
+- **TC – Test Case:** Các trường hợp kiểm thử dùng để xác minh hệ thống đáp ứng yêu cầu.
+
+### 13.4. Mối quan hệ truy xuất
+
+```text
+BG → BR → FR → UC → AC → TC
