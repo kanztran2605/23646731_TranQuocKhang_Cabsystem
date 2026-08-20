@@ -360,15 +360,11 @@ Sau khi chuyến hoàn thành, khách hàng có thể đánh giá tài xế.
 ---
 
 # 7. Thiết kế Functional Requirements Decisions - FR
-## - VD: Với BR Tìm tài xế thì:
-##       FR01: Xác định được vị trí của khách hàng
-##       FR02: Chọn ra những tài xế online
-##       FR03: Chọn loại xe
-##       FR04: Ưu tiên tài xế rating cao(Nếu có BR liên quan đến rating)
-
-# 7. Thiết kế Functional Requirements – FR
-
-Các Functional Requirements được phân rã từ các Business Requirements nhằm xác định cụ thể những chức năng mà hệ thống CAB System phải cung cấp.
+### - VD: Với BR Tìm tài xế thì:
+###   FR01: Xác định được vị trí của khách hàng
+###   FR02: Chọn ra những tài xế online
+###   FR03: Chọn loại xe
+###   FR04: Ưu tiên tài xế rating cao(Nếu có BR liên quan đến rating)
 
 ## 7.1. FR cho BR01 – Quản lý tài khoản
 
