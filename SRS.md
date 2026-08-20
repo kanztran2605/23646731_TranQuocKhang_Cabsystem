@@ -933,85 +933,87 @@ erDiagram
 ```mermaid
 flowchart LR
 
-    Customer["Customer"]
-    Driver["Driver"]
-    Staff["Operation Staff"]
-    Management["Management"]
-    Payment["Payment Provider"]
-    Notification["Notification Provider"]
+    Customer(["Customer"])
+    Driver(["Driver"])
+    Staff(["Operation Staff"])
+    Management(["Management"])
+    Payment(["Payment Provider"])
+    Notification(["Notification Provider"])
 
     subgraph CAB["CAB System"]
 
-        UC01["UC01 Đăng ký tài khoản"]
-        UC02["UC02 Đăng nhập"]
-        UC03["UC03 Quản lý thông tin cá nhân"]
-        UC04["UC04 Quản lý hồ sơ và phương tiện"]
-        UC05["UC05 Cập nhật trạng thái sẵn sàng"]
+        UC01(["UC01 Đăng ký tài khoản"])
+        UC02(["UC02 Đăng nhập"])
+        UC03(["UC03 Quản lý thông tin cá nhân"])
+        UC04(["UC04 Quản lý hồ sơ và phương tiện"])
+        UC05(["UC05 Cập nhật trạng thái sẵn sàng"])
 
-        UC06["UC06 Đặt chuyến"]
-        UC07["UC07 Tìm tài xế"]
-        UC08["UC08 Phân công tài xế"]
-        UC09["UC09 Nhận/Từ chối chuyến"]
+        UC06(["UC06 Đặt chuyến"])
+        UC07(["UC07 Tìm tài xế"])
+        UC08(["UC08 Phân công tài xế"])
+        UC09(["UC09 Nhận/Từ chối chuyến"])
 
-        UC10["UC10 Theo dõi chuyến đi"]
-        UC11["UC11 Cập nhật trạng thái chuyến"]
+        UC10(["UC10 Theo dõi chuyến đi"])
+        UC11(["UC11 Cập nhật trạng thái chuyến"])
 
-        UC12["UC12 Tính cước"]
-        UC13["UC13 Thanh toán chuyến đi"]
-        UC14["UC14 Xử lý thanh toán điện tử"]
+        UC12(["UC12 Tính cước"])
+        UC13(["UC13 Thanh toán chuyến đi"])
+        UC14(["UC14 Xử lý thanh toán điện tử"])
 
-        UC15["UC15 Gửi thông báo"]
-        UC16["UC16 Xem lịch sử chuyến đi"]
-        UC17["UC17 Đánh giá tài xế"]
+        UC15(["UC15 Gửi thông báo"])
+        UC16(["UC16 Xem lịch sử chuyến đi"])
+        UC17(["UC17 Đánh giá tài xế"])
 
-        UC18["UC18 Quản lý chuyến đi"]
-        UC19["UC19 Xử lý chuyến bị lỗi"]
-        UC20["UC20 Quản lý khách hàng"]
-        UC21["UC21 Quản lý tài xế"]
-        UC22["UC22 Tra cứu lịch sử giao dịch"]
+        UC18(["UC18 Quản lý chuyến đi"])
+        UC19(["UC19 Xử lý chuyến bị lỗi"])
+        UC20(["UC20 Quản lý khách hàng"])
+        UC21(["UC21 Quản lý tài xế"])
+        UC22(["UC22 Tra cứu lịch sử giao dịch"])
 
-        UC23["UC23 Xem báo cáo hoạt động"]
-        UC24["UC24 Quản lý phân quyền"]
-        UC25["UC25 Lưu vết thao tác"]
+        UC23(["UC23 Xem báo cáo hoạt động"])
+        UC24(["UC24 Quản lý phân quyền"])
+        UC25(["UC25 Lưu vết thao tác"])
     end
 
-    Customer --> UC01
-    Customer --> UC02
-    Customer --> UC03
-    Customer --> UC06
-    Customer --> UC10
-    Customer --> UC13
-    Customer --> UC16
-    Customer --> UC17
+    Customer --- UC01
+    Customer --- UC02
+    Customer --- UC03
+    Customer --- UC06
+    Customer --- UC10
+    Customer --- UC13
+    Customer --- UC16
+    Customer --- UC17
 
-    Driver --> UC02
-    Driver --> UC04
-    Driver --> UC05
-    Driver --> UC09
-    Driver --> UC11
+    Driver --- UC02
+    Driver --- UC04
+    Driver --- UC05
+    Driver --- UC09
+    Driver --- UC11
 
-    Staff --> UC02
-    Staff --> UC04
-    Staff --> UC18
-    Staff --> UC19
-    Staff --> UC20
-    Staff --> UC21
-    Staff --> UC22
-    Staff --> UC24
+    Staff --- UC02
+    Staff --- UC04
+    Staff --- UC18
+    Staff --- UC19
+    Staff --- UC20
+    Staff --- UC21
+    Staff --- UC22
+    Staff --- UC24
 
-    Management --> UC23
+    Management --- UC23
 
-    Payment --> UC14
-    Notification --> UC15
+    Payment --- UC14
+    Notification --- UC15
 
-    UC06 -.->|include| UC07
-    UC07 -.->|include| UC08
-    UC08 -.->|include| UC09
-    UC11 -.->|include| UC12
-    UC13 -.->|include| UC14
-    UC13 -.->|include| UC15
-    UC06 -.->|include| UC15
-    UC10 -.->|include| UC15
+    UC06 -.->|<<include>>| UC07
+    UC07 -.->|<<include>>| UC08
+    UC08 -.->|<<include>>| UC09
+    UC11 -.->|<<include>>| UC12
+    UC13 -.->|<<include>>| UC14
+    UC06 -.->|<<include>>| UC15
+    UC13 -.->|<<include>>| UC15
+    UC10 -.->|<<include>>| UC15
+    UC11 -.->|<<include>>| UC15
+    UC17 -.->|<<include>>| UC25
 ```
 ---
 ## 11.4. Use Case Specification – Đặc tả Use Case
