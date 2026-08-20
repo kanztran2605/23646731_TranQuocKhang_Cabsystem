@@ -202,13 +202,14 @@ Các chức năng sau **không được đề cập trong yêu cầu hiện tạ
 
 # 6. Xây dựng các Business Process
 ## - VD: Đặt chuyến: 
-### B1: Tạo chuyến đi 
-### B2: Xác định điểm đến 
-### B3: Hệ thống xác nhận 
-### B4: Tìm tài xế 
-### B5: Đợi tài xế chấp nhận
+###   B1: Tạo chuyến đi 
+###   B2: Xác định điểm đến 
+###   B3: Hệ thống xác nhận 
+###   B4: Tìm tài xế 
+###   B5: Đợi tài xế chấp nhận
 
-Dựa trên yêu cầu của khách hàng, các Business Process chính của CAB System được xác định như sau.
+
+Dựa trên yêu cầu của khách hàng, các Business Process chính của CAB System được xác định như sau:
 
 ## 6.1. Business Process 01 – Đặt chuyến và tìm tài xế
 
@@ -358,35 +359,232 @@ Sau khi chuyến hoàn thành, khách hàng có thể đánh giá tài xế.
 
 ---
 
-## 6.7. Tổng quan Business Process
+# 7. Thiết kế Functional Requirements Decisions - FR
+## - VD: Với BR Tìm tài xế thì:
+##       FR01: Xác định được vị trí của khách hàng
+##       FR02: Chọn ra những tài xế online
+##       FR03: Chọn loại xe
+##       FR04: Ưu tiên tài xế rating cao(Nếu có BR liên quan đến rating)
 
-Quy trình nghiệp vụ cốt lõi của CAB System có thể được tổng quát hóa như sau:
+# 7. Thiết kế Functional Requirements – FR
 
-```mermaid
-flowchart LR
-    A["Khách hàng tạo yêu cầu"] --> B["Tiếp nhận yêu cầu"]
-    B --> C["Tìm tài xế phù hợp"]
-    C --> D{"Tài xế chấp nhận?"}
-    D -->|Không / Không phản hồi| C
-    D -->|Có| E["Xác nhận tài xế"]
-    E --> F["Thực hiện chuyến"]
-    F --> G["Hoàn thành chuyến"]
-    G --> H["Tính cước"]
-    H --> I["Thanh toán"]
-    I --> J["Lưu lịch sử"]
-    J --> K["Đánh giá tài xế"]
-```
+Các Functional Requirements được phân rã từ các Business Requirements nhằm xác định cụ thể những chức năng mà hệ thống CAB System phải cung cấp.
 
-### Các điểm cần xác nhận với khách hàng
+## 7.1. FR cho BR01 – Quản lý tài khoản
 
-Trong quá trình xây dựng Business Process, một số bước chưa thể xác định chi tiết do khách hàng chưa chốt:
+| ID       | Functional Requirement                                                                      |
+| -------- | ------------------------------------------------------------------------------------------- |
+| **FR01** | Hệ thống phải cho phép khách hàng đăng ký tài khoản.                                        |
+| **FR02** | Hệ thống phải cho phép tài xế đăng ký tài khoản hoặc được nhân viên vận hành tạo tài khoản. |
+| **FR03** | Hệ thống phải cho phép khách hàng và tài xế đăng nhập.                                      |
+| **FR04** | Hệ thống phải xác thực người dùng trước khi sử dụng các chức năng yêu cầu tài khoản.        |
+| **FR05** | Hệ thống phải cho phép khách hàng và tài xế cập nhật thông tin cá nhân.                     |
 
-* Thời gian tài xế phải phản hồi yêu cầu.
-* Tiêu chí và thứ tự ưu tiên tài xế.
-* Công thức tính cước.
-* Chính sách hủy chuyến.
-* Cách xử lý khi mất kết nối mạng.
-* Chính sách xử lý lại khi thanh toán điện tử thất bại.
-* Thời gian lưu trữ dữ liệu.
+## 7.2. FR cho BR02 – Quản lý tài xế và phương tiện
 
-Các nội dung trên cần được Business Analyst xác nhận với các bên liên quan trước khi đặc tả chi tiết các Functional Requirements.
+| ID       | Functional Requirement                                                                         |
+| -------- | ---------------------------------------------------------------------------------------------- |
+| **FR06** | Hệ thống phải cho phép nhân viên vận hành quản lý thông tin tài xế.                            |
+| **FR07** | Hệ thống phải cho phép quản lý thông tin phương tiện của tài xế.                               |
+| **FR08** | Hệ thống phải cho phép tài xế cập nhật thông tin hồ sơ và phương tiện theo quyền được cấp.     |
+| **FR09** | Hệ thống phải cho phép tài xế chuyển sang trạng thái sẵn sàng hoặc không sẵn sàng nhận chuyến. |
+| **FR10** | Hệ thống phải ghi nhận thông tin vị trí hiện tại của tài xế để phục vụ việc tìm kiếm tài xế.   |
+
+## 7.3. FR cho BR03 – Đặt chuyến
+
+| ID       | Functional Requirement                                               |
+| -------- | -------------------------------------------------------------------- |
+| **FR11** | Hệ thống phải cho phép khách hàng nhập điểm đón.                     |
+| **FR12** | Hệ thống phải cho phép khách hàng nhập điểm đến.                     |
+| **FR13** | Hệ thống phải cho phép khách hàng lựa chọn loại xe/dịch vụ.          |
+| **FR14** | Hệ thống phải cho phép khách hàng gửi yêu cầu đặt chuyến.            |
+| **FR15** | Hệ thống phải ghi nhận yêu cầu đặt chuyến và trạng thái của yêu cầu. |
+
+## 7.4. FR cho BR04 – Tìm kiếm tài xế
+
+| ID       | Functional Requirement                                                                     |
+| -------- | ------------------------------------------------------------------------------------------ |
+| **FR16** | Hệ thống phải xác định vị trí của khách hàng từ thông tin điểm đón.                        |
+| **FR17** | Hệ thống phải xác định các tài xế đang ở trạng thái sẵn sàng nhận chuyến.                  |
+| **FR18** | Hệ thống phải xác định các tài xế phù hợp với loại xe/dịch vụ được khách hàng lựa chọn.    |
+| **FR19** | Hệ thống phải sử dụng vị trí của tài xế để xác định các tài xế phù hợp và gần khách hàng.  |
+| **FR20** | Hệ thống phải áp dụng các tiêu chí vận hành được doanh nghiệp xác định để lựa chọn tài xế. |
+| **FR21** | Hệ thống phải xác định và ưu tiên tài xế phù hợp theo các tiêu chí đã được cấu hình.       |
+
+> **Lưu ý:** Tiêu chí cụ thể và thứ tự ưu tiên tài xế chưa được khách hàng chốt, vì vậy FR21 cần được làm rõ thêm trước khi triển khai.
+
+## 7.5. FR cho BR05 – Phân công tài xế
+
+| ID       | Functional Requirement                                                            |
+| -------- | --------------------------------------------------------------------------------- |
+| **FR22** | Hệ thống phải gửi yêu cầu nhận chuyến đến tài xế được lựa chọn.                   |
+| **FR23** | Hệ thống phải cho phép tài xế chấp nhận chuyến.                                   |
+| **FR24** | Hệ thống phải cho phép tài xế từ chối chuyến.                                     |
+| **FR25** | Hệ thống phải ghi nhận phản hồi của tài xế đối với yêu cầu chuyến.                |
+| **FR26** | Hệ thống phải xác định trường hợp tài xế không phản hồi trong thời gian quy định. |
+| **FR27** | Hệ thống phải tiếp tục tìm tài xế khác khi tài xế từ chối hoặc không phản hồi.    |
+| **FR28** | Hệ thống phải xác nhận tài xế cho chuyến khi tài xế chấp nhận.                    |
+| **FR29** | Hệ thống phải thông báo cho khách hàng khi tài xế được phân công.                 |
+| **FR30** | Hệ thống phải thông báo cho khách hàng khi không tìm được tài xế phù hợp.         |
+
+## 7.6. FR cho BR06 – Theo dõi chuyến đi
+
+| ID       | Functional Requirement                                                 |
+| -------- | ---------------------------------------------------------------------- |
+| **FR31** | Hệ thống phải hiển thị thông tin tài xế đã nhận chuyến cho khách hàng. |
+| **FR32** | Hệ thống phải cung cấp thời gian dự kiến tài xế đến cho khách hàng.    |
+| **FR33** | Hệ thống phải hiển thị trạng thái hiện tại của chuyến đi.              |
+| **FR34** | Hệ thống phải cập nhật trạng thái chuyến khi có thay đổi.              |
+
+## 7.7. FR cho BR07 – Cập nhật trạng thái chuyến
+
+| ID       | Functional Requirement                                               |
+| -------- | -------------------------------------------------------------------- |
+| **FR35** | Hệ thống phải cho phép tài xế cập nhật trạng thái đã đến điểm đón.   |
+| **FR36** | Hệ thống phải cho phép tài xế cập nhật trạng thái đã đón khách.      |
+| **FR37** | Hệ thống phải cho phép tài xế cập nhật trạng thái đang di chuyển.    |
+| **FR38** | Hệ thống phải cho phép tài xế cập nhật trạng thái hoàn thành chuyến. |
+| **FR39** | Hệ thống phải lưu lại lịch sử thay đổi trạng thái chuyến.            |
+
+## 7.8. FR cho BR08 – Quản lý vị trí tài xế
+
+| ID       | Functional Requirement                                                                  |
+| -------- | --------------------------------------------------------------------------------------- |
+| **FR40** | Hệ thống phải ghi nhận vị trí của tài xế trong thời gian hoạt động.                     |
+| **FR41** | Hệ thống phải sử dụng thông tin vị trí tài xế để hỗ trợ tìm kiếm tài xế.                |
+| **FR42** | Hệ thống phải sử dụng thông tin vị trí để hỗ trợ xác định thời gian dự kiến tài xế đến. |
+
+## 7.9. FR cho BR09 – Tính cước
+
+| ID       | Functional Requirement                                                        |
+| -------- | ----------------------------------------------------------------------------- |
+| **FR43** | Hệ thống phải xác định số tiền khách hàng phải trả sau khi chuyến hoàn thành. |
+| **FR44** | Hệ thống phải sử dụng loại dịch vụ và thông tin chuyến đi để tính cước.       |
+| **FR45** | Hệ thống phải lưu thông tin số tiền phải trả của chuyến đi.                   |
+
+> **Lưu ý:** Công thức và các quy tắc tính cước chưa được khách hàng xác định nên cần được làm rõ.
+
+## 7.10. FR cho BR10 – Thanh toán
+
+| ID       | Functional Requirement                                                                  |
+| -------- | --------------------------------------------------------------------------------------- |
+| **FR46** | Hệ thống phải cho phép khách hàng thanh toán bằng tiền mặt.                             |
+| **FR47** | Hệ thống phải cho phép khách hàng thanh toán điện tử.                                   |
+| **FR48** | Hệ thống phải gửi yêu cầu thanh toán điện tử đến Payment Provider.                      |
+| **FR49** | Hệ thống phải tiếp nhận và ghi nhận kết quả giao dịch từ Payment Provider.              |
+| **FR50** | Hệ thống không được lưu trực tiếp thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán. |
+
+## 7.11. FR cho BR11 – Xử lý thanh toán thất bại
+
+| ID       | Functional Requirement                                                                |
+| -------- | ------------------------------------------------------------------------------------- |
+| **FR51** | Hệ thống phải xác định trạng thái thanh toán điện tử thành công hoặc thất bại.        |
+| **FR52** | Hệ thống phải thông báo cho khách hàng khi giao dịch thanh toán thất bại.             |
+| **FR53** | Hệ thống phải hỗ trợ xử lý lại giao dịch theo chính sách thanh toán của doanh nghiệp. |
+
+## 7.12. FR cho BR12 – Thông báo
+
+| ID       | Functional Requirement                                                                  |
+| -------- | --------------------------------------------------------------------------------------- |
+| **FR54** | Hệ thống phải thông báo cho khách hàng khi yêu cầu đặt xe được tiếp nhận.               |
+| **FR55** | Hệ thống phải thông báo cho khách hàng khi tài xế nhận chuyến.                          |
+| **FR56** | Hệ thống phải thông báo cho khách hàng khi tài xế đến điểm đón.                         |
+| **FR57** | Hệ thống phải thông báo cho khách hàng khi chuyến hoàn thành.                           |
+| **FR58** | Hệ thống phải thông báo cho khách hàng về kết quả thanh toán.                           |
+| **FR59** | Hệ thống phải thông báo cho tài xế khi có chuyến mới.                                   |
+| **FR60** | Hệ thống phải thông báo cho tài xế khi có thay đổi liên quan đến chuyến đang thực hiện. |
+| **FR61** | Hệ thống phải hỗ trợ tích hợp với nhà cung cấp dịch vụ thông báo.                       |
+
+## 7.13. FR cho BR13 – Lịch sử chuyến đi
+
+| ID       | Functional Requirement                                                     |
+| -------- | -------------------------------------------------------------------------- |
+| **FR62** | Hệ thống phải cho phép khách hàng xem lịch sử chuyến đi.                   |
+| **FR63** | Hệ thống phải hiển thị thông tin chuyến và số tiền phải trả trong lịch sử. |
+
+## 7.14. FR cho BR14 – Đánh giá tài xế
+
+| ID       | Functional Requirement                                                       |
+| -------- | ---------------------------------------------------------------------------- |
+| **FR64** | Hệ thống phải cho phép khách hàng đánh giá tài xế sau khi chuyến hoàn thành. |
+| **FR65** | Hệ thống phải lưu kết quả đánh giá của khách hàng.                           |
+
+## 7.15. FR cho BR15 – Quản lý vận hành
+
+| ID       | Functional Requirement                                                   |
+| -------- | ------------------------------------------------------------------------ |
+| **FR66** | Hệ thống phải cung cấp giao diện quản trị cho nhân viên vận hành.        |
+| **FR67** | Hệ thống phải cho phép nhân viên vận hành quản lý khách hàng.            |
+| **FR68** | Hệ thống phải cho phép nhân viên vận hành quản lý tài xế.                |
+| **FR69** | Hệ thống phải cho phép nhân viên vận hành quản lý phương tiện.           |
+| **FR70** | Hệ thống phải cho phép nhân viên vận hành quản lý và theo dõi chuyến đi. |
+
+## 7.16. FR cho BR16 – Giám sát và xử lý sự cố
+
+| ID       | Functional Requirement                                                      |
+| -------- | --------------------------------------------------------------------------- |
+| **FR71** | Hệ thống phải cho phép nhân viên vận hành xem các chuyến đang diễn ra.      |
+| **FR72** | Hệ thống phải cho phép nhân viên vận hành kiểm tra trạng thái tài xế.       |
+| **FR73** | Hệ thống phải hỗ trợ nhân viên vận hành xử lý các trường hợp chuyến bị lỗi. |
+| **FR74** | Hệ thống phải cho phép nhân viên vận hành tra cứu lịch sử giao dịch.        |
+
+## 7.17. FR cho BR17 – Phân quyền quản trị
+
+| ID       | Functional Requirement                                                       |
+| -------- | ---------------------------------------------------------------------------- |
+| **FR75** | Hệ thống phải xác định quyền của người dùng quản trị.                        |
+| **FR76** | Hệ thống phải giới hạn chức năng theo quyền được cấp.                        |
+| **FR77** | Hệ thống phải ngăn nhân viên không có quyền thực hiện các thao tác nhạy cảm. |
+
+## 7.18. FR cho BR18 – Báo cáo
+
+| ID       | Functional Requirement                                           |
+| -------- | ---------------------------------------------------------------- |
+| **FR78** | Hệ thống phải cung cấp báo cáo về số lượng chuyến.               |
+| **FR79** | Hệ thống phải cung cấp báo cáo về doanh thu.                     |
+| **FR80** | Hệ thống phải cung cấp báo cáo về tỷ lệ chuyến hoàn thành.       |
+| **FR81** | Hệ thống phải cung cấp báo cáo về tỷ lệ hủy chuyến.              |
+| **FR82** | Hệ thống phải cung cấp báo cáo về hiệu quả hoạt động của tài xế. |
+
+## 7.19. FR cho BR19 – Bảo vệ dữ liệu
+
+| ID       | Functional Requirement                                                                         |
+| -------- | ---------------------------------------------------------------------------------------------- |
+| **FR83** | Hệ thống phải xác thực khách hàng và tài xế trước khi sử dụng các chức năng yêu cầu tài khoản. |
+| **FR84** | Hệ thống phải bảo vệ thông tin cá nhân của khách hàng và tài xế.                               |
+| **FR85** | Hệ thống phải bảo vệ thông tin phương tiện và dữ liệu vị trí của tài xế.                       |
+| **FR86** | Hệ thống phải bảo vệ dữ liệu giao dịch.                                                        |
+| **FR87** | Hệ thống không được lưu trực tiếp thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán.        |
+
+## 7.20. FR cho BR20 – Audit Log
+
+| ID       | Functional Requirement                                                           |
+| -------- | -------------------------------------------------------------------------------- |
+| **FR88** | Hệ thống phải ghi nhận các thao tác quản trị quan trọng.                         |
+| **FR89** | Hệ thống phải lưu thông tin cần thiết để truy vết các thao tác khi xảy ra sự cố. |
+| **FR90** | Hệ thống phải cho phép người có quyền tra cứu các log phục vụ kiểm tra.          |
+
+## 7.21. FR cho BR21 – Khả năng mở rộng
+
+| ID       | Functional Requirement                                                                             |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| **FR91** | Hệ thống phải hỗ trợ mở rộng khi số lượng khách hàng và tài xế tăng.                               |
+| **FR92** | Các thành phần của hệ thống phải có khả năng mở rộng độc lập khi tải tăng.                         |
+| **FR93** | Lỗi tại một thành phần như thanh toán hoặc thông báo không được làm dừng toàn bộ chức năng đặt xe. |
+
+## 7.22. FR cho BR22 – Khả năng mở rộng dịch vụ
+
+| ID       | Functional Requirement                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------------------------ |
+| **FR94** | Hệ thống phải cho phép bổ sung loại dịch vụ mới mà hạn chế ảnh hưởng đến các chức năng hiện tại.                   |
+| **FR95** | Hệ thống phải cho phép tích hợp thêm phương thức thanh toán mới.                                                   |
+| **FR96** | Hệ thống phải cho phép tích hợp thêm nhà cung cấp dịch vụ thông báo.                                               |
+| **FR97** | Hệ thống phải hỗ trợ triển khai các chức năng mới từng phần mà hạn chế ảnh hưởng đến các chức năng đang hoạt động. |
+
+## 7.23. FR cho BR23 – Đảm bảo tính liên tục của hệ thống
+
+| ID        | Functional Requirement                                                                                |
+| --------- | ----------------------------------------------------------------------------------------------------- |
+| **FR98**  | Hệ thống phải cô lập ảnh hưởng khi dịch vụ thanh toán gặp lỗi.                                        |
+| **FR99**  | Hệ thống phải cô lập ảnh hưởng khi dịch vụ thông báo gặp lỗi.                                         |
+| **FR100** | Hệ thống phải duy trì các chức năng cốt lõi của hệ thống đặt xe khi một thành phần phụ trợ gặp sự cố. |
