@@ -1715,67 +1715,54 @@ Một số tiêu chí chưa thể xác định cụ thể vì khách hàng chưa
 - **AC28:** Các mức hiệu năng và khả năng chịu tải cụ thể của hệ thống.
 
 # 13. Truy xuất nguồn gốc yêu cầu - Requirements Traceability - Tạo bảng ma trận truy xuất yêu cầu - Requirements Traceability Matrix - RTM - Các cột: BG - BR - FR - UC - AC - TC(Test Case)
-# 13. Truy xuất nguồn gốc yêu cầu – Requirements Traceability
+# 13. Requirements Traceability – Truy xuất nguồn gốc yêu cầu
 
-## 13.1. Requirements Traceability Matrix (RTM)
+Requirements Traceability Matrix (RTM) được sử dụng để đảm bảo các yêu cầu được truy xuất xuyên suốt từ mục tiêu kinh doanh đến yêu cầu nghiệp vụ, yêu cầu chức năng, Use Case, tiêu chí nghiệm thu và Test Case.
 
-Requirements Traceability Matrix (RTM) là ma trận dùng để theo dõi mối quan hệ giữa các yêu cầu từ mục tiêu kinh doanh đến kiểm thử.
+## 13.1. Requirements Traceability Matrix – RTM
 
-Mối quan hệ truy xuất:
+| BG | BR | FR | UC | AC | TC |
+|---|---|---|---|---|---|
+| BG01 | BR01 | FR01, FR02, FR03 | UC06 | AC03 | TC01, TC02 |
+| BG01 | BR02 | FR04, FR05, FR06 | UC07 | AC04 | TC03, TC04, TC05 |
+| BG01 | BR03 | FR07, FR08 | UC08, UC09 | AC05 | TC06, TC07 |
+| BG02 | BR04 | FR09, FR10, FR11 | UC10, UC11 | AC06, AC07 | TC08, TC09 |
+| BG02 | BR05 | FR12, FR13 | UC12 | AC08 | TC10 |
+| BG03 | BR06 | FR14, FR15, FR16 | UC13, UC14 | AC09 | TC11, TC12, TC13 |
+| BG04 | BR07 | FR17, FR18 | UC15 | AC10 | TC14, TC15 |
+| BG02 | BR08 | FR19 | UC16 | AC11 | TC16 |
+| BG02 | BR09 | FR20 | UC17 | AC12 | TC17, TC18 |
+| BG04 | BR10 | FR21, FR22, FR23 | UC18, UC19 | AC15 | TC19, TC20 |
+| BG04 | BR11 | FR24, FR25 | UC20, UC21 | AC13, AC14 | TC21, TC22 |
+| BG05 | BR12 | FR26 | UC22 | AC16 | TC23 |
+| BG05 | BR13 | FR27, FR28, FR29, FR30 | UC23 | AC17 | TC24, TC25 |
+| BG06 | BR14 | FR31, FR32 | UC24 | AC18 | TC26, TC27 |
+| BG03 | BR15 | FR33 | UC14 | AC19 | TC28 |
+| BG06 | BR16 | FR34, FR35 | UC25 | AC20 | TC29 |
+| BG07 | BR17 | FR36, FR37, FR38 | UC07, UC13, UC15 | AC20 | TC30, TC31, TC32 |
 
-**BG → BR → FR → UC → AC → TC**
+## 13.2. Ý nghĩa các cột trong RTM
 
-Trong đó:
+| Cột | Ý nghĩa |
+|---|---|
+| **BG** | Business Goal – Mục tiêu kinh doanh |
+| **BR** | Business Requirement – Yêu cầu nghiệp vụ |
+| **FR** | Functional Requirement – Yêu cầu chức năng |
+| **UC** | Use Case – Chức năng/nghiệp vụ được mô tả trong Use Case |
+| **AC** | Acceptance Criteria – Tiêu chí nghiệm thu |
+| **TC** | Test Case – Ca kiểm thử dùng để kiểm tra yêu cầu |
 
-- **BG (Business Goal):** Mục tiêu kinh doanh.
-- **BR (Business Rule):** Quy tắc nghiệp vụ.
-- **FR (Functional Requirement):** Yêu cầu chức năng.
-- **UC (Use Case):** Trường hợp sử dụng.
-- **AC (Acceptance Criteria):** Tiêu chí chấp nhận.
-- **TC (Test Case):** Ca kiểm thử.
+## 13.3. Nguyên tắc truy xuất
 
-## 13.2. Sơ đồ truy xuất yêu cầu
+Mỗi yêu cầu cần có khả năng truy xuất theo chuỗi:
 
-```mermaid
-flowchart LR
+**Business Goal → Business Requirement → Functional Requirement → Use Case → Acceptance Criteria → Test Case**
 
-    BG01["BG01<br/>Quản lý hàng hóa"]
-    BG02["BG02<br/>Bán hàng"]
-    BG03["BG03<br/>Theo dõi hoạt động kinh doanh"]
+Việc truy xuất giúp đảm bảo:
 
-    BR01["BR01<br/>Mọi hàng nhập phải được ghi nhận"]
-    BR02["BR02<br/>Không được bán vượt tồn kho"]
-    BR03["BR03<br/>Mỗi giao dịch phải có hóa đơn"]
-    BR04["BR04<br/>Đơn hàng đủ điều kiện được áp dụng khuyến mãi"]
-    BR05["BR05<br/>Doanh thu phải được tổng hợp"]
-
-    FR01["FR01<br/>Nhập hàng vào kho"]
-    FR02["FR02<br/>Quản lý tồn kho"]
-    FR03["FR03<br/>Bán hàng tại quầy"]
-    FR04["FR04<br/>Áp dụng khuyến mãi"]
-    FR05["FR05<br/>Báo cáo doanh thu"]
-
-    UC01["UC01<br/>Nhập hàng"]
-    UC02["UC02<br/>Kiểm tra tồn kho"]
-    UC03["UC03<br/>Thanh toán tại quầy"]
-    UC04["UC04<br/>Áp dụng khuyến mãi"]
-    UC05["UC05<br/>Xem báo cáo doanh thu"]
-
-    AC01["AC01<br/>Nhập phiếu nhập và cập nhật tồn kho"]
-    AC02["AC02<br/>Cập nhật chính xác số lượng tồn"]
-    AC03["AC03<br/>Tạo hóa đơn và hoàn tất thanh toán"]
-    AC04["AC04<br/>Áp dụng đúng khuyến mãi"]
-    AC05["AC05<br/>Xem báo cáo doanh thu theo thời gian"]
-
-    TC01["TC01<br/>Kiểm tra nhập hàng"]
-    TC02["TC02<br/>Kiểm tra cập nhật tồn kho"]
-    TC03["TC03<br/>Kiểm tra thanh toán"]
-    TC04["TC04<br/>Kiểm tra khuyến mãi"]
-    TC05["TC05<br/>Kiểm tra báo cáo doanh thu"]
-
-    BG01 --> BR01 --> FR01 --> UC01 --> AC01 --> TC01
-    BG01 --> BR02 --> FR02 --> UC02 --> AC02 --> TC02
-    BG02 --> BR03 --> FR03 --> UC03 --> AC03 --> TC03
-    BG02 --> BR04 --> FR04 --> UC04 --> AC04 --> TC04
-    BG03 --> BR05 --> FR05 --> UC05 --> AC05 --> TC05
-```
+- Mỗi Business Goal đều được cụ thể hóa thành các Business Requirement.
+- Mỗi Business Requirement được chuyển thành một hoặc nhiều Functional Requirement.
+- Functional Requirement được mô tả và thực hiện thông qua các Use Case.
+- Mỗi Use Case có Acceptance Criteria để xác định điều kiện nghiệm thu.
+- Acceptance Criteria được kiểm chứng bằng các Test Case.
+- Không có yêu cầu quan trọng nào bị bỏ sót trong quá trình phân tích, phát triển và kiểm thử.
