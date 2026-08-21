@@ -1715,9 +1715,6 @@ Một số tiêu chí chưa thể xác định cụ thể vì khách hàng chưa
 - **AC28:** Các mức hiệu năng và khả năng chịu tải cụ thể của hệ thống.
 
 # 13. Truy xuất nguồn gốc yêu cầu - Requirements Traceability - Tạo bảng ma trận truy xuất yêu cầu - Requirements Traceability Matrix - RTM - Các cột: BG - BR - FR - UC - AC - TC(Test Case)
-# 13. Requirements Traceability – Truy xuất nguồn gốc yêu cầu
-
-Requirements Traceability Matrix (RTM) được sử dụng để đảm bảo các yêu cầu được truy xuất xuyên suốt từ mục tiêu kinh doanh đến yêu cầu nghiệp vụ, yêu cầu chức năng, Use Case, tiêu chí nghiệm thu và Test Case.
 
 ## 13.1. Requirements Traceability Matrix – RTM
 
