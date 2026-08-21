@@ -123,8 +123,6 @@ quadrantChart
 ```
 
 # 3. Xác định Business Goals - Thiết kế các mục tiêu mình thấy 
-## - VD: BG01: Tự động tìm tài xế - Mục đích: Hệ thống này phải có khả năng tự động tìm tài xế 
-## - VD: BG02: Hỗ trợ thanh toán - Mục đích: Hỗ trợ tiền mặt và trực tuyến
 
 ## 3.1 Business Goals
 
@@ -171,8 +169,6 @@ Các mục tiêu còn lại hỗ trợ cho việc đảm bảo tính đầy đ�
 ## - VD: Quản lý khách hàng, Quản lý tài xế,...
 ## - Trong bảng MVP phải làm cái gì - Xác định được các module cơ bản dưới góc độ 1 bảng MVP 
 ## - Mở rộng: Những cái mà ngoài phạm vi tôi không phải làm/Không nên làm trong đây
-
-# 4. Xác định phạm vi yêu cầu (Scope)
 
 ## 4.1. In Scope
 
@@ -285,7 +281,6 @@ Các chức năng và phạm vi sau **không thuộc phạm vi thực hiện c�
 ---
 
 # 5. Chuyển nhu cầu thành Business Requirements - 1 bảng 3 cột: ID - Tên - Diễn giải
-## - VD: BR01 - Đặt chuyến - Hệ thống phải cung cấp điểm đến, cung cấp điểm đón
 
 | ID | Tên | Diễn giải |
 |---|---|---|
@@ -305,12 +300,6 @@ Các chức năng và phạm vi sau **không thuộc phạm vi thực hiện c�
 ---
 
 # 6. Xây dựng các Business Process
-## - VD: Đặt chuyến: 
-###   B1: Tạo chuyến đi 
-###   B2: Xác định điểm đến 
-###   B3: Hệ thống xác nhận 
-###   B4: Tìm tài xế 
-###   B5: Đợi tài xế chấp nhận
 
 ## 6.1. BP01 – Đặt chuyến
 
@@ -484,15 +473,6 @@ flowchart TD
 ---
 
 # 7. Thiết kế Functional Requirements Decisions - FR
-### - VD: Với BR Tìm tài xế thì:
-###   FR01: Xác định được vị trí của khách hàng
-###   FR02: Chọn ra những tài xế online
-###   FR03: Chọn loại xe
-###   FR04: Ưu tiên tài xế rating cao(Nếu có BR liên quan đến rating)
-
-# 7. Functional Requirements (FR)
-
-Functional Requirements được phân rã từ các Business Requirements (BR), mô tả các chức năng cụ thể mà hệ thống CAB phải cung cấp.
 
 ## 7.1. BR01 – Quản lý người dùng
 
@@ -664,11 +644,6 @@ Functional Requirements được phân rã từ các Business Requirements (BR),
 
 ---
 # 8. Xác định Business Rules và Business Exceptional
-# - VD Business Rules: Chỉ những tài xế tỏng trạng thái sẵn sàng mới được nhận chuyên
-# - VD Business Exceptional: Khi khách hàng tạo chuyến nhưng tìm tài xế quá lâu
-# - VD Business Exceptional: Khi tìm được tài xế rồi nhưng quá thời hạn tài xế không bấm thì phải thoát ra và tìm tài xế khác
-
-# 8. Business Rules và Business Exceptions
 
 ## 8.1. Business Rules
 
@@ -945,11 +920,7 @@ erDiagram
     }
 ```
 ---
-# 10. Thiết kế các Non-Functional Requirements của hệ thống
-
-# 10. Non-Functional Requirements (NFR)
-
-Non-Functional Requirements xác định các tiêu chí về **chất lượng, hiệu năng, bảo mật, khả năng mở rộng và độ ổn định** mà CAB System phải đáp ứng.
+# 10. Thiết kế các Non-Functional Requirements (NFR) của hệ thống
 
 ## 10.1. NFR – Performance
 
@@ -1174,8 +1145,6 @@ flowchart LR
     UC07 --> Map
 ```
 ---
-## 11.4. Use Case Specification – Đặc tả Use Case
-
 ## 11.4. Use Case Specification – Đặc tả Use Case
 
 > Chỉ đặc tả chi tiết các Use Case chính và có nghiệp vụ quan trọng.  
@@ -1662,8 +1631,6 @@ Một chức năng được xem là đạt khi:
 # 13. Truy xuất nguồn gốc yêu cầu - Requirements Traceability 
 # - Tạo bảng ma trận truy xuất yêu cầu - Requirements Traceability Matrix - RTM - Các cột: BG - BR - FR - UC - AC - TC(Test Case)
 
-## 13.1. Requirements Traceability Matrix (RTM)
-
 | BG | BR | FR | UC | AC | TC |
 |---|---|---|---|---|---|
 | **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR07 – Xác định vị trí Customer** | **UC07 – Tìm và phân công tài xế** | **AC07.01** – Chỉ lựa chọn Driver sẵn sàng | **TC07.01** – Kiểm tra lọc Driver theo trạng thái |
@@ -1714,21 +1681,3 @@ Một chức năng được xem là đạt khi:
 | **BG10 – Bảo mật và kiểm soát hệ thống** | **BR14 – Audit Log** | **FR37 – Ghi nhận thao tác quan trọng** | **UC21 – Xem Audit Log** | **AC-G04 / AC17.04** | **TC20.03** – Kiểm tra Audit Log |
 
 ---
-
-## 13.2. Ma trận bao phủ yêu cầu
-
-RTM phải đảm bảo các yêu cầu quan trọng đều có khả năng truy xuất theo chuỗi:
-
-```text
-Business Goal
-     ↓
-Business Requirement
-     ↓
-Functional Requirement
-     ↓
-Use Case
-     ↓
-Acceptance Criteria
-     ↓
-Test Case
-```
