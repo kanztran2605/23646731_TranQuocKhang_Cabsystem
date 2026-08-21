@@ -1628,8 +1628,7 @@ Một chức năng được xem là đạt khi:
 
 ---
 
-# 13. Truy xuất nguồn gốc yêu cầu - Requirements Traceability 
-# - Tạo bảng ma trận truy xuất yêu cầu - Requirements Traceability Matrix - RTM - Các cột: BG - BR - FR - UC - AC - TC(Test Case)
+# 13. Truy xuất nguồn gốc yêu cầu - Requirements Traceability - Tạo bảng ma trận truy xuất yêu cầu - Requirements Traceability Matrix - RTM - Các cột: BG - BR - FR - UC - AC - TC(Test Case)
 
 | BG | BR | FR | UC | AC | TC |
 |---|---|---|---|---|---|
@@ -1639,43 +1638,34 @@ Một chức năng được xem là đạt khi:
 | **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR10 – Tìm Driver thay thế** | **UC07** | **AC07.04** – Tìm Driver khác khi bị từ chối | **TC07.04** – Kiểm tra chuyển sang Driver tiếp theo |
 | **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR11 – Xử lý Driver không phản hồi** | **UC07 / UC08** | **AC07.05 / AC08.06** | **TC07.05** – Kiểm tra timeout phản hồi |
 | **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR12 – Thông báo không tìm được Driver** | **UC07** | **AC07.08** – Thông báo Customer | **TC07.06** – Kiểm tra trường hợp không có Driver |
-
 | **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR01 – Nhập điểm đón** | **UC06 – Đặt chuyến** | **AC06.01** – Nhập điểm đón | **TC06.01** – Kiểm tra nhập điểm đón |
 | **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR02 – Nhập điểm đến** | **UC06** | **AC06.01** – Nhập điểm đến | **TC06.02** – Kiểm tra nhập điểm đến |
 | **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR03 – Chọn loại xe** | **UC06** | **AC06.02** – Chọn loại xe | **TC06.03** – Kiểm tra lựa chọn loại xe |
 | **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR04 – Xác nhận đặt chuyến** | **UC06** | **AC06.04** – Tạo yêu cầu duy nhất | **TC06.04** – Kiểm tra tạo Trip |
 | **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR05 – Kiểm tra dữ liệu đặt chuyến** | **UC06** | **AC06.03** – Không cho tạo khi dữ liệu không hợp lệ | **TC06.05** – Kiểm tra dữ liệu không hợp lệ |
 | **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR06 – Thông báo tiếp nhận yêu cầu** | **UC06 / UC13** | **AC06.06 / AC13.01** | **TC06.06** – Kiểm tra thông báo tiếp nhận |
-
 | **BG03 – Quản lý quá trình thực hiện chuyến** | **BR03 – Theo dõi chuyến** | **FR13 – Cập nhật trạng thái chuyến** | **UC09 – Thực hiện chuyến** | **AC09.02 – AC09.05** | **TC09.01** – Kiểm tra cập nhật trạng thái |
 | **BG03 – Quản lý quá trình thực hiện chuyến** | **BR03 – Theo dõi chuyến** | **FR14 – Theo dõi vị trí Driver** | **UC09** | **AC09.06** | **TC09.02** – Kiểm tra lưu vị trí Driver |
 | **BG03 – Quản lý quá trình thực hiện chuyến** | **BR03 – Theo dõi chuyến** | **FR15 – Thông báo thay đổi trạng thái** | **UC09 / UC13** | **AC09.07** | **TC09.03** – Kiểm tra thông báo trạng thái |
-
 | **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR16 – Thanh toán tiền mặt** | **UC12 – Thanh toán** | **AC12.01** | **TC12.01** – Kiểm tra thanh toán tiền mặt |
 | **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR17 – Thanh toán điện tử** | **UC12** | **AC12.02 / AC12.03** | **TC12.02** – Kiểm tra thanh toán điện tử |
 | **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR18 – Cập nhật kết quả thanh toán** | **UC12** | **AC12.04** | **TC12.03** – Kiểm tra cập nhật trạng thái Payment |
 | **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR19 – Xử lý thanh toán thất bại** | **UC12** | **AC12.06 / AC12.07** | **TC12.04** – Kiểm tra thanh toán thất bại |
 | **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR20 – Bảo vệ thông tin thanh toán** | **UC12** | **AC12.08** | **TC12.05** – Kiểm tra không lưu dữ liệu nhạy cảm |
-
 | **BG05 – Quản lý thông báo** | **BR05 – Gửi thông báo** | **FR21 – Thông báo cho Customer** | **UC13 – Gửi thông báo** | **AC13.01 – AC13.05** | **TC13.01** – Kiểm tra thông báo Customer |
 | **BG05 – Quản lý thông báo** | **BR05 – Gửi thông báo** | **FR22 – Thông báo cho Driver** | **UC13** | **AC13.06** | **TC13.02** – Kiểm tra thông báo Driver |
 | **BG05 – Quản lý thông báo** | **BR05 – Gửi thông báo** | **FR23 – Xử lý lỗi Notification Provider** | **UC13** | **AC13.07** | **TC13.03** – Kiểm tra Notification Provider lỗi |
-
 | **BG06 – Quản lý tài xế và phương tiện** | **BR06 – Quản lý Driver** | **FR24 – Quản lý hồ sơ Driver** | **UC04 – Quản lý tài xế** | — | **TC14.01** – Kiểm tra quản lý hồ sơ Driver |
 | **BG06 – Quản lý tài xế và phương tiện** | **BR06 – Quản lý Driver** | **FR25 – Quản lý trạng thái Driver** | **UC04 / UC08** | **AC08.01** | **TC14.02** – Kiểm tra trạng thái Driver |
 | **BG06 – Quản lý tài xế và phương tiện** | **BR07 – Quản lý phương tiện** | **FR26 – Quản lý thông tin phương tiện** | **UC05 – Quản lý phương tiện** | **AC07.02** | **TC14.03** – Kiểm tra quản lý phương tiện |
-
 | **BG07 – Quản lý vận hành** | **BR08 – Xử lý chuyến bất thường** | **FR27 – Giám sát Trip** | **UC16 – Giám sát chuyến** | **AC17.01 / AC17.02** | **TC17.01** – Kiểm tra giám sát Trip |
 | **BG07 – Quản lý vận hành** | **BR08 – Xử lý chuyến bất thường** | **FR28 – Xử lý Trip lỗi** | **UC17 – Xử lý chuyến bất thường** | **AC17.03 – AC17.06** | **TC17.02** – Kiểm tra xử lý Trip bất thường |
 | **BG07 – Quản lý vận hành** | **BR09 – Tra cứu giao dịch** | **FR29 – Tra cứu lịch sử giao dịch** | **UC18 – Tra cứu giao dịch** | — | **TC18.01** – Kiểm tra tra cứu giao dịch |
 | **BG07 – Quản lý vận hành** | **BR10 – Báo cáo** | **FR30 – Báo cáo hoạt động** | **UC19 – Xem báo cáo** | — | **TC19.01** – Kiểm tra báo cáo hoạt động |
-
 | **BG08 – Tính cước chính xác** | **BR11 – Tính cước** | **FR31 – Tính số tiền chuyến đi** | **UC11 – Tính cước** | **AC11.01 – AC11.05** | **TC11.01** – Kiểm tra tính cước |
 | **BG08 – Tính cước chính xác** | **BR11 – Tính cước** | **FR32 – Xử lý lỗi tính cước** | **UC11** | **AC11.06** | **TC11.02** – Kiểm tra lỗi tính cước |
-
 | **BG09 – Quản lý đánh giá** | **BR12 – Đánh giá Driver** | **FR33 – Đánh giá sau chuyến** | **UC15 – Đánh giá tài xế** | **AC15.01 – AC15.06** | **TC15.01** – Kiểm tra đánh giá Driver |
 | **BG09 – Quản lý đánh giá** | **BR12 – Đánh giá Driver** | **FR34 – Ngăn đánh giá trùng** | **UC15** | **AC15.05** | **TC15.02** – Kiểm tra đánh giá trùng |
-
 | **BG10 – Bảo mật và kiểm soát hệ thống** | **BR13 – Xác thực và phân quyền** | **FR35 – Xác thực người dùng** | **UC02 – Đăng nhập** | **AC-G01** | **TC20.01** – Kiểm tra xác thực |
 | **BG10 – Bảo mật và kiểm soát hệ thống** | **BR13 – Xác thực và phân quyền** | **FR36 – Phân quyền người dùng** | **UC20 – Quản lý quyền** | **AC-G02** | **TC20.02** – Kiểm tra phân quyền |
 | **BG10 – Bảo mật và kiểm soát hệ thống** | **BR14 – Audit Log** | **FR37 – Ghi nhận thao tác quan trọng** | **UC21 – Xem Audit Log** | **AC-G04 / AC17.04** | **TC20.03** – Kiểm tra Audit Log |
