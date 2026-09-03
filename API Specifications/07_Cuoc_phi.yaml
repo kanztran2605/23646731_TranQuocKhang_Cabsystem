@@ -1,0 +1,85 @@
+openapi: 3.0.0
+info:
+  title: API Hệ thống đặt xe CAB
+  version: 1.0.0
+  description: 'REST API cho hệ thống đặt xe CAB.
+
+    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
+
+    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
+
+    '
+servers:
+- url: http://localhost:8080/api/v1
+  description: Máy chủ phát triển cục bộ
+tags:
+- name: Cước phí
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TripId:
+      name: tripId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    CuocPhi:
+      type: object
+      properties:
+        fareId:
+          type: string
+        tripId:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: VND
+        calculatedAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          example: INVALID_REQUEST
+        message:
+          type: string
+          example: Request data is invalid
+        timestamp:
+          type: string
+          format: date-time
+paths:
+  /trips/{tripId}/fare:
+    post:
+      tags:
+      - Cước phí
+      summary: Tính cước chuyến đi
+      operationId: calculateCuocPhi
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      responses:
+        '201':
+          description: Tính cước thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuocPhi'
+        '409':
+          description: Chuyến đi chưa hoàn thành hoặc thiếu dữ liệu cần thiết
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

@@ -1,0 +1,197 @@
+openapi: 3.0.0
+info:
+  title: API Hệ thống đặt xe CAB
+  version: 1.0.0
+  description: 'REST API cho hệ thống đặt xe CAB.
+
+    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
+
+    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
+
+    '
+servers:
+- url: http://localhost:8080/api/v1
+  description: Máy chủ phát triển cục bộ
+tags:
+- name: Xác thực
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Yêu cầu không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Yêu cầu xác thực hoặc thông tin xác thực không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Lỗi máy chủ nội bộ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    RegisterCustomerRequest:
+      type: object
+      required:
+      - username
+      - password
+      - fullName
+      - phone
+      - email
+      properties:
+        username:
+          type: string
+          example: customer01
+        password:
+          type: string
+          format: password
+          example: Password123!
+        fullName:
+          type: string
+          example: Nguyen Van A
+        phone:
+          type: string
+          example: 0901234567
+        email:
+          type: string
+          format: email
+          example: customer@example.com
+    DangNhapRequest:
+      type: object
+      required:
+      - username
+      - password
+      properties:
+        username:
+          type: string
+          example: customer01
+        password:
+          type: string
+          format: password
+          example: Password123!
+    DangNhapResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/UserResponse'
+    UserResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: U001
+        username:
+          type: string
+        fullName:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+          - CUSTOMER
+          - DRIVER
+          - OPERATION_STAFF
+          - MANAGEMENT
+          - ADMIN
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          example: INVALID_REQUEST
+        message:
+          type: string
+          example: Request data is invalid
+        timestamp:
+          type: string
+          format: date-time
+paths:
+  /auth/register:
+    post:
+      tags:
+      - Xác thực
+      summary: Đăng ký tài khoản khách hàng
+      operationId: registerCustomer
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterCustomerRequest'
+      responses:
+        '201':
+          description: Tạo tài khoản khách hàng thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Tên đăng nhập, email hoặc số điện thoại đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /auth/login:
+    post:
+      tags:
+      - Xác thực
+      summary: Đăng nhập
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DangNhapRequest'
+      responses:
+        '200':
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DangNhapResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/logout:
+    post:
+      tags:
+      - Xác thực
+      summary: Đăng xuất
+      operationId: logout
+      security:
+      - bearerAuth: []
+      responses:
+        '204':
+          description: Đăng xuất thành công
+        '401':
+          $ref: '#/components/responses/Unauthorized'

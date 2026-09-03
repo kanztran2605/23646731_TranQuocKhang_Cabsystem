@@ -1,0 +1,96 @@
+openapi: 3.0.0
+info:
+  title: API Hệ thống đặt xe CAB
+  version: 1.0.0
+  description: 'REST API cho hệ thống đặt xe CAB.
+
+    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
+
+    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
+
+    '
+servers:
+- url: http://localhost:8080/api/v1
+  description: Máy chủ phát triển cục bộ
+tags:
+- name: Nhật ký kiểm toán
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Forbidden:
+      description: Người dùng không có quyền thực hiện thao tác
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    NhatKyKiemToanLog:
+      type: object
+      properties:
+        auditLogId:
+          type: string
+        userId:
+          type: string
+        action:
+          type: string
+        targetType:
+          type: string
+        targetId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          example: INVALID_REQUEST
+        message:
+          type: string
+          example: Request data is invalid
+        timestamp:
+          type: string
+          format: date-time
+paths:
+  /audit-logs:
+    get:
+      tags:
+      - Nhật ký kiểm toán
+      summary: Xem nhật ký kiểm toán
+      operationId: getNhatKyKiemToanLogs
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: action
+        in: query
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date-time
+      responses:
+        '200':
+          description: Nhật ký kiểm toán logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NhatKyKiemToanLog'
+        '403':
+          $ref: '#/components/responses/Forbidden'

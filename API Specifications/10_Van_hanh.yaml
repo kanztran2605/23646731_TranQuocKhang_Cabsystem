@@ -1,0 +1,234 @@
+openapi: 3.0.0
+info:
+  title: API Hệ thống đặt xe CAB
+  version: 1.0.0
+  description: 'REST API cho hệ thống đặt xe CAB.
+
+    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
+
+    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
+
+    '
+servers:
+- url: http://localhost:8080/api/v1
+  description: Máy chủ phát triển cục bộ
+tags:
+- name: Vận hành
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TripId:
+      name: tripId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Forbidden:
+      description: Người dùng không có quyền thực hiện thao tác
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Không tìm thấy tài nguyên
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Trip:
+      type: object
+      properties:
+        tripId:
+          type: string
+        bookingId:
+          type: string
+        customerId:
+          type: string
+        driverId:
+          type: string
+        status:
+          type: string
+          enum:
+          - ASSIGNED
+          - ARRIVED
+          - PICKED_UP
+          - IN_PROGRESS
+          - COMPLETED
+          - ABNORMAL
+        pickupLocation:
+          $ref: '#/components/schemas/Location'
+        destinationLocation:
+          $ref: '#/components/schemas/Location'
+    Location:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        address:
+          type: string
+    Payment:
+      type: object
+      properties:
+        paymentId:
+          type: string
+        tripId:
+          type: string
+        amount:
+          type: number
+          format: double
+        method:
+          type: string
+          enum:
+          - CASH
+          - ELECTRONIC
+        status:
+          type: string
+          enum:
+          - PENDING
+          - SUCCESS
+          - FAILED
+        providerTransactionId:
+          type: string
+          description: Chỉ lưu mã tham chiếu do nhà cung cấp trả về; không được lưu thông tin thẻ/tài khoản nhạy cảm.
+    ResolveTripRequest:
+      type: object
+      required:
+      - resolution
+      - note
+      properties:
+        resolution:
+          type: string
+          example: RESOLVED
+        note:
+          type: string
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          example: INVALID_REQUEST
+        message:
+          type: string
+          example: Request data is invalid
+        timestamp:
+          type: string
+          format: date-time
+paths:
+  /operations/trips/active:
+    get:
+      tags:
+      - Vận hành
+      summary: Giám sát chuyến đi đang hoạt động
+      operationId: getActiveChuyến đi
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Active trips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /operations/trips/abnormal:
+    get:
+      tags:
+      - Vận hành
+      summary: Xem danh sách chuyến đi bất thường
+      operationId: getAbnormalChuyến đi
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Abnormal trips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /operations/trips/{tripId}/resolve:
+    post:
+      tags:
+      - Vận hành
+      summary: Xử lý chuyến đi bất thường
+      operationId: resolveAbnormalTrip
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveTripRequest'
+      responses:
+        '200':
+          description: Abnormal trip resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Resolution failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /operations/transactions:
+    get:
+      tags:
+      - Vận hành
+      summary: Tra cứu giao dịch
+      operationId: getTransactions
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date-time
+      responses:
+        '200':
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+        '403':
+          $ref: '#/components/responses/Forbidden'

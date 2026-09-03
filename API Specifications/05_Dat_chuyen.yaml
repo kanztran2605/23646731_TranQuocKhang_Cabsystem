@@ -1,0 +1,277 @@
+openapi: 3.0.0
+info:
+  title: API Hệ thống đặt xe CAB
+  version: 1.0.0
+  description: 'REST API cho hệ thống đặt xe CAB.
+
+    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
+
+    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
+
+    '
+servers:
+- url: http://localhost:8080/api/v1
+  description: Máy chủ phát triển cục bộ
+tags:
+- name: Đặt chuyến
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Yêu cầu không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Yêu cầu xác thực hoặc thông tin xác thực không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Người dùng không có quyền thực hiện thao tác
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Không tìm thấy tài nguyên
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    CreateBookingRequest:
+      type: object
+      required:
+      - pickupLocation
+      - destinationLocation
+      - vehicleTypeId
+      properties:
+        pickupLocation:
+          $ref: '#/components/schemas/Location'
+        destinationLocation:
+          $ref: '#/components/schemas/Location'
+        vehicleTypeId:
+          type: string
+          example: CAR_4_SEATS
+    Booking:
+      type: object
+      properties:
+        bookingId:
+          type: string
+          example: B001
+        customerId:
+          type: string
+        pickupLocation:
+          $ref: '#/components/schemas/Location'
+        destinationLocation:
+          $ref: '#/components/schemas/Location'
+        vehicleTypeId:
+          type: string
+        status:
+          type: string
+          enum:
+          - SEARCHING_DRIVER
+          - DRIVER_ASSIGNED
+          - REJECTED
+          - EXPIRED
+          - CANCELLED
+          - COMPLETED
+    MatchingResult:
+      type: object
+      properties:
+        bookingId:
+          type: string
+        driverId:
+          type: string
+        status:
+          type: string
+          enum:
+          - DRIVER_ASSIGNED
+          - SEARCHING
+          - NO_DRIVER
+    Trip:
+      type: object
+      properties:
+        tripId:
+          type: string
+        bookingId:
+          type: string
+        customerId:
+          type: string
+        driverId:
+          type: string
+        status:
+          type: string
+          enum:
+          - ASSIGNED
+          - ARRIVED
+          - PICKED_UP
+          - IN_PROGRESS
+          - COMPLETED
+          - ABNORMAL
+        pickupLocation:
+          $ref: '#/components/schemas/Location'
+        destinationLocation:
+          $ref: '#/components/schemas/Location'
+    Location:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        address:
+          type: string
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          example: INVALID_REQUEST
+        message:
+          type: string
+          example: Request data is invalid
+        timestamp:
+          type: string
+          format: date-time
+paths:
+  /bookings:
+    post:
+      tags:
+      - Đặt chuyến
+      summary: Tạo yêu cầu đặt chuyến
+      operationId: createBooking
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Tạo yêu cầu đặt chuyến và chuyển sang tìm tài xế
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /bookings/{bookingId}:
+    get:
+      tags:
+      - Đặt chuyến
+      summary: Xem thông tin đặt chuyến
+      operationId: getBooking
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Thông tin đặt chuyến
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /bookings/{bookingId}/matching:
+    post:
+      tags:
+      - Đặt chuyến
+      summary: Tìm và phân công tài xế
+      operationId: matchDriver
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Kết quả tìm và phân công tài xế
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchingResult'
+        '404':
+          description: Không tìm thấy tài xế phù hợp
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Yêu cầu đặt chuyến không còn sẵn sàng để tìm tài xế
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /bookings/{bookingId}/accept:
+    post:
+      tags:
+      - Đặt chuyến
+      summary: Chấp nhận yêu cầu chuyến đi
+      operationId: acceptTripRequest
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Chấp nhận chuyến đi và phân công tài xế thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Yêu cầu đặt chuyến không còn khả dụng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /bookings/{bookingId}/reject:
+    post:
+      tags:
+      - Đặt chuyến
+      summary: Từ chối yêu cầu chuyến đi
+      operationId: rejectTripRequest
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/BookingId'
+      responses:
+        '204':
+          description: Yêu cầu bị từ chối, hệ thống có thể tiếp tục tìm tài xế
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Yêu cầu đặt chuyến không còn khả dụng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

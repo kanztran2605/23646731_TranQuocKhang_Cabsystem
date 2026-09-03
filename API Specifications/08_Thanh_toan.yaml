@@ -1,0 +1,190 @@
+openapi: 3.0.0
+info:
+  title: API Hệ thống đặt xe CAB
+  version: 1.0.0
+  description: 'REST API cho hệ thống đặt xe CAB.
+
+    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
+
+    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
+
+    '
+servers:
+- url: http://localhost:8080/api/v1
+  description: Máy chủ phát triển cục bộ
+tags:
+- name: Thanh toán
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TripId:
+      name: tripId
+      in: path
+      required: true
+      schema:
+        type: string
+    PaymentId:
+      name: paymentId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Yêu cầu không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    CreatePaymentRequest:
+      type: object
+      required:
+      - method
+      properties:
+        method:
+          type: string
+          enum:
+          - CASH
+          - ELECTRONIC
+    Payment:
+      type: object
+      properties:
+        paymentId:
+          type: string
+        tripId:
+          type: string
+        amount:
+          type: number
+          format: double
+        method:
+          type: string
+          enum:
+          - CASH
+          - ELECTRONIC
+        status:
+          type: string
+          enum:
+          - PENDING
+          - SUCCESS
+          - FAILED
+        providerTransactionId:
+          type: string
+          description: Chỉ lưu mã tham chiếu do nhà cung cấp trả về; không được lưu thông tin thẻ/tài khoản nhạy cảm.
+    PaymentWebhookRequest:
+      type: object
+      required:
+      - paymentId
+      - status
+      properties:
+        paymentId:
+          type: string
+        status:
+          type: string
+          enum:
+          - SUCCESS
+          - FAILED
+        providerTransactionId:
+          type: string
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Request processed successfully
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          example: INVALID_REQUEST
+        message:
+          type: string
+          example: Request data is invalid
+        timestamp:
+          type: string
+          format: date-time
+paths:
+  /trips/{tripId}/payments:
+    post:
+      tags:
+      - Thanh toán
+      summary: Tạo thanh toán
+      operationId: createPayment
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Tạo thanh toán thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Không thể tạo thanh toán
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /payments/webhook:
+    post:
+      tags:
+      - Thanh toán
+      summary: Tiếp nhận kết quả từ nhà cung cấp thanh toán
+      operationId: paymentWebhook
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentWebhookRequest'
+      responses:
+        '200':
+          description: Đã tiếp nhận kết quả thanh toán
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /payments/{paymentId}/retry:
+    post:
+      tags:
+      - Thanh toán
+      summary: Thử lại thanh toán thất bại
+      operationId: retryPayment
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: Đã khởi tạo thử lại thanh toán
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '409':
+          description: Thanh toán không đủ điều kiện để thử lại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
