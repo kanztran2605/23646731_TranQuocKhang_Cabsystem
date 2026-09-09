@@ -1,0 +1,249 @@
+openapi: 3.0.0
+
+info:
+  title: API Hệ thống đặt xe CAB
+  version: 1.0.0
+  description: >
+    REST API cho hệ thống đặt xe CAB.
+    API được xây dựng dựa trên yêu cầu chức năng trong SRS,
+    Use Case, tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ của hệ thống.
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Máy chủ phát triển cục bộ
+
+tags:
+  - name: Xác thực
+    description: Đăng ký, đăng nhập và đăng xuất người dùng
+
+  - name: Phân quyền
+    description: Quản lý vai trò và quyền hạn trong hệ thống
+
+  - name: Người dùng
+    description: Quản lý thông tin và hồ sơ người dùng
+
+  - name: Đặt chuyến
+    description: Tạo yêu cầu đặt chuyến và xử lý phân công tài xế
+
+  - name: Tài xế
+    description: Quản lý thông tin, trạng thái và vị trí tài xế
+
+  - name: Xe
+    description: Quản lý thông tin phương tiện
+
+  - name: Chuyến đi
+    description: Quản lý trạng thái, lịch sử và đánh giá chuyến đi
+
+  - name: Cước phí
+    description: Tính toán và cung cấp thông tin cước phí chuyến đi
+
+  - name: Thanh toán
+    description: Xử lý thanh toán và kết quả giao dịch
+
+  - name: Thông báo
+    description: Quản lý và theo dõi thông báo của người dùng
+
+  - name: Vận hành
+    description: Hỗ trợ Operation Staff trong quá trình vận hành hệ thống
+
+  - name: Báo cáo
+    description: Cung cấp báo cáo và thống kê hoạt động hệ thống
+
+  - name: Nhật ký kiểm toán
+    description: Tra cứu nhật ký các sự kiện và thao tác quan trọng
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        JWT Access Token được gửi trong HTTP Header:
+        Authorization: Bearer <token>
+
+# =========================================================
+# SECURITY
+# =========================================================
+#
+# Mặc định tất cả API yêu cầu xác thực bằng JWT.
+# Các API công khai như đăng ký và đăng nhập sẽ ghi đè
+# bằng security: [] trong file authentication.yaml.
+#
+security:
+  - bearerAuth: []
+
+paths:
+
+  # =========================================================
+  # AUTHENTICATION
+  # =========================================================
+
+  /auth/register:
+    $ref: './authentication.yaml#/paths/~1auth~1register'
+
+  /auth/login:
+    $ref: './authentication.yaml#/paths/~1auth~1login'
+
+  /auth/logout:
+    $ref: './authentication.yaml#/paths/~1auth~1logout'
+
+
+  # =========================================================
+  # AUTHORIZATION
+  # =========================================================
+
+  /roles:
+    $ref: './authorization.yaml#/paths/~1roles'
+
+  /roles/{roleId}/permissions:
+    $ref: './authorization.yaml#/paths/~1roles~1{roleId}~1permissions'
+
+
+  # =========================================================
+  # USERS
+  # =========================================================
+
+  /users/me:
+    $ref: './users.yaml#/paths/~1users~1me'
+
+  /users/customers:
+    $ref: './users.yaml#/paths/~1users~1customers'
+
+  /users/customers/{userId}:
+    $ref: './users.yaml#/paths/~1users~1customers~1{userId}'
+
+
+  # =========================================================
+  # BOOKINGS
+  # =========================================================
+
+  /bookings:
+    $ref: './bookings.yaml#/paths/~1bookings'
+
+  /bookings/{bookingId}:
+    $ref: './bookings.yaml#/paths/~1bookings~1{bookingId}'
+
+  /bookings/{bookingId}/matching:
+    $ref: './bookings.yaml#/paths/~1bookings~1{bookingId}~1matching'
+
+  /bookings/{bookingId}/accept:
+    $ref: './bookings.yaml#/paths/~1bookings~1{bookingId}~1accept'
+
+  /bookings/{bookingId}/reject:
+    $ref: './bookings.yaml#/paths/~1bookings~1{bookingId}~1reject'
+
+
+  # =========================================================
+  # DRIVERS
+  # =========================================================
+
+  /drivers:
+    $ref: './drivers.yaml#/paths/~1drivers'
+
+  /drivers/{driverId}:
+    $ref: './drivers.yaml#/paths/~1drivers~1{driverId}'
+
+  /drivers/{driverId}/status:
+    $ref: './drivers.yaml#/paths/~1drivers~1{driverId}~1status'
+
+  /drivers/me/location:
+    $ref: './drivers.yaml#/paths/~1drivers~1me~1location'
+
+
+  # =========================================================
+  # VEHICLES
+  # =========================================================
+
+  /vehicles:
+    $ref: './vehicles.yaml#/paths/~1vehicles'
+
+  /vehicles/{vehicleId}:
+    $ref: './vehicles.yaml#/paths/~1vehicles~1{vehicleId}'
+
+
+  # =========================================================
+  # TRIPS
+  # =========================================================
+
+  /trips/history:
+    $ref: './trips.yaml#/paths/~1trips~1history'
+
+  /trips/{tripId}:
+    $ref: './trips.yaml#/paths/~1trips~1{tripId}'
+
+  /trips/{tripId}/status:
+    $ref: './trips.yaml#/paths/~1trips~1{tripId}~1status'
+
+  /trips/{tripId}/rating:
+    $ref: './trips.yaml#/paths/~1trips~1{tripId}~1rating'
+
+
+  # =========================================================
+  # FARE
+  # =========================================================
+
+  /trips/{tripId}/fare:
+    $ref: './fare.yaml#/paths/~1trips~1{tripId}~1fare'
+
+
+  # =========================================================
+  # PAYMENTS
+  # =========================================================
+
+  /trips/{tripId}/payments:
+    $ref: './payments.yaml#/paths/~1trips~1{tripId}~1payments'
+
+  /payments/webhook:
+    $ref: './payments.yaml#/paths/~1payments~1webhook'
+
+  /payments/{paymentId}/retry:
+    $ref: './payments.yaml#/paths/~1payments~1{paymentId}~1retry'
+
+
+  # =========================================================
+  # NOTIFICATIONS
+  # =========================================================
+
+  /notifications:
+    $ref: './notifications.yaml#/paths/~1notifications'
+
+  /notifications/{notificationId}/read:
+    $ref: './notifications.yaml#/paths/~1notifications~1{notificationId}~1read'
+
+
+  # =========================================================
+  # OPERATIONS
+  # =========================================================
+
+  /operations/trips/active:
+    $ref: './operations.yaml#/paths/~1operations~1trips~1active'
+
+  /operations/trips/abnormal:
+    $ref: './operations.yaml#/paths/~1operations~1trips~1abnormal'
+
+  /operations/trips/{tripId}/resolve:
+    $ref: './operations.yaml#/paths/~1operations~1trips~1{tripId}~1resolve'
+
+  /operations/transactions:
+    $ref: './operations.yaml#/paths/~1operations~1transactions'
+
+
+  # =========================================================
+  # REPORTS
+  # =========================================================
+
+  /reports/trips:
+    $ref: './reports.yaml#/paths/~1reports~1trips'
+
+  /reports/revenue:
+    $ref: './reports.yaml#/paths/~1reports~1revenue'
+
+
+  # =========================================================
+  # AUDIT LOGS
+  # =========================================================
+
+  /audit-logs:
+    $ref: './audit.yaml#/paths/~1audit-logs'
