@@ -484,6 +484,11 @@ flowchart TD
 | **FR01.04** | Hệ thống phải xác thực người dùng trước khi sử dụng các chức năng yêu cầu tài khoản. |
 | **FR01.05** | Hệ thống phải cho phép người dùng cập nhật thông tin cá nhân. |
 | **FR01.06** | Hệ thống phải phân biệt quyền truy cập dựa trên vai trò của người dùng. |
+| **FR01.07** | Hệ thống phải cho phép Driver yêu cầu mã OTP để xác thực số điện thoại trong quá trình đăng ký tài khoản. |
+| **FR01.08** | Hệ thống chỉ cho phép tiếp tục quy trình đăng ký Driver khi mã OTP được xác thực thành công và còn hiệu lực. |
+| **FR01.09** | Sau khi Driver hoàn thành đăng ký và cung cấp đầy đủ hồ sơ cần thiết, hệ thống phải tạo hồ sơ Driver ở trạng thái `PENDING_APPROVAL`. |
+| **FR01.10** | Khi người dùng đăng nhập thành công, hệ thống phải cấp Access Token dùng để truy cập các chức năng yêu cầu xác thực. |
+| **FR01.11** | Hệ thống phải cho phép người dùng đã được xác thực xem thông tin hồ sơ phù hợp với quyền truy cập của mình. |
 
 ---
 
@@ -515,6 +520,9 @@ flowchart TD
 | **FR03.09** | Hệ thống phải tiếp tục tìm Driver khác khi Driver từ chối hoặc không phản hồi. |
 | **FR03.10** | Hệ thống phải thông báo cho Customer khi không tìm được Driver phù hợp. |
 | **FR03.11** | Hệ thống phải ghi nhận Driver được phân công cho chuyến đi. |
+| **FR03.12** | Hệ thống phải hỗ trợ truy vấn danh sách Driver theo tọa độ điểm tham chiếu và bán kính tìm kiếm. |
+| **FR03.13** | Danh sách Driver theo khu vực phải hỗ trợ giới hạn số lượng kết quả (`limit`) và phân trang (`paging`). |
+| **FR03.14** | Sau khi Driver chấp nhận chuyến, hệ thống phải cung cấp cho Customer các thông tin Driver và phương tiện cần thiết của chuyến đó. |
 
 > **Lưu ý:** Rating của Driver chưa được xác định là tiêu chí ưu tiên trong yêu cầu của khách hàng. Vì vậy, không đưa "ưu tiên tài xế rating cao" thành FR chính thức cho đến khi Business Rule này được khách hàng xác nhận.
 
@@ -531,6 +539,11 @@ flowchart TD
 | **FR04.05** | Hệ thống phải hiển thị trạng thái chuyến đi cho Customer. |
 | **FR04.06** | Hệ thống phải lưu lại lịch sử thay đổi trạng thái của chuyến đi. |
 | **FR04.07** | Hệ thống phải cho phép Operation Staff theo dõi các chuyến đang diễn ra. |
+| **FR04.08** | Hệ thống phải cho phép Customer yêu cầu hủy Trip trong các trạng thái được phép hủy. |
+| **FR04.09** | Khi hủy Trip, Customer phải cung cấp lý do hủy và hệ thống phải lưu lý do tương ứng. |
+| **FR04.10** | Khi yêu cầu hủy hợp lệ được xử lý thành công, hệ thống phải chuyển Trip sang trạng thái `CANCELED`. |
+| **FR04.11** | Sau khi Trip bị hủy, hệ thống phải thông báo cho các bên liên quan, bao gồm Customer và Driver đã được phân công nếu có. |
+| **FR04.12** | Hệ thống phải kiểm tra trình tự chuyển trạng thái Trip và từ chối các chuyển trạng thái không hợp lệ. |
 
 ---
 
@@ -542,6 +555,9 @@ flowchart TD
 | **FR05.02** | Hệ thống phải cập nhật thông tin vị trí của Driver trong quá trình thực hiện chuyến. |
 | **FR05.03** | Hệ thống phải sử dụng thông tin vị trí để hỗ trợ tìm Driver phù hợp. |
 | **FR05.04** | Hệ thống phải cung cấp thông tin vị trí cần thiết cho việc ước tính thời gian Driver đến điểm đón. |
+| **FR05.05** | Hệ thống phải cho phép Driver bật hoặc tắt trạng thái nhận chuyến. Khi bật và đủ điều kiện, Driver chuyển sang `AVAILABLE`; khi tắt, Driver chuyển sang `OFFLINE`. |
+| **FR05.06** | Chỉ Driver có `ApprovalStatus = APPROVED` và `AvailabilityStatus = AVAILABLE` mới được hệ thống xem xét để nhận chuyến mới. |
+| **FR05.07** | Khi Driver có `AvailabilityStatus = AVAILABLE` hoặc đang thực hiện Trip theo nghiệp vụ cho phép cập nhật vị trí, hệ thống phải ghi nhận vị trí gần nhất của Driver để phục vụ tìm kiếm và theo dõi chuyến. |
 
 ---
 
@@ -559,6 +575,9 @@ flowchart TD
 | **FR06.08** | Hệ thống phải thông báo cho Customer khi thanh toán thành công hoặc thất bại. |
 | **FR06.09** | Hệ thống phải cho phép xử lý lại giao dịch thanh toán thất bại theo chính sách của doanh nghiệp. |
 | **FR06.10** | Hệ thống không được lưu trực tiếp thông tin thẻ hoặc thông tin thanh toán nhạy cảm của Customer. |
+| **FR06.11** | Hệ thống phải cung cấp cơ chế tiếp nhận và xác thực kết quả hoặc callback từ Payment Provider đối với giao dịch thanh toán điện tử. |
+| **FR06.12** | Các yêu cầu tạo giao dịch Payment phải hỗ trợ cơ chế idempotency nhằm ngăn việc xử lý lặp lại cùng một giao dịch khi request được gửi lại do timeout, lỗi mạng hoặc retry từ client. |
+| **FR06.13** | Khi cùng một yêu cầu Payment hợp lệ được gửi lại với cùng `Idempotency-Key`, hệ thống không được tạo thêm Payment hoặc gây double charge và phải trả lại kết quả phù hợp của lần xử lý trước. |
 
 ---
 
@@ -586,6 +605,7 @@ flowchart TD
 | **FR08.03** | Hệ thống phải hiển thị số tiền phải trả của chuyến đi. |
 | **FR08.04** | Hệ thống phải cho phép Customer đánh giá Driver sau khi chuyến hoàn thành. |
 | **FR08.05** | Hệ thống phải lưu kết quả đánh giá gắn với chuyến đi tương ứng. |
+| **FR08.06** | Danh sách lịch sử Booking/Trip của Customer phải hỗ trợ giới hạn số lượng kết quả (`limit`) và phân trang (`paging`). |
 
 ---
 
@@ -601,6 +621,9 @@ flowchart TD
 | **FR09.06** | Hệ thống phải cho phép Operation Staff tra cứu lịch sử chuyến đi. |
 | **FR09.07** | Hệ thống phải cho phép Operation Staff hỗ trợ xử lý các chuyến bị lỗi. |
 | **FR09.08** | Hệ thống phải cho phép nhân viên có quyền phù hợp tra cứu lịch sử giao dịch. |
+| **FR09.09** | Hệ thống phải cho phép Operation Staff hoặc System Administrator có quyền phù hợp xem danh sách hồ sơ Driver đang chờ duyệt. |
+| **FR09.10** | Hệ thống phải cho phép người có quyền phê duyệt (`APPROVED`) hoặc từ chối (`REJECTED`) hồ sơ Driver. |
+| **FR09.11** | Sau khi hồ sơ Driver được phê duyệt hoặc từ chối, hệ thống phải lưu kết quả và thông báo cho Driver. |
 
 ---
 
@@ -651,7 +674,7 @@ Business Rules xác định các quy tắc và điều kiện mà hệ thống C
 
 | ID | Business Rule | Diễn giải |
 |---|---|---|
-| **BRL01** | **Tài xế phải sẵn sàng mới được nhận chuyến** | Chỉ Driver có trạng thái **Available/Ready** mới được hệ thống đưa vào danh sách tìm kiếm và phân công chuyến. |
+| **BRL01** | **Tài xế phải sẵn sàng mới được nhận chuyến** | Chỉ Driver có `ApprovalStatus = APPROVED` và `AvailabilityStatus = AVAILABLE` mới được hệ thống đưa vào danh sách tìm kiếm và phân công chuyến. |
 | **BRL02** | **Tài xế phải phù hợp với loại xe** | Driver chỉ được nhận những chuyến có loại xe phù hợp với phương tiện đã đăng ký. |
 | **BRL03** | **Ưu tiên tài xế phù hợp và gần khách hàng** | Hệ thống phải ưu tiên các Driver đáp ứng yêu cầu chuyến và có vị trí phù hợp/gần điểm đón theo tiêu chí vận hành. |
 | **BRL04** | **Một chuyến chỉ có một tài xế được phân công** | Tại một thời điểm, một Trip chỉ được gán cho tối đa một Driver. |
@@ -663,6 +686,13 @@ Business Rules xác định các quy tắc và điều kiện mà hệ thống C
 | **BRL10** | **Chỉ Customer của chuyến mới được đánh giá Driver** | Customer chỉ được đánh giá Driver đối với Trip mà Customer đó thực sự tham gia và Trip đã hoàn thành. |
 | **BRL11** | **Chỉ người có quyền mới được thực hiện thao tác quản trị** | Các chức năng quản trị hoặc thao tác nhạy cảm phải được kiểm soát bằng quyền truy cập. |
 | **BRL12** | **Mỗi Trip phải có mã định danh duy nhất** | Hệ thống phải tạo một mã định danh duy nhất cho mỗi yêu cầu/chuyến đi để phục vụ quản lý và tra cứu. |
+| **BRL13** | **Driver phải xác thực OTP trước khi hoàn thành đăng ký** | Số điện thoại của Driver phải được xác thực bằng OTP hợp lệ trước khi hồ sơ Driver được tạo hoàn chỉnh. |
+| **BRL14** | **Driver phải được duyệt trước khi nhận chuyến** | Driver có hồ sơ ở trạng thái `PENDING_APPROVAL` hoặc `REJECTED` không được chuyển sang trạng thái sẵn sàng nhận chuyến. |
+| **BRL15** | **Driver phải Online mới được nhận chuyến** | Khi Driver bật trạng thái Online và đủ điều kiện nhận chuyến, hệ thống chuyển `AvailabilityStatus` sang `AVAILABLE`. Driver có `AvailabilityStatus = OFFLINE` hoặc `BUSY` không được phân công Trip mới. |
+| **BRL16** | **Trip bị hủy phải có lý do** | Mọi thao tác hủy Trip phải ghi nhận lý do và người thực hiện thao tác hủy. |
+| **BRL17** | **Trip phải tuân thủ State Machine** | Hệ thống chỉ chấp nhận các chuyển trạng thái Trip hợp lệ và phải từ chối việc bỏ qua trạng thái bắt buộc. |
+| **BRL18** | **Payment phải có tính idempotent** | Cùng một yêu cầu thanh toán được gửi lại với cùng Idempotency Key không được tạo thêm Payment hoặc gây double charge. |
+| **BRL19** | **Mỗi Trip chỉ được đánh giá một lần bởi Customer của Trip** | Một Customer không được tạo nhiều Rating cho cùng một Trip. |
 
 ---
 
@@ -820,8 +850,10 @@ erDiagram
         bigint DriverID PK
         bigint UserID FK
         string DriverLicense
-        string Status
+        string ApprovalStatus
+        string AvailabilityStatus
         decimal Rating
+        datetime CreatedAt
     }
 
     VEHICLE {
@@ -859,6 +891,8 @@ erDiagram
         datetime EndTime
         string Status
         decimal Distance
+        string CancelReason
+        datetime CanceledAt
         datetime CompletedAt
     }
 
@@ -886,7 +920,9 @@ erDiagram
         string Method
         string Status
         string ProviderReference
+        string IdempotencyKey
         datetime PaidAt
+        datetime CreatedAt
     }
 
     RATING {
@@ -919,6 +955,7 @@ erDiagram
         string Detail
     }
 ```
+    > **Data Integrity Constraint:** `Payment.IdempotencyKey` phải có ràng buộc duy nhất (`UNIQUE`) đối với các request Payment sử dụng idempotency. Khi nhận lại cùng `IdempotencyKey`, hệ thống phải tra cứu kết quả đã xử lý thay vì tạo Payment mới.
 ---
 # 10. Thiết kế các Non-Functional Requirements (NFR) của hệ thống
 
@@ -1012,8 +1049,34 @@ erDiagram
 | ID | Tên | Diễn giải |
 |---|---|---|
 | **NFR28** | **Tính toàn vẹn dữ liệu** | Hệ thống phải đảm bảo dữ liệu Customer, Driver, Booking, Trip và Payment được lưu trữ chính xác và nhất quán. |
-| **NFR29** | **Chống tạo dữ liệu trùng** | Hệ thống phải hạn chế việc tạo trùng Booking hoặc Payment khi người dùng gửi lại yêu cầu do lỗi mạng hoặc timeout. |
+| **NFR29** | **Idempotency và chống xử lý trùng** | Các API tạo dữ liệu hoặc giao dịch quan trọng như Booking và Payment phải hỗ trợ cơ chế idempotency phù hợp. Khi cùng một request hợp lệ được gửi lại với cùng Idempotency Key, hệ thống không được tạo giao dịch mới, không được gây double charge và phải có khả năng trả lại kết quả của lần xử lý trước. |
 | **NFR30** | **Tính nhất quán trạng thái** | Trạng thái của Booking, Trip và Payment phải được cập nhật nhất quán giữa các thành phần liên quan. |
+
+---
+
+## 10.10. NFR – Security & Platform Controls
+
+| ID | Tên | Diễn giải |
+|---|---|---|
+| **NFR31** | **Encryption at Rest** | Password phải được lưu dưới dạng cryptographic hash. Các dữ liệu nhạy cảm cần có khả năng đọc lại phải được mã hóa khi lưu trữ và encryption key không được hard-code trong source code. |
+| **NFR32** | **Injection Protection** | Input từ client phải được validate và các thao tác truy vấn cơ sở dữ liệu phải sử dụng parameterized query hoặc cơ chế tương đương để ngăn SQL Injection. |
+| **NFR33** | **XSS Protection** | Dữ liệu text do người dùng nhập phải được validate, sanitize hoặc encode phù hợp để nội dung dạng script không được thực thi ngoài ý muốn. |
+| **NFR34** | **JWT Integrity** | Access Token phải được kiểm tra chữ ký, thời hạn và tính hợp lệ trước khi sử dụng. Token có payload hoặc signature bị thay đổi phải bị từ chối. |
+| **NFR35** | **Rate Limiting** | API Gateway phải hỗ trợ giới hạn số lượng request từ client trong một khoảng thời gian. Request vượt ngưỡng phải bị từ chối bằng HTTP `429 Too Many Requests`. |
+| **NFR36** | **Service Health & Readiness** | Hệ thống phải cung cấp cơ chế kiểm tra liveness, readiness và trạng thái các service quan trọng để phục vụ monitoring và deployment. |
+| **NFR37** | **Gateway Access Control** | Các request từ client bên ngoài phải đi qua API Gateway. Các microservice nội bộ không được expose trực tiếp cho client ngoài hệ thống trong môi trường triển khai chính thức. |
+
+---
+
+## 10.11. Technical Architecture Constraints
+
+| ID | Architecture Constraint | Diễn giải |
+|---|---|---|
+| **ARC01** | **API Gateway** | API Gateway là điểm truy cập chính cho các request từ client bên ngoài và chịu trách nhiệm routing, authentication/authorization ở mức phù hợp và các cross-cutting concern. |
+| **ARC02** | **Synchronous IPC** | Giao tiếp đồng bộ giữa các thành phần có thể sử dụng HTTP/REST khi cần nhận kết quả trực tiếp. |
+| **ARC03** | **Asynchronous IPC** | Các sự kiện nghiệp vụ cần xử lý bất đồng bộ như Booking Created, Driver Accepted, Trip Status Changed và Payment Completed được truyền thông qua Message Broker như RabbitMQ. |
+| **ARC04** | **Containerization** | Các thành phần triển khai phải có khả năng được đóng gói bằng Docker container. Môi trường local/demo được orchestration bằng Docker Compose. |
+| **ARC05** | **Configuration & Secrets** | Thông tin cấu hình và secret phải được cung cấp thông qua biến môi trường hoặc cơ chế quản lý secret. File `.env` chứa secret thực tế không được lưu vào source repository; repository chỉ lưu `.env.example`. |
 
 ---
 
@@ -1030,6 +1093,7 @@ erDiagram
 | **A05** | **Payment Provider** | Hệ thống bên ngoài xử lý thanh toán điện tử. |
 | **A06** | **Notification Provider** | Hệ thống bên ngoài cung cấp dịch vụ gửi thông báo. |
 | **A07** | **Map / Location Service** | Hệ thống bên ngoài cung cấp thông tin vị trí/bản đồ khi cần. |
+| **A08** | **System Administrator** | Quản trị tài khoản, phân quyền, cấu hình hệ thống và thực hiện các thao tác quản trị nhạy cảm theo quyền được cấp. |
 
 ---
 
@@ -1038,7 +1102,7 @@ erDiagram
 | ID | Use Case | Actor chính |
 |---|---|---|
 | **UC01** | Đăng ký tài khoản | Customer |
-| **UC02** | Đăng nhập | Customer, Driver, Operation Staff |
+| **UC02** | Đăng nhập | Customer, Driver, Operation Staff, System Administrator |
 | **UC03** | Quản lý hồ sơ cá nhân | Customer, Driver |
 | **UC04** | Quản lý tài xế | Operation Staff |
 | **UC05** | Quản lý phương tiện | Operation Staff |
@@ -1056,8 +1120,13 @@ erDiagram
 | **UC17** | Xử lý chuyến bất thường | Operation Staff |
 | **UC18** | Tra cứu giao dịch | Operation Staff |
 | **UC19** | Xem báo cáo | Management |
-| **UC20** | Quản lý quyền truy cập | Operation Staff |
-| **UC21** | Xem Audit Log | Operation Staff |
+| **UC20** | Quản lý quyền truy cập | Operation Staff, System Administrator |
+| **UC21** | Xem Audit Log | Operation Staff, System Administrator |
+| **UC22** | Đăng ký tài xế và xác thực OTP | Driver |
+| **UC23** | Duyệt hồ sơ tài xế | Operation Staff, System Administrator |
+| **UC24** | Bật/tắt trạng thái nhận chuyến | Driver |
+| **UC25** | Hủy chuyến | Customer |
+| **UC26** | Tra cứu tài xế theo khu vực | Operation Staff |
 
 ---
 
@@ -1103,6 +1172,12 @@ flowchart LR
         UC19["UC19\nXem báo cáo"]
         UC20["UC20\nQuản lý quyền"]
         UC21["UC21\nXem Audit Log"]
+
+        UC22["UC22\nĐăng ký Driver + OTP"]
+        UC23["UC23\nDuyệt hồ sơ Driver"]
+        UC24["UC24\nOnline / Offline"]
+        UC25["UC25\nHủy chuyến"]
+        UC26["UC26\nTra cứu Driver khu vực"]
     end
 
     Customer --> UC01
@@ -1143,12 +1218,82 @@ flowchart LR
     UC13 --> Notification
     UC06 --> Map
     UC07 --> Map
+
+    Driver --> UC22
+    Driver --> UC24
+
+    Ops --> UC23
+    Ops --> UC26
+
+    Customer --> UC25
+
+    Admin["System Administrator"]
+    Admin --> UC23
+    Admin --> UC20
+    Admin --> UC21
 ```
 ---
 ## 11.4. Use Case Specification – Đặc tả Use Case
 
-> Chỉ đặc tả chi tiết các Use Case chính và có nghiệp vụ quan trọng.  
-> Các Use Case CRUD hoặc chức năng hỗ trợ sẽ được mô tả ở mức tổng quan trong danh sách Use Case.
+### UC01 – Đăng ký tài khoản Customer
+
+| Thành phần | Nội dung |
+|---|---|
+| **Use Case ID** | UC01 |
+| **Use Case Name** | Đăng ký tài khoản Customer |
+| **Primary Actor** | Customer |
+| **Description** | Customer tạo tài khoản mới để sử dụng các chức năng của CAB System. |
+| **Preconditions** | Customer chưa có tài khoản với email hoặc số điện thoại tương ứng. |
+| **Trigger** | Customer chọn chức năng Đăng ký. |
+| **Postconditions** | Tài khoản Customer được tạo thành công và có thể sử dụng để đăng nhập. |
+
+#### Main Flow
+
+1. Customer chọn chức năng **Đăng ký**.
+2. Hệ thống yêu cầu Customer nhập thông tin bắt buộc.
+3. Customer nhập họ tên, email/số điện thoại và mật khẩu.
+4. Hệ thống kiểm tra định dạng dữ liệu.
+5. Hệ thống kiểm tra email/số điện thoại chưa được sử dụng.
+6. Hệ thống tạo tài khoản Customer.
+7. Hệ thống tạo hồ sơ Customer tương ứng.
+8. Hệ thống thông báo đăng ký thành công.
+
+#### Alternative / Exception Flow
+
+- **A1:** Email hoặc số điện thoại đã tồn tại → Hệ thống từ chối tạo tài khoản và thông báo cho Customer.
+- **A2:** Dữ liệu bắt buộc không hợp lệ → Hệ thống yêu cầu nhập lại.
+- **A3:** Lỗi hệ thống khi tạo tài khoản → Hệ thống không tạo dữ liệu không hoàn chỉnh và thông báo thất bại.
+
+---
+
+### UC02 – Đăng nhập
+
+| Thành phần | Nội dung |
+|---|---|
+| **Use Case ID** | UC02 |
+| **Use Case Name** | Đăng nhập |
+| **Primary Actor** | Customer, Driver, Operation Staff, System Administrator |
+| **Description** | Người dùng cung cấp thông tin xác thực để truy cập các chức năng được bảo vệ của CAB System. |
+| **Preconditions** | Tài khoản tồn tại và đang ở trạng thái cho phép đăng nhập. |
+| **Trigger** | Người dùng chọn chức năng Đăng nhập. |
+| **Postconditions** | Nếu xác thực thành công, hệ thống cấp Access Token chứa thông tin định danh và vai trò cần thiết. |
+
+#### Main Flow
+
+1. Người dùng nhập thông tin đăng nhập.
+2. Hệ thống tìm tài khoản tương ứng.
+3. Hệ thống kiểm tra mật khẩu.
+4. Hệ thống kiểm tra trạng thái tài khoản.
+5. Hệ thống xác định vai trò của người dùng.
+6. Hệ thống cấp Access Token.
+7. Hệ thống trả kết quả đăng nhập thành công.
+
+#### Alternative / Exception Flow
+
+- **A1:** Không tìm thấy tài khoản → Hệ thống từ chối đăng nhập.
+- **A2:** Mật khẩu không đúng → Hệ thống từ chối đăng nhập.
+- **A3:** Tài khoản không hoạt động → Hệ thống từ chối đăng nhập.
+- **A4:** Token không thể được tạo → Hệ thống trả lỗi và không xác nhận đăng nhập thành công.
 
 ---
 
@@ -1400,6 +1545,35 @@ flowchart LR
 
 ---
 
+### UC14 – Xem lịch sử chuyến
+
+| Thành phần | Nội dung |
+|---|---|
+| **Use Case ID** | UC14 |
+| **Use Case Name** | Xem lịch sử chuyến |
+| **Primary Actor** | Customer |
+| **Description** | Customer xem danh sách Booking/Trip của mình. |
+| **Preconditions** | Customer đã đăng nhập. |
+| **Trigger** | Customer mở chức năng Lịch sử chuyến. |
+| **Postconditions** | Danh sách Booking/Trip thuộc Customer được trả về theo quyền truy cập. |
+
+#### Main Flow
+
+1. Customer yêu cầu xem lịch sử chuyến.
+2. Hệ thống xác định Customer từ thông tin xác thực.
+3. Customer có thể cung cấp `page` và `limit`.
+4. Hệ thống lấy danh sách Booking/Trip thuộc Customer.
+5. Hệ thống sắp xếp danh sách theo thời gian phù hợp.
+6. Hệ thống trả danh sách cùng thông tin phân trang.
+
+#### Alternative / Exception Flow
+
+- **A1:** Customer chưa có Booking → Hệ thống trả danh sách rỗng.
+- **A2:** `page` hoặc `limit` không hợp lệ → Hệ thống trả lỗi validation hoặc sử dụng giá trị mặc định theo thiết kế.
+- **A3:** Customer cố truy cập lịch sử của Customer khác → Hệ thống từ chối truy cập.
+
+---
+
 ### UC15 – Đánh giá tài xế
 
 | Thành phần | Nội dung |
@@ -1465,6 +1639,167 @@ flowchart LR
 
 ---
 
+### UC22 – Đăng ký tài xế và xác thực OTP
+
+| Thành phần | Nội dung |
+|---|---|
+| **Use Case ID** | UC22 |
+| **Use Case Name** | Đăng ký tài xế và xác thực OTP |
+| **Primary Actor** | Driver |
+| **Description** | Driver xác thực số điện thoại bằng OTP và gửi hồ sơ đăng ký tài xế. |
+| **Preconditions** | Số điện thoại chưa được sử dụng cho Driver đang hoạt động. |
+| **Trigger** | Driver chọn chức năng Đăng ký tài xế. |
+| **Postconditions** | Hồ sơ Driver được tạo ở trạng thái `PENDING_APPROVAL`. |
+
+#### Main Flow
+
+1. Driver nhập số điện thoại.
+2. Hệ thống tạo và gửi OTP thông qua cơ chế OTP được cấu hình.
+3. Driver nhập OTP.
+4. Hệ thống xác thực OTP và thời hạn của OTP.
+5. Driver nhập thông tin cá nhân cần thiết.
+6. Driver nhập thông tin phương tiện.
+7. Driver gửi hồ sơ.
+8. Hệ thống kiểm tra dữ liệu.
+9. Hệ thống tạo tài khoản và hồ sơ Driver.
+10. Hồ sơ Driver được đặt ở trạng thái `PENDING_APPROVAL`.
+11. Hệ thống thông báo hồ sơ đang chờ duyệt.
+
+#### Alternative / Exception Flow
+
+- **A1:** OTP không đúng → Hệ thống từ chối xác thực.
+- **A2:** OTP hết hạn → Driver phải yêu cầu OTP mới.
+- **A3:** Số điện thoại đã được sử dụng → Hệ thống không tạo hồ sơ trùng.
+- **A4:** Hồ sơ thiếu dữ liệu bắt buộc → Hệ thống yêu cầu bổ sung.
+
+---
+
+### UC23 – Duyệt hồ sơ tài xế
+
+| Thành phần | Nội dung |
+|---|---|
+| **Use Case ID** | UC23 |
+| **Use Case Name** | Duyệt hồ sơ tài xế |
+| **Primary Actor** | Operation Staff, System Administrator |
+| **Description** | Người có quyền kiểm tra và quyết định phê duyệt hoặc từ chối hồ sơ Driver. |
+| **Preconditions** | Người thực hiện đã đăng nhập, có quyền duyệt Driver và hồ sơ Driver đang ở trạng thái `PENDING_APPROVAL`. |
+| **Trigger** | Người có quyền mở hồ sơ Driver đang chờ duyệt. |
+| **Postconditions** | Hồ sơ được chuyển sang `APPROVED` hoặc `REJECTED` và Driver nhận được kết quả. |
+
+#### Main Flow
+
+1. Người có quyền mở danh sách hồ sơ chờ duyệt.
+2. Hệ thống hiển thị danh sách Driver ở trạng thái `PENDING_APPROVAL`.
+3. Người dùng chọn một hồ sơ.
+4. Hệ thống hiển thị thông tin hồ sơ và phương tiện.
+5. Người dùng chọn **Approve**.
+6. Hệ thống cập nhật trạng thái thành `APPROVED`.
+7. Hệ thống ghi Audit Log.
+8. Hệ thống thông báo kết quả cho Driver.
+
+#### Alternative / Exception Flow
+
+- **A1:** Người dùng chọn **Reject** → Hệ thống chuyển hồ sơ sang `REJECTED`.
+- **A2:** Người dùng không có quyền → Hệ thống từ chối thao tác.
+- **A3:** Hồ sơ không còn ở trạng thái chờ duyệt → Hệ thống không thực hiện cập nhật.
+
+---
+
+### UC24 – Bật/tắt trạng thái nhận chuyến
+
+| Thành phần | Nội dung |
+|---|---|
+| **Use Case ID** | UC24 |
+| **Use Case Name** | Bật/tắt trạng thái nhận chuyến |
+| **Primary Actor** | Driver |
+| **Description** | Driver thay đổi trạng thái hoạt động để bắt đầu hoặc ngừng nhận yêu cầu chuyến mới. |
+| **Preconditions** | Driver đã đăng nhập và hồ sơ đã được phê duyệt. |
+| **Trigger** | Driver thay đổi trạng thái Online/Offline. |
+| **Postconditions** | Trạng thái hoạt động của Driver được cập nhật. |
+
+#### Main Flow
+
+1. Driver mở chức năng trạng thái hoạt động.
+2. Driver chuyển sang `ONLINE`.
+3. Hệ thống kiểm tra hồ sơ Driver đã được phê duyệt.
+4. Hệ thống cập nhật trạng thái hoạt động.
+5. Driver có thể được đưa vào tập Driver phù hợp để tìm chuyến.
+
+#### Alternative / Exception Flow
+
+- **A1:** Driver chuyển sang `OFFLINE` → Hệ thống loại Driver khỏi tập Driver có thể nhận chuyến mới.
+- **A2:** Driver chưa được phê duyệt → Hệ thống không cho phép chuyển sang trạng thái nhận chuyến.
+- **A3:** Driver đang thực hiện Trip → Hệ thống xử lý trạng thái theo Business Rule hiện hành và không phân công Trip mới.
+
+---
+
+### UC25 – Hủy chuyến
+
+| Thành phần | Nội dung |
+|---|---|
+| **Use Case ID** | UC25 |
+| **Use Case Name** | Hủy chuyến |
+| **Primary Actor** | Customer |
+| **Description** | Customer yêu cầu hủy một Booking/Trip đang ở trạng thái cho phép hủy. |
+| **Preconditions** | Customer đã đăng nhập, là chủ sở hữu Booking/Trip và Trip chưa ở trạng thái kết thúc không thể hủy. |
+| **Trigger** | Customer chọn chức năng Hủy chuyến. |
+| **Postconditions** | Trip chuyển sang `CANCELED`, lý do hủy được lưu và các bên liên quan nhận thông báo. |
+
+#### Main Flow
+
+1. Customer mở Booking/Trip đang hoạt động.
+2. Customer chọn chức năng **Hủy chuyến**.
+3. Hệ thống kiểm tra quyền của Customer.
+4. Hệ thống kiểm tra trạng thái Trip có cho phép hủy.
+5. Customer nhập lý do hủy.
+6. Customer xác nhận.
+7. Hệ thống cập nhật Trip thành `CANCELED`.
+8. Hệ thống lưu lý do và thời điểm hủy.
+9. Hệ thống cập nhật trạng thái Driver nếu cần.
+10. Hệ thống thông báo cho Driver.
+11. Hệ thống thông báo kết quả cho Customer.
+
+#### Alternative / Exception Flow
+
+- **A1:** Trip không ở trạng thái được phép hủy → Hệ thống từ chối yêu cầu.
+- **A2:** Customer không phải chủ sở hữu Trip → Hệ thống từ chối truy cập.
+- **A3:** Lý do hủy thiếu hoặc không hợp lệ → Hệ thống yêu cầu nhập lại.
+
+> **Open Issue:** Chính sách phí phạt khi hủy chuyến vẫn cần được Business Owner xác nhận. MVP chỉ yêu cầu xử lý trạng thái, lý do hủy và notification.
+
+---
+
+### UC26 – Tra cứu tài xế theo khu vực
+
+| Thành phần | Nội dung |
+|---|---|
+| **Use Case ID** | UC26 |
+| **Use Case Name** | Tra cứu tài xế theo khu vực |
+| **Primary Actor** | Operation Staff |
+| **Description** | Người có quyền tra cứu danh sách Driver quanh một tọa độ trong bán kính xác định. |
+| **Preconditions** | Người dùng đã đăng nhập và có quyền truy cập thông tin Driver. |
+| **Trigger** | Người dùng yêu cầu tra cứu Driver theo tọa độ. |
+| **Postconditions** | Danh sách Driver thỏa điều kiện được trả về theo phân trang. |
+
+#### Main Flow
+
+1. Người dùng nhập tọa độ tham chiếu.
+2. Người dùng cung cấp bán kính tìm kiếm.
+3. Người dùng cung cấp `page` và `limit`.
+4. Hệ thống lấy các Driver phù hợp trong khu vực.
+5. Hệ thống tính hoặc xác định khoảng cách đến tọa độ tham chiếu.
+6. Hệ thống trả danh sách theo giới hạn và phân trang.
+
+#### Alternative / Exception Flow
+
+- **A1:** Tọa độ không hợp lệ → Hệ thống từ chối request.
+- **A2:** Không có Driver trong khu vực → Hệ thống trả danh sách rỗng.
+- **A3:** Người dùng không có quyền → Hệ thống từ chối truy cập.
+
+> **Acceptance Test cho phiên bản project:** kiểm thử với bán kính `1 km`, có ít nhất `5 Driver` với nhiều trạng thái khác nhau, đồng thời kiểm tra `limit` và `paging`.
+
+---
+
 # 12. Xác định các Acceptance Criterias - Những tiêu chí chấp nhận (AC) - Giúp cho người làm phần mềm xác định được khi nào kết thúc và được nghiệm thu
 
 
@@ -1498,6 +1833,15 @@ Một chức năng được xem là đạt khi:
 ---
 
 ## 12.3. Acceptance Criteria cho Tìm và phân công tài xế
+
+**Use Case:** UC04 – Tra cứu thông tin Driver
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC04.01** | Người dùng đã xác thực và có quyền phù hợp phải có thể tra cứu thông tin Driver theo định danh. |
+| **AC04.02** | Response phải trả đúng thông tin Driver được phép xem, bao gồm trạng thái hồ sơ và trạng thái hoạt động cần thiết cho nghiệp vụ. |
+| **AC04.03** | Request không có Access Token hợp lệ phải bị từ chối bằng HTTP `401 Unauthorized`. |
+| **AC04.04** | Người dùng có Access Token hợp lệ nhưng không có quyền truy cập thông tin Driver tương ứng phải bị từ chối bằng HTTP `403 Forbidden`. |
 
 **Use Case:** UC07 – Tìm và phân công tài xế
 
@@ -1578,6 +1922,9 @@ Một chức năng được xem là đạt khi:
 | **AC12.06** | Khi thanh toán thất bại, Customer phải nhận được thông báo rõ ràng. |
 | **AC12.07** | Customer phải có khả năng thực hiện lại thanh toán theo chính sách doanh nghiệp. |
 | **AC12.08** | CAB System không được lưu trực tiếp thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán. |
+| **AC12.09** | Payment Provider callback hợp lệ phải cập nhật đúng Payment tương ứng. |
+| **AC12.10** | Cùng một Payment request với cùng Idempotency Key không được tạo nhiều Payment. |
+| **AC12.11** | Replay của một payment request đã xử lý không được gây double charge và phải trả lại kết quả phù hợp của lần xử lý trước. |
 
 ---
 
@@ -1628,46 +1975,229 @@ Một chức năng được xem là đạt khi:
 
 ---
 
+## 12.11. Acceptance Criteria cho Đăng ký và Đăng nhập
+
+### UC01 – Đăng ký Customer
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC01.01** | Customer chưa có tài khoản phải có thể đăng ký bằng dữ liệu hợp lệ. |
+| **AC01.02** | Email hoặc số điện thoại đã tồn tại không được tạo thêm tài khoản trùng. |
+| **AC01.03** | Password không được lưu dưới dạng plaintext. |
+| **AC01.04** | Sau khi đăng ký thành công, tài khoản và hồ sơ Customer phải được tạo đầy đủ. |
+
+### UC02 – Đăng nhập
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC02.01** | Người dùng có thông tin đăng nhập hợp lệ phải đăng nhập thành công. |
+| **AC02.02** | Khi đăng nhập thành công, hệ thống phải trả Access Token hợp lệ. |
+| **AC02.03** | Mật khẩu sai không được cấp Access Token. |
+| **AC02.04** | Tài khoản không hợp lệ hoặc không hoạt động không được đăng nhập. |
+
+---
+
+## 12.12. Acceptance Criteria cho Hồ sơ và lịch sử
+
+### UC03 – Quản lý hồ sơ
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC03.01** | Người dùng đã xác thực có thể lấy thông tin hồ sơ được phép xem bằng Access Token hợp lệ. |
+| **AC03.02** | Request không có Access Token hợp lệ phải bị từ chối. |
+| **AC03.03** | Dữ liệu nhạy cảm không được trả về cho người dùng không có quyền. |
+
+### UC14 – Xem lịch sử chuyến
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC14.01** | Customer chỉ xem được Booking/Trip thuộc tài khoản của mình. |
+| **AC14.02** | Danh sách phải hỗ trợ tham số `page`. |
+| **AC14.03** | Danh sách phải hỗ trợ tham số `limit`. |
+| **AC14.04** | Response phải cung cấp thông tin cần thiết để xác định trang hiện tại và tổng số bản ghi hoặc thông tin phân trang tương đương. |
+| **AC14.05** | Với dữ liệu demo có ít nhất 5 Booking, hệ thống phải trả đúng các Booking thuộc Customer. |
+
+---
+
+## 12.13. Acceptance Criteria cho Driver Onboarding
+
+### UC22 – Đăng ký Driver bằng OTP
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC22.01** | Driver có thể yêu cầu OTP cho số điện thoại hợp lệ. |
+| **AC22.02** | OTP sai hoặc hết hạn không được xác thực thành công. |
+| **AC22.03** | OTP hợp lệ cho phép Driver tiếp tục đăng ký. |
+| **AC22.04** | Hồ sơ Driver sau đăng ký phải ở trạng thái `PENDING_APPROVAL`. |
+| **AC22.05** | Driver chưa được duyệt không được nhận chuyến. |
+
+### UC23 – Duyệt Driver
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC23.01** | Người có quyền có thể xem danh sách Driver `PENDING_APPROVAL`. |
+| **AC23.02** | Người có quyền có thể Approve Driver. |
+| **AC23.03** | Người có quyền có thể Reject Driver. |
+| **AC23.04** | Người không có quyền phải bị từ chối thao tác. |
+| **AC23.05** | Kết quả duyệt phải được lưu và Driver phải nhận được thông báo. |
+
+### UC24 – Online / Offline
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC24.01** | Driver đã được duyệt có thể chuyển sang trạng thái Online. |
+| **AC24.02** | Driver có thể chuyển sang trạng thái Offline. |
+| **AC24.03** | Driver Offline không được đưa vào danh sách Driver có thể nhận chuyến mới. |
+| **AC24.04** | Driver chưa được duyệt không được chuyển sang trạng thái nhận chuyến. |
+
+---
+
+## 12.14. Acceptance Criteria cho Hủy chuyến
+
+**Use Case:** UC25 – Hủy chuyến
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC25.01** | Customer chỉ được hủy Booking/Trip thuộc tài khoản của mình. |
+| **AC25.02** | Hệ thống chỉ cho phép hủy ở các trạng thái hợp lệ theo Business Rule. |
+| **AC25.03** | Customer phải cung cấp lý do hủy. |
+| **AC25.04** | Sau khi hủy thành công, Trip phải có trạng thái `CANCELED`. |
+| **AC25.05** | Lý do và thời điểm hủy phải được lưu. |
+| **AC25.06** | Driver liên quan phải nhận được thông báo hủy nếu Driver đã được phân công. |
+| **AC25.07** | Customer phải nhận được kết quả xác nhận hủy chuyến. |
+
+---
+
+## 12.15. Acceptance Criteria cho Tra cứu Driver theo khu vực
+
+**Use Case:** UC26 – Tra cứu tài xế theo khu vực
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC26.01** | Hệ thống phải cho phép tìm Driver theo latitude và longitude hợp lệ. |
+| **AC26.02** | Hệ thống phải hỗ trợ giới hạn Driver theo bán kính được truyền vào. |
+| **AC26.03** | Với bài kiểm thử project, `radius = 1 km` phải chỉ trả các Driver nằm trong phạm vi tương ứng. |
+| **AC26.04** | Danh sách phải hỗ trợ `limit`. |
+| **AC26.05** | Danh sách phải hỗ trợ `paging`. |
+| **AC26.06** | Driver không phù hợp với điều kiện trạng thái phải được xử lý đúng theo mục đích của API. |
+
+---
+
+## 12.16. Global Security & Platform Acceptance Criteria
+
+| ID | Acceptance Criteria |
+|---|---|
+| **AC-G01** | Người dùng cung cấp thông tin xác thực hợp lệ phải nhận được Access Token hợp lệ. |
+| **AC-G02** | Request đến protected API mà không có Access Token hợp lệ phải bị từ chối bằng HTTP `401 Unauthorized`. |
+| **AC-G03** | Người dùng có Access Token hợp lệ nhưng không có quyền thực hiện chức năng phải bị từ chối bằng HTTP `403 Forbidden`. |
+| **AC-G04** | Các thao tác quản trị và thao tác quan trọng phải được ghi nhận trong Audit Log. |
+| **AC-G05** | Password trong database không được tồn tại dưới dạng plaintext; dữ liệu nhạy cảm cần khôi phục phải được mã hóa theo cơ chế được cấu hình và key không được hard-code trong source code. |
+| **AC-G06** | Input có dạng SQL Injection như `' OR 1=1 --` không được bypass authentication, không được làm lộ dữ liệu và phải nhận response lỗi phù hợp như HTTP `400` hoặc `401`. |
+| **AC-G07** | Input có nội dung script như `<script>alert('hack')</script>` không được dẫn đến thực thi script ngoài ý muốn và phải được sanitize hoặc encode phù hợp. |
+| **AC-G08** | JWT bị sửa payload hoặc signature phải bị phát hiện và request phải bị từ chối bằng HTTP `401 Unauthorized`. |
+| **AC-G09** | Khi client vượt quá giới hạn request đã cấu hình, Gateway phải trả HTTP `429 Too Many Requests` mà không làm hệ thống bị sập. |
+| **AC-G10** | Khi cùng một Payment request được gửi lại với cùng Idempotency Key, hệ thống không được tạo Payment mới, không được double charge và phải trả lại kết quả tương ứng của request đã xử lý trước đó. |
+| **AC-G11** | Endpoint `/health` phải phản ánh trạng thái liveness của Gateway/API. Endpoint `/ready` phải phản ánh readiness. Endpoint `/health/services` phải cung cấp trạng thái các service quan trọng. |
+| **AC-G12** | Client bên ngoài chỉ có thể truy cập business API thông qua API Gateway; microservice nội bộ không được expose trực tiếp ra client trong cấu hình triển khai chính thức. |
+| **AC-G13** | Message Broker phải có khả năng tiếp nhận và phân phối các business event được định nghĩa giữa các service mà không yêu cầu client gọi trực tiếp service nhận. |
+
+---
+
 # 13. Truy xuất nguồn gốc yêu cầu - Requirements Traceability - Tạo bảng ma trận truy xuất yêu cầu - Requirements Traceability Matrix - RTM - Các cột: BG - BR - FR - UC - AC - TC(Test Case)
 
-| BG | BR | FR | UC | AC | TC |
+Requirements Traceability Matrix (RTM) được sử dụng để đảm bảo các Business Goal có thể được truy vết xuống Business Requirement, Functional Requirement/Non-Functional Requirement, Use Case, Acceptance Criteria và Test Case tương ứng.
+
+---
+
+## 13.1. Requirements Traceability Matrix – Business & System Requirements
+
+| BG | BR | FR / NFR | UC | AC | TC đề xuất |
 |---|---|---|---|---|---|
-| **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR07 – Xác định vị trí Customer** | **UC07 – Tìm và phân công tài xế** | **AC07.01** – Chỉ lựa chọn Driver sẵn sàng | **TC07.01** – Kiểm tra lọc Driver theo trạng thái |
-| **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR08 – Lọc Driver theo loại xe** | **UC07** | **AC07.02** – Driver phải có loại xe phù hợp | **TC07.02** – Kiểm tra lọc theo loại xe |
-| **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR09 – Ưu tiên Driver phù hợp** | **UC07** | **AC07.03** – Áp dụng tiêu chí ưu tiên | **TC07.03** – Kiểm tra thứ tự ưu tiên Driver |
-| **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR10 – Tìm Driver thay thế** | **UC07** | **AC07.04** – Tìm Driver khác khi bị từ chối | **TC07.04** – Kiểm tra chuyển sang Driver tiếp theo |
-| **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR11 – Xử lý Driver không phản hồi** | **UC07 / UC08** | **AC07.05 / AC08.06** | **TC07.05** – Kiểm tra timeout phản hồi |
-| **BG01 – Tự động tìm tài xế** | **BR02 – Tìm tài xế** | **FR12 – Thông báo không tìm được Driver** | **UC07** | **AC07.08** – Thông báo Customer | **TC07.06** – Kiểm tra trường hợp không có Driver |
-| **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR01 – Nhập điểm đón** | **UC06 – Đặt chuyến** | **AC06.01** – Nhập điểm đón | **TC06.01** – Kiểm tra nhập điểm đón |
-| **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR02 – Nhập điểm đến** | **UC06** | **AC06.01** – Nhập điểm đến | **TC06.02** – Kiểm tra nhập điểm đến |
-| **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR03 – Chọn loại xe** | **UC06** | **AC06.02** – Chọn loại xe | **TC06.03** – Kiểm tra lựa chọn loại xe |
-| **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR04 – Xác nhận đặt chuyến** | **UC06** | **AC06.04** – Tạo yêu cầu duy nhất | **TC06.04** – Kiểm tra tạo Trip |
-| **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR05 – Kiểm tra dữ liệu đặt chuyến** | **UC06** | **AC06.03** – Không cho tạo khi dữ liệu không hợp lệ | **TC06.05** – Kiểm tra dữ liệu không hợp lệ |
-| **BG02 – Hỗ trợ đặt chuyến** | **BR01 – Đặt chuyến** | **FR06 – Thông báo tiếp nhận yêu cầu** | **UC06 / UC13** | **AC06.06 / AC13.01** | **TC06.06** – Kiểm tra thông báo tiếp nhận |
-| **BG03 – Quản lý quá trình thực hiện chuyến** | **BR03 – Theo dõi chuyến** | **FR13 – Cập nhật trạng thái chuyến** | **UC09 – Thực hiện chuyến** | **AC09.02 – AC09.05** | **TC09.01** – Kiểm tra cập nhật trạng thái |
-| **BG03 – Quản lý quá trình thực hiện chuyến** | **BR03 – Theo dõi chuyến** | **FR14 – Theo dõi vị trí Driver** | **UC09** | **AC09.06** | **TC09.02** – Kiểm tra lưu vị trí Driver |
-| **BG03 – Quản lý quá trình thực hiện chuyến** | **BR03 – Theo dõi chuyến** | **FR15 – Thông báo thay đổi trạng thái** | **UC09 / UC13** | **AC09.07** | **TC09.03** – Kiểm tra thông báo trạng thái |
-| **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR16 – Thanh toán tiền mặt** | **UC12 – Thanh toán** | **AC12.01** | **TC12.01** – Kiểm tra thanh toán tiền mặt |
-| **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR17 – Thanh toán điện tử** | **UC12** | **AC12.02 / AC12.03** | **TC12.02** – Kiểm tra thanh toán điện tử |
-| **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR18 – Cập nhật kết quả thanh toán** | **UC12** | **AC12.04** | **TC12.03** – Kiểm tra cập nhật trạng thái Payment |
-| **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR19 – Xử lý thanh toán thất bại** | **UC12** | **AC12.06 / AC12.07** | **TC12.04** – Kiểm tra thanh toán thất bại |
-| **BG04 – Hỗ trợ thanh toán** | **BR04 – Thanh toán** | **FR20 – Bảo vệ thông tin thanh toán** | **UC12** | **AC12.08** | **TC12.05** – Kiểm tra không lưu dữ liệu nhạy cảm |
-| **BG05 – Quản lý thông báo** | **BR05 – Gửi thông báo** | **FR21 – Thông báo cho Customer** | **UC13 – Gửi thông báo** | **AC13.01 – AC13.05** | **TC13.01** – Kiểm tra thông báo Customer |
-| **BG05 – Quản lý thông báo** | **BR05 – Gửi thông báo** | **FR22 – Thông báo cho Driver** | **UC13** | **AC13.06** | **TC13.02** – Kiểm tra thông báo Driver |
-| **BG05 – Quản lý thông báo** | **BR05 – Gửi thông báo** | **FR23 – Xử lý lỗi Notification Provider** | **UC13** | **AC13.07** | **TC13.03** – Kiểm tra Notification Provider lỗi |
-| **BG06 – Quản lý tài xế và phương tiện** | **BR06 – Quản lý Driver** | **FR24 – Quản lý hồ sơ Driver** | **UC04 – Quản lý tài xế** | — | **TC14.01** – Kiểm tra quản lý hồ sơ Driver |
-| **BG06 – Quản lý tài xế và phương tiện** | **BR06 – Quản lý Driver** | **FR25 – Quản lý trạng thái Driver** | **UC04 / UC08** | **AC08.01** | **TC14.02** – Kiểm tra trạng thái Driver |
-| **BG06 – Quản lý tài xế và phương tiện** | **BR07 – Quản lý phương tiện** | **FR26 – Quản lý thông tin phương tiện** | **UC05 – Quản lý phương tiện** | **AC07.02** | **TC14.03** – Kiểm tra quản lý phương tiện |
-| **BG07 – Quản lý vận hành** | **BR08 – Xử lý chuyến bất thường** | **FR27 – Giám sát Trip** | **UC16 – Giám sát chuyến** | **AC17.01 / AC17.02** | **TC17.01** – Kiểm tra giám sát Trip |
-| **BG07 – Quản lý vận hành** | **BR08 – Xử lý chuyến bất thường** | **FR28 – Xử lý Trip lỗi** | **UC17 – Xử lý chuyến bất thường** | **AC17.03 – AC17.06** | **TC17.02** – Kiểm tra xử lý Trip bất thường |
-| **BG07 – Quản lý vận hành** | **BR09 – Tra cứu giao dịch** | **FR29 – Tra cứu lịch sử giao dịch** | **UC18 – Tra cứu giao dịch** | — | **TC18.01** – Kiểm tra tra cứu giao dịch |
-| **BG07 – Quản lý vận hành** | **BR10 – Báo cáo** | **FR30 – Báo cáo hoạt động** | **UC19 – Xem báo cáo** | — | **TC19.01** – Kiểm tra báo cáo hoạt động |
-| **BG08 – Tính cước chính xác** | **BR11 – Tính cước** | **FR31 – Tính số tiền chuyến đi** | **UC11 – Tính cước** | **AC11.01 – AC11.05** | **TC11.01** – Kiểm tra tính cước |
-| **BG08 – Tính cước chính xác** | **BR11 – Tính cước** | **FR32 – Xử lý lỗi tính cước** | **UC11** | **AC11.06** | **TC11.02** – Kiểm tra lỗi tính cước |
-| **BG09 – Quản lý đánh giá** | **BR12 – Đánh giá Driver** | **FR33 – Đánh giá sau chuyến** | **UC15 – Đánh giá tài xế** | **AC15.01 – AC15.06** | **TC15.01** – Kiểm tra đánh giá Driver |
-| **BG09 – Quản lý đánh giá** | **BR12 – Đánh giá Driver** | **FR34 – Ngăn đánh giá trùng** | **UC15** | **AC15.05** | **TC15.02** – Kiểm tra đánh giá trùng |
-| **BG10 – Bảo mật và kiểm soát hệ thống** | **BR13 – Xác thực và phân quyền** | **FR35 – Xác thực người dùng** | **UC02 – Đăng nhập** | **AC-G01** | **TC20.01** – Kiểm tra xác thực |
-| **BG10 – Bảo mật và kiểm soát hệ thống** | **BR13 – Xác thực và phân quyền** | **FR36 – Phân quyền người dùng** | **UC20 – Quản lý quyền** | **AC-G02** | **TC20.02** – Kiểm tra phân quyền |
-| **BG10 – Bảo mật và kiểm soát hệ thống** | **BR14 – Audit Log** | **FR37 – Ghi nhận thao tác quan trọng** | **UC21 – Xem Audit Log** | **AC-G04 / AC17.04** | **TC20.03** – Kiểm tra Audit Log |
+| **BG01 – Tự động tìm và phân công tài xế** | **BR03 – Tìm và phân công tài xế** | **FR03.01 – FR03.11** | **UC07 – Tìm và phân công tài xế**, **UC08 – Nhận/Từ chối chuyến** | **AC07.01 – AC07.08**, **AC08.01 – AC08.07** | **TC07.01 – TC07.08**, **TC08.01 – TC08.07** |
+| **BG01 – Tự động tìm và phân công tài xế** | **BR03 – Tìm và phân công tài xế** | **FR03.12 – FR03.13** | **UC26 – Tra cứu tài xế theo khu vực** | **AC26.01 – AC26.06** | **TC26.01 – TC26.06** |
+| **BG01 – Tự động tìm và phân công tài xế** | **BR03 – Tìm và phân công tài xế** | **FR03.14** | **UC08 – Nhận/Từ chối chuyến** | **AC08.07** và thông tin Driver sau khi nhận chuyến | **TC08.08 – Kiểm tra Customer nhận thông tin Driver được phân công** |
+| **BG02 – Hỗ trợ đặt xe trực tuyến** | **BR02 – Đặt chuyến** | **FR02.01 – FR02.06** | **UC06 – Đặt chuyến** | **AC06.01 – AC06.06** | **TC06.01 – TC06.06** |
+| **BG03 – Theo dõi trạng thái chuyến đi** | **BR04 – Quản lý chuyến đi** | **FR04.01 – FR04.06** | **UC09 – Thực hiện chuyến**, **UC10 – Theo dõi chuyến đi** | **AC09.01 – AC09.08** | **TC09.01 – TC09.08** |
+| **BG03 – Theo dõi trạng thái chuyến đi** | **BR05 – Quản lý vị trí tài xế** | **FR05.01 – FR05.04** | **UC09 – Thực hiện chuyến**, **UC10 – Theo dõi chuyến đi** | **AC09.06 – AC09.07** | **TC05.01 – TC05.04** |
+| **BG04 – Quản lý chuyến đi tập trung** | **BR04 – Quản lý chuyến đi** | **FR04.06 – FR04.07** | **UC09 – Thực hiện chuyến**, **UC16 – Giám sát chuyến đi**, **UC17 – Xử lý chuyến bất thường** | **AC09.06**, **AC17.01 – AC17.06** | **TC16.01**, **TC17.01 – TC17.06** |
+| **BG04 – Quản lý chuyến đi tập trung** | **BR04 – Quản lý chuyến đi** | **FR04.08 – FR04.11** | **UC25 – Hủy chuyến** | **AC25.01 – AC25.07** | **TC25.01 – TC25.07** |
+| **BG04 – Quản lý chuyến đi tập trung** | **BR04 – Quản lý chuyến đi** | **FR04.12** | **UC09 – Thực hiện chuyến** | **AC09.02 – AC09.05** | **TC09.09 – Kiểm tra State Machine và chuyển trạng thái sai** |
+| **BG05 – Hỗ trợ quản lý tài xế** | **BR01 – Quản lý người dùng** | **FR01.07 – FR01.09** | **UC22 – Đăng ký tài xế và xác thực OTP** | **AC22.01 – AC22.05** | **TC22.01 – TC22.05** |
+| **BG05 – Hỗ trợ quản lý tài xế** | **BR09 – Quản lý vận hành** | **FR09.09 – FR09.11** | **UC23 – Duyệt hồ sơ tài xế** | **AC23.01 – AC23.05** | **TC23.01 – TC23.05** |
+| **BG05 – Hỗ trợ quản lý tài xế** | **BR05 – Quản lý vị trí tài xế** | **FR05.05 – FR05.07** | **UC24 – Bật/tắt trạng thái nhận chuyến** | **AC24.01 – AC24.04** | **TC24.01 – TC24.04** |
+| **BG05 – Hỗ trợ quản lý tài xế** | **BR09 – Quản lý vận hành** | **FR09.02 – FR09.05** | **UC04 – Quản lý tài xế**, **UC05 – Quản lý phương tiện** | Quy tắc Authorization + AC liên quan Driver | **TC04.01 – TC04.04**, **TC05.01** |
+| **BG06 – Hỗ trợ thanh toán** | **BR06 – Tính cước và thanh toán** | **FR06.01 – FR06.03** | **UC11 – Tính cước** | **AC11.01 – AC11.06** | **TC11.01 – TC11.06** |
+| **BG06 – Hỗ trợ thanh toán** | **BR06 – Tính cước và thanh toán** | **FR06.04 – FR06.10** | **UC12 – Thanh toán** | **AC12.01 – AC12.08** | **TC12.01 – TC12.08** |
+| **BG06 – Hỗ trợ thanh toán** | **BR06 – Tính cước và thanh toán** | **FR06.11** | **UC12 – Thanh toán** | **AC12.09** | **TC12.09 – Kiểm tra Payment Provider callback** |
+| **BG06 – Hỗ trợ thanh toán** | **BR06 – Tính cước và thanh toán** | **FR06.12 – FR06.13**, **NFR29** | **UC12 – Thanh toán** | **AC12.10 – AC12.11**, **AC-G10** | **TC12.10 – TC12.11 – Kiểm tra replay/idempotency** |
+| **BG07 – Quản lý thông báo** | **BR07 – Quản lý thông báo** | **FR07.01 – FR07.08** | **UC13 – Gửi thông báo** | **AC13.01 – AC13.08** | **TC13.01 – TC13.08** |
+| **BG08 – Hỗ trợ đánh giá dịch vụ** | **BR08 – Đánh giá và lịch sử chuyến** | **FR08.04 – FR08.05** | **UC15 – Đánh giá tài xế** | **AC15.01 – AC15.06** | **TC15.01 – TC15.06** |
+| **BG08 – Hỗ trợ đánh giá dịch vụ** | **BR08 – Đánh giá và lịch sử chuyến** | **FR08.01 – FR08.03, FR08.06** | **UC14 – Xem lịch sử chuyến** | **AC14.01 – AC14.05** | **TC14.01 – TC14.05** |
+| **BG09 – Hỗ trợ vận hành và xử lý sự cố** | **BR09 – Quản lý vận hành** | **FR09.01 – FR09.08** | **UC04, UC05, UC16, UC17, UC18** | **AC17.01 – AC17.06** và các quy tắc Authorization | **TC17.01 – TC17.06**, **TC18.01** |
+| **BG10 – Cung cấp báo cáo và thống kê** | **BR10 – Báo cáo và quản trị** | **FR10.01 – FR10.05** | **UC19 – Xem báo cáo** | Chưa đặc tả AC riêng cho UC19 | **TC19.01 – TC19.05** |
+| **BG11 – Đảm bảo bảo mật và kiểm soát truy cập** | **BR01 / BR11** | **FR01.03 – FR01.04, FR01.10 – FR01.11, FR11.01 – FR11.03, NFR11 – NFR16** | **UC02 – Đăng nhập**, **UC03 – Quản lý hồ sơ**, **UC20 – Quản lý quyền** | **AC01.03, AC02.01 – AC02.04, AC03.01 – AC03.03, AC-G01 – AC-G03** | **TC-S01 – TC-S03** |
+| **BG11 – Đảm bảo bảo mật và kiểm soát truy cập** | **BR11 – Bảo mật và ổn định** | **NFR31 – Encryption at Rest** | — | **AC-G05** | **TC-S05 – Kiểm tra dữ liệu nhạy cảm trong database** |
+| **BG11 – Đảm bảo bảo mật và kiểm soát truy cập** | **BR11 – Bảo mật và ổn định** | **NFR32 – Injection Protection** | **UC02** | **AC-G06** | **TC-S06 – SQL Injection Test** |
+| **BG11 – Đảm bảo bảo mật và kiểm soát truy cập** | **BR11 – Bảo mật và ổn định** | **NFR33 – XSS Protection** | **UC15** | **AC-G07** | **TC-S07 – XSS Test** |
+| **BG11 – Đảm bảo bảo mật và kiểm soát truy cập** | **BR11 – Bảo mật và ổn định** | **NFR34 – JWT Integrity** | **UC02** | **AC-G08** | **TC-S08 – JWT Tampering Test** |
+| **BG11 – Đảm bảo bảo mật và kiểm soát truy cập** | **BR11 – Bảo mật và ổn định** | **NFR12 – Authorization** | **UC20** | **AC-G03** | **TC-S09 – Unauthorized/Forbidden API Test** |
+| **BG11 – Đảm bảo bảo mật và kiểm soát truy cập** | **BR11 – Bảo mật và ổn định** | **NFR35 – Rate Limiting** | — | **AC-G09** | **TC-S10 – Rate Limit Test** |
+| **BG12 – Đảm bảo khả năng mở rộng** | **BR12 – Khả năng mở rộng** | **FR12.01 – FR12.05, NFR08 – NFR10** | — | Architecture/NFR Verification | **TC-NFR01** |
+| **BG13 – Đảm bảo tính ổn định và độc lập của các thành phần** | **BR11 / BR12** | **FR11.05, FR12.05, NFR05 – NFR07, NFR21 – NFR22** | **UC12, UC13** | **AC13.07, AC-G13** | **TC-NFR02 – Fault Isolation Test** |
+| **BG14 – Hỗ trợ mở rộng dịch vụ trong tương lai** | **BR12 – Khả năng mở rộng** | **FR12.02 – FR12.04, NFR10, NFR21** | — | Architecture Review | **TC-NFR03** |
+| **BG15 – Lưu vết hoạt động hệ thống** | **BR10 / BR11** | **FR10.08, FR11.04, NFR17** | **UC17, UC21 – Xem Audit Log** | **AC17.04, AC-G04** | **TC-AUDIT01** |
+| **BG16 – Nâng cao hiệu quả vận hành** | **BR02 / BR03 / BR04 / BR09** | Các FR của Booking, Driver Matching, Trip và Operation | **UC06 – UC09, UC16 – UC17** | Các AC tương ứng | Kiểm thử End-to-End Core Flow |
+
+---
+
+## 13.2. Technical Architecture Traceability Matrix
+
+| Constraint / NFR | Mục tiêu kỹ thuật | Acceptance Criteria / Evidence |
+|---|---|---|
+| **ARC01 – API Gateway** | Client sử dụng Gateway làm entry point chính | **AC-G12** |
+| **ARC02 – Synchronous IPC** | Service có thể giao tiếp HTTP/REST khi cần phản hồi trực tiếp | Kiểm thử IPC giữa các service |
+| **ARC03 – Asynchronous IPC** | Business event được truyền qua Message Broker/RabbitMQ | **AC-G13** |
+| **ARC04 – Containerization** | Các component chạy trong Docker; local/demo dùng Docker Compose | `docker compose ps` và Healthcheck |
+| **ARC05 – Configuration & Secrets** | Secret/config được cung cấp bằng environment/secret mechanism; `.env` thật không được commit | Kiểm tra `.gitignore`, `.env.example` và Git repository |
+| **NFR20 – Maintainability** | Source code được tổ chức theo component/service có trách nhiệm rõ ràng | Review cấu trúc source |
+| **NFR36 – Service Health & Readiness** | Hỗ trợ liveness/readiness/service status | **AC-G11** |
+| **NFR37 – Gateway Access Control** | Client bên ngoài không truy cập trực tiếp microservice | **AC-G12** |
+
+---
+
+## 13.3. Rubric Traceability Matrix – 30 tiêu chí
+
+| # | Requirement / Constraint | FR / NFR / ARC | UC | AC | Test / Evidence đề xuất |
+|---|---|---|---|---|---|
+| **1** | Kiến trúc Source Code | **NFR20** | — | Architecture Review | Mở cây source + giải thích trách nhiệm Gateway/Services/Infrastructure |
+| **2** | `.gitignore`, `.env` và Secrets | **ARC05** | — | Configuration Verification | GitHub không có `.env` thật; có `.gitignore` và `.env.example` |
+| **3** | API Gateway | **ARC01, NFR37** | — | **AC-G12** | Chứng minh Gateway là external entry point |
+| **4** | IPC giữa Microservices | **ARC02, ARC03** | — | **AC-G13** | HTTP IPC + RabbitMQ event |
+| **5** | Docker Compose | **ARC04** | — | Deployment Verification | `docker compose up -d` + `docker compose ps` |
+| **6** | `/health`, `/ready`, `/health/services` | **NFR36** | — | **AC-G11** | Postman gọi đủ 3 endpoint |
+| **7** | Kafka/RabbitMQ | **ARC03** | — | **AC-G13** | RabbitMQ container + Exchange/Queue/Event |
+| **8** | Request phải đi qua Gateway | **ARC01, NFR37** | — | **AC-G12** | Gateway `:8080` truy cập được, internal service không expose host port |
+| **9** | Đăng ký Customer | **FR01.01** | **UC01** | **AC01.01 – AC01.04** | **TC01.01 – TC01.04** |
+| **10** | Customer Login + Token | **FR01.03, FR01.10** | **UC02** | **AC02.01 – AC02.04, AC-G01** | Login Postman → Access Token |
+| **11** | Lấy Customer bằng Token | **FR01.11** | **UC03** | **AC03.01 – AC03.03** | Protected Customer GET |
+| **12** | Lấy Driver bằng Token | **FR09.02, FR11.01 – FR11.02** | **UC04** | **AC04.01 – AC04.04** | Protected Driver GET |
+| **13** | Driver quanh tọa độ, bán kính 1 km, limit và paging | **FR03.12 – FR03.13** | **UC26** | **AC26.01 – AC26.06** | Seed ≥ 5 Driver và Postman nearby query |
+| **14** | Booking của Customer + paging | **FR08.01, FR08.06** | **UC14** | **AC14.01 – AC14.05** | Seed ≥ 5 Booking + page/limit |
+| **15** | Customer đặt xe → tìm Driver → gửi Offer | **FR02.01 – FR02.06, FR03.01 – FR03.06** | **UC06, UC07** | **AC06.*, AC07.01 – AC07.03** | Postman Create Booking + RabbitMQ/Driver matching evidence |
+| **16** | Driver nhận chuyến | **FR03.07, FR03.11, FR03.14** | **UC08** | **AC08.01 – AC08.07** | Driver Accept + Customer nhận Driver info |
+| **17** | Cập nhật trạng thái Trip đúng trình tự | **FR04.01 – FR04.04, FR04.12** | **UC09** | **AC09.01 – AC09.08** | Test State Machine + invalid transition |
+| **18** | Hủy chuyến | **FR04.08 – FR04.11** | **UC25** | **AC25.01 – AC25.07** | Cancel Trip + reason + notification |
+| **19** | Online Payment + Callback | **FR06.06 – FR06.11** | **UC12** | **AC12.02 – AC12.09** | Create Payment + mock provider callback |
+| **20** | Review Trip | **FR08.04 – FR08.05** | **UC15** | **AC15.01 – AC15.06** | Review completed Trip |
+| **21** | Driver Register + OTP | **FR01.07 – FR01.09** | **UC22** | **AC22.01 – AC22.05** | OTP → Register → `PENDING_APPROVAL` |
+| **22** | Admin/Operation Staff duyệt Driver | **FR09.09 – FR09.11** | **UC23** | **AC23.01 – AC23.05** | Approve/Reject Driver |
+| **23** | Driver Online / Offline | **FR05.05 – FR05.07** | **UC24** | **AC24.01 – AC24.04** | Toggle availability |
+| **24** | Encryption at Rest | **NFR31** | — | **AC-G05** | Kiểm tra DB: password hash + encrypted sensitive field |
+| **25** | SQL Injection | **NFR32** | **UC02** | **AC-G06** | `' OR 1=1 --` không bypass login |
+| **26** | XSS | **NFR33** | **UC15** | **AC-G07** | Submit `<script>` vào comment và kiểm tra sanitize/encode |
+| **27** | JWT Tampering | **NFR34** | **UC02** | **AC-G08** | Sửa payload/signature → `401` |
+| **28** | Unauthorized API / Role | **NFR12** | **UC20** | **AC-G03** | Token đúng nhưng sai role → `403` |
+| **29** | Rate Limiting | **NFR35** | — | **AC-G09** | Vượt threshold → `429 Too Many Requests` |
+| **30** | Replay / Idempotency | **FR06.12 – FR06.13, NFR29, BRL18** | **UC12** | **AC12.10 – AC12.11, AC-G10** | Gửi cùng `Idempotency-Key` 2 lần → cùng Payment, không double charge |
 
 ---
