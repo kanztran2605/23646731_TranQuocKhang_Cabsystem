@@ -1,6 +1,4 @@
-# CAB System – API Specifications v2
-
-Bộ specification này được chuẩn hóa lại từ bộ API ban đầu để bám **SRS baseline mới nhất** và các tiêu chí demo/chấm project.
+# CAB System – API Specifications
 
 ## Quy ước chung
 
@@ -34,16 +32,3 @@ Bộ specification này được chuẩn hóa lại từ bộ API ban đầu đ�
 | `reports.yaml` | Báo cáo |
 | `asyncapi.yaml` | RabbitMQ / asynchronous IPC |
 | `rubric-api-mapping.md` | Mapping 30 tiêu chí sang API/evidence |
-
-## Thay đổi quan trọng so với bộ cũ
-
-1. Thêm 3 Health API.
-2. Thêm Driver OTP, Driver registration và `PENDING_APPROVAL`.
-3. Thêm Driver `me`, nearby search với `radius/page/limit`.
-4. Chuẩn hóa `ApprovalStatus` và `AvailabilityStatus`.
-5. Booking tự khởi động driver matching sau khi tạo; client không cần gọi `/matching`.
-6. Thêm Booking history đúng `page/limit`.
-7. Thêm Cancel Trip.
-8. Thêm Driver approval.
-9. Payment dùng `Idempotency-Key` và callback có provider signature.
-10. Thêm AsyncAPI cho RabbitMQ events.
