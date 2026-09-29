@@ -1,35 +1,35 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: API Hệ thống đặt xe CAB
-  version: 1.0.0
-  description: 'REST API cho hệ thống đặt xe CAB.
-
-    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
-
-    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
-
-    '
+  title: CAB System API
+  version: 2.0.0
+  description: REST API cho hệ thống đặt xe CAB, bám theo SRS baseline và Rubric 30 tiêu chí.
 servers:
 - url: http://localhost:8080/api/v1
-  description: Máy chủ phát triển cục bộ
+  description: API Gateway - môi trường local/demo
 tags:
-- name: Vận hành
+- name: Operations
+  description: Giám sát, xử lý bất thường và duyệt Driver
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  parameters:
-    TripId:
-      name: tripId
-      in: path
-      required: true
-      schema:
-        type: string
   responses:
+    BadRequest:
+      description: Yêu cầu không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Thiếu Access Token hoặc Access Token không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     Forbidden:
-      description: Người dùng không có quyền thực hiện thao tác
+      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
       content:
         application/json:
           schema:
@@ -40,8 +40,39 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Xung đột trạng thái hoặc dữ liệu
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Vượt quá giới hạn request; Gateway trả HTTP 429
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Lỗi máy chủ nội bộ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  parameters:
+    TripId:
+      name: tripId
+      in: path
+      required: true
+      schema:
+        type: string
+    DriverId:
+      name: driverId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
-    Trip:
+    TripSummary:
       type: object
       properties:
         tripId:
@@ -60,23 +91,78 @@ components:
           - PICKED_UP
           - IN_PROGRESS
           - COMPLETED
+          - CANCELED
           - ABNORMAL
-        pickupLocation:
-          $ref: '#/components/schemas/Location'
-        destinationLocation:
-          $ref: '#/components/schemas/Location'
-    Location:
+    ResolveTripRequest:
+      type: object
+      required:
+      - resolution
+      - note
+      properties:
+        resolution:
+          type: string
+          example: RESOLVED
+        note:
+          type: string
+          maxLength: 1000
+    DriverApprovalItem:
       type: object
       properties:
-        latitude:
-          type: number
-          format: double
-        longitude:
-          type: number
-          format: double
-        address:
+        driverId:
           type: string
-    Payment:
+        fullName:
+          type: string
+        phone:
+          type: string
+        approvalStatus:
+          type: string
+          enum:
+          - PENDING_APPROVAL
+        driverLicense:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+    PagePendingDrivers:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverApprovalItem'
+    DriverApprovalRequest:
+      type: object
+      required:
+      - decision
+      properties:
+        decision:
+          type: string
+          enum:
+          - APPROVED
+          - REJECTED
+        reason:
+          type: string
+          maxLength: 1000
+    DriverApprovalResponse:
+      type: object
+      properties:
+        driverId:
+          type: string
+        approvalStatus:
+          type: string
+          enum:
+          - APPROVED
+          - REJECTED
+        updatedAt:
+          type: string
+          format: date-time
+    PaymentSummary:
       type: object
       properties:
         paymentId:
@@ -90,32 +176,19 @@ components:
           type: string
           enum:
           - CASH
-          - ELECTRONIC
+          - ONLINE
         status:
           type: string
           enum:
           - PENDING
-          - SUCCESS
+          - COMPLETED
           - FAILED
-        providerTransactionId:
-          type: string
-          description: Chỉ lưu mã tham chiếu do nhà cung cấp trả về; không được lưu thông tin thẻ/tài khoản nhạy cảm.
-    ResolveTripRequest:
-      type: object
-      required:
-      - resolution
-      - note
-      properties:
-        resolution:
-          type: string
-          example: RESOLVED
-        note:
-          type: string
     Error:
       type: object
       required:
       - code
       - message
+      - timestamp
       properties:
         code:
           type: string
@@ -130,47 +203,51 @@ paths:
   /operations/trips/active:
     get:
       tags:
-      - Vận hành
-      summary: Giám sát chuyến đi đang hoạt động
-      operationId: getActiveChuyến đi
+      - Operations
+      summary: Giám sát Trip đang hoạt động
+      operationId: getActiveTrips
       security:
       - bearerAuth: []
       responses:
         '200':
-          description: Active trips
+          description: Danh sách Trip đang hoạt động
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Trip'
+                  $ref: '#/components/schemas/TripSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
   /operations/trips/abnormal:
     get:
       tags:
-      - Vận hành
-      summary: Xem danh sách chuyến đi bất thường
-      operationId: getAbnormalChuyến đi
+      - Operations
+      summary: Danh sách Trip bất thường
+      operationId: getAbnormalTrips
       security:
       - bearerAuth: []
       responses:
         '200':
-          description: Abnormal trips
+          description: Danh sách Trip bất thường
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Trip'
+                  $ref: '#/components/schemas/TripSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
   /operations/trips/{tripId}/resolve:
     post:
       tags:
-      - Vận hành
-      summary: Xử lý chuyến đi bất thường
-      operationId: resolveAbnormalTrip
+      - Operations
+      summary: Xử lý Trip bất thường
+      operationId: resolveTrip
       security:
       - bearerAuth: []
       parameters:
@@ -183,25 +260,25 @@ paths:
               $ref: '#/components/schemas/ResolveTripRequest'
       responses:
         '200':
-          description: Abnormal trip resolved
+          description: Trip đã được xử lý
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Trip'
+                $ref: '#/components/schemas/TripSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Resolution failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          $ref: '#/components/responses/Conflict'
   /operations/transactions:
     get:
       tags:
-      - Vận hành
+      - Operations
       summary: Tra cứu giao dịch
       operationId: getTransactions
       security:
@@ -211,6 +288,10 @@ paths:
         in: query
         schema:
           type: string
+          enum:
+          - PENDING
+          - COMPLETED
+          - FAILED
       - name: from
         in: query
         schema:
@@ -223,12 +304,89 @@ paths:
           format: date-time
       responses:
         '200':
-          description: Transaction list
+          description: Danh sách giao dịch
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Payment'
+                  $ref: '#/components/schemas/PaymentSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /operations/drivers/pending:
+    get:
+      tags:
+      - Operations
+      summary: Danh sách hồ sơ Driver chờ duyệt
+      operationId: getPendingDrivers
+      security:
+      - bearerAuth: []
+      x-srs-trace:
+      - FR09.09
+      - UC23
+      - AC23.01
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Danh sách Driver PENDING_APPROVAL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagePendingDrivers'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /operations/drivers/{driverId}/approval:
+    patch:
+      tags:
+      - Operations
+      summary: Approve/Reject hồ sơ Driver
+      operationId: approveOrRejectDriver
+      security:
+      - bearerAuth: []
+      x-srs-trace:
+      - FR09.10
+      - FR09.11
+      - UC23
+      - AC23.02-AC23.05
+      parameters:
+      - $ref: '#/components/parameters/DriverId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverApprovalRequest'
+      responses:
+        '200':
+          description: Kết quả duyệt Driver
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverApprovalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'

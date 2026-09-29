@@ -1,32 +1,20 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: API Hệ thống đặt xe CAB
-  version: 1.0.0
-  description: 'REST API cho hệ thống đặt xe CAB.
-
-    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
-
-    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
-
-    '
+  title: CAB System API
+  version: 2.0.0
+  description: REST API cho hệ thống đặt xe CAB, bám theo SRS baseline và Rubric 30 tiêu chí.
 servers:
 - url: http://localhost:8080/api/v1
-  description: Máy chủ phát triển cục bộ
+  description: API Gateway - môi trường local/demo
 tags:
-- name: Chuyến đi
+- name: Trips
+  description: Trip lifecycle, cancellation và review
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  parameters:
-    TripId:
-      name: tripId
-      in: path
-      required: true
-      schema:
-        type: string
   responses:
     BadRequest:
       description: Yêu cầu không hợp lệ
@@ -35,13 +23,13 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
     Unauthorized:
-      description: Yêu cầu xác thực hoặc thông tin xác thực không hợp lệ
+      description: Thiếu Access Token hoặc Access Token không hợp lệ
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Forbidden:
-      description: Người dùng không có quyền thực hiện thao tác
+      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
       content:
         application/json:
           schema:
@@ -52,18 +40,53 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Xung đột trạng thái hoặc dữ liệu
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Vượt quá giới hạn request; Gateway trả HTTP 429
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Lỗi máy chủ nội bộ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  parameters:
+    TripId:
+      name: tripId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     Trip:
       type: object
+      required:
+      - tripId
+      - bookingId
+      - customerId
+      - driverId
+      - status
       properties:
         tripId:
           type: string
+          example: TRIP001
         bookingId:
           type: string
+          example: BKG001
         customerId:
           type: string
+          example: CUS001
         driverId:
           type: string
+          example: DRV001
         status:
           type: string
           enum:
@@ -72,11 +95,22 @@ components:
           - PICKED_UP
           - IN_PROGRESS
           - COMPLETED
+          - CANCELED
           - ABNORMAL
-        pickupLocation:
-          $ref: '#/components/schemas/Location'
-        destinationLocation:
-          $ref: '#/components/schemas/Location'
+        distanceKm:
+          type: number
+          format: double
+        cancelReason:
+          type: string
+          nullable: true
+        canceledAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
     TripStatusRequest:
       type: object
       required:
@@ -89,32 +123,35 @@ components:
           - PICKED_UP
           - IN_PROGRESS
           - COMPLETED
-    Location:
-      type: object
-      properties:
-        latitude:
-          type: number
-          format: double
-        longitude:
-          type: number
-          format: double
-        address:
-          type: string
-    RatingRequest:
+    CancelTripRequest:
       type: object
       required:
-      - score
+      - reason
       properties:
-        score:
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 500
+          example: Customer changed plan
+    ReviewRequest:
+      type: object
+      required:
+      - rating
+      properties:
+        rating:
           type: integer
           minimum: 1
           maximum: 5
+          example: 5
         comment:
           type: string
-    Rating:
+          maxLength: 1000
+          example: Driver phục vụ tốt
+          description: Phải được validate/sanitize theo NFR33
+    Review:
       type: object
       properties:
-        ratingId:
+        reviewId:
           type: string
         tripId:
           type: string
@@ -122,28 +159,21 @@ components:
           type: string
         driverId:
           type: string
-        score:
+        rating:
           type: integer
+          minimum: 1
+          maximum: 5
         comment:
           type: string
-    PageTrip:
-      type: object
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/Trip'
-        page:
-          type: integer
-        size:
-          type: integer
-        totalElements:
-          type: integer
+        createdAt:
+          type: string
+          format: date-time
     Error:
       type: object
       required:
       - code
       - message
+      - timestamp
       properties:
         code:
           type: string
@@ -158,8 +188,8 @@ paths:
   /trips/{tripId}:
     get:
       tags:
-      - Chuyến đi
-      summary: Xem thông tin chuyến đi
+      - Trips
+      summary: Xem thông tin Trip
       operationId: getTrip
       security:
       - bearerAuth: []
@@ -167,23 +197,32 @@ paths:
       - $ref: '#/components/parameters/TripId'
       responses:
         '200':
-          description: Thông tin chuyến đi
+          description: Thông tin Trip
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Trip'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
   /trips/{tripId}/status:
     patch:
       tags:
-      - Chuyến đi
-      summary: Cập nhật trạng thái chuyến đi
+      - Trips
+      summary: Driver cập nhật trạng thái Trip theo State Machine
       operationId: updateTripStatus
       security:
       - bearerAuth: []
+      x-srs-trace:
+      - FR04.01-FR04.04
+      - FR04.12
+      - UC09
+      - AC09.01-AC09.08
+      description: 'Trình tự hợp lệ: ASSIGNED -> ARRIVED -> PICKED_UP -> IN_PROGRESS -> COMPLETED. Chuyển trạng thái không
+        hợp lệ trả 409.'
       parameters:
       - $ref: '#/components/parameters/TripId'
       requestBody:
@@ -194,60 +233,33 @@ paths:
               $ref: '#/components/schemas/TripStatusRequest'
       responses:
         '200':
-          description: Cập nhật trạng thái chuyến đi thành công
+          description: Trạng thái Trip đã cập nhật
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Trip'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '409':
-          description: Chuyển trạng thái không hợp lệ
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /trips/history:
-    get:
-      tags:
-      - Chuyến đi
-      summary: Xem lịch sử chuyến đi của khách hàng
-      operationId: getTripHistory
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: page
-        in: query
-        schema:
-          type: integer
-          minimum: 0
-          default: 0
-      - name: size
-        in: query
-        schema:
-          type: integer
-          minimum: 1
-          maximum: 100
-          default: 20
-      responses:
-        '200':
-          description: Lịch sử chuyến đi
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PageTrip'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /trips/{tripId}/rating:
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /trips/{tripId}/cancel:
     post:
       tags:
-      - Chuyến đi
-      summary: Đánh giá tài xế sau chuyến đi
-      operationId: rateDriver
+      - Trips
+      summary: Customer hủy Trip
+      operationId: cancelTrip
       security:
       - bearerAuth: []
+      x-srs-trace:
+      - FR04.08-FR04.11
+      - UC25
+      - AC25.01-AC25.07
       parameters:
       - $ref: '#/components/parameters/TripId'
       requestBody:
@@ -255,19 +267,59 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RatingRequest'
+              $ref: '#/components/schemas/CancelTripRequest'
       responses:
-        '201':
-          description: Tạo đánh giá thành công
+        '200':
+          description: Trip chuyển sang CANCELED và phát trip.canceled
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Rating'
+                $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '409':
-          description: Chuyến đi không đủ điều kiện đánh giá hoặc đã được đánh giá
+          $ref: '#/components/responses/Conflict'
+  /trips/{tripId}/reviews:
+    post:
+      tags:
+      - Trips
+      summary: Customer đánh giá Driver sau khi Trip hoàn thành
+      operationId: createTripReview
+      security:
+      - bearerAuth: []
+      x-srs-trace:
+      - FR08.04
+      - FR08.05
+      - UC15
+      - AC15.01-AC15.06
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+      responses:
+        '201':
+          description: Review được tạo
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'

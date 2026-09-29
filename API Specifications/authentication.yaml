@@ -1,19 +1,14 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: API Hệ thống đặt xe CAB
-  version: 1.0.0
-  description: 'REST API cho hệ thống đặt xe CAB.
-
-    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
-
-    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
-
-    '
+  title: CAB System API
+  version: 2.0.0
+  description: REST API cho hệ thống đặt xe CAB, bám theo SRS baseline và Rubric 30 tiêu chí.
 servers:
 - url: http://localhost:8080/api/v1
-  description: Máy chủ phát triển cục bộ
+  description: API Gateway - môi trường local/demo
 tags:
-- name: Xác thực
+- name: Authentication
+  description: Đăng ký, đăng nhập, OTP và Driver onboarding
 components:
   securitySchemes:
     bearerAuth:
@@ -28,7 +23,31 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
     Unauthorized:
-      description: Yêu cầu xác thực hoặc thông tin xác thực không hợp lệ
+      description: Thiếu Access Token hoặc Access Token không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Không tìm thấy tài nguyên
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Xung đột trạng thái hoặc dữ liệu
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Vượt quá giới hạn request; Gateway trả HTTP 429
       content:
         application/json:
           schema:
@@ -43,18 +62,15 @@ components:
     RegisterCustomerRequest:
       type: object
       required:
-      - username
       - password
       - fullName
       - phone
       - email
       properties:
-        username:
-          type: string
-          example: customer01
         password:
           type: string
           format: password
+          minLength: 8
           example: Password123!
         fullName:
           type: string
@@ -66,44 +82,40 @@ components:
           type: string
           format: email
           example: customer@example.com
-    DangNhapRequest:
+    LoginRequest:
       type: object
       required:
-      - username
+      - identifier
       - password
       properties:
-        username:
+        identifier:
           type: string
-          example: customer01
+          description: Email, số điện thoại hoặc username (nếu hệ thống hỗ trợ)
+          example: customer@example.com
         password:
           type: string
           format: password
           example: Password123!
-    DangNhapResponse:
-      type: object
-      properties:
-        accessToken:
-          type: string
-        tokenType:
-          type: string
-          example: Bearer
-        user:
-          $ref: '#/components/schemas/UserResponse'
     UserResponse:
       type: object
+      required:
+      - userId
+      - fullName
+      - role
       properties:
         userId:
           type: string
           example: U001
-        username:
-          type: string
         fullName:
           type: string
+          example: Nguyen Van A
         phone:
           type: string
+          example: 0901234567
         email:
           type: string
           format: email
+          example: customer@example.com
         role:
           type: string
           enum:
@@ -112,11 +124,159 @@ components:
           - OPERATION_STAFF
           - MANAGEMENT
           - ADMIN
+    LoginResponse:
+      type: object
+      required:
+      - accessToken
+      - tokenType
+      - user
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIs...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 3600
+        user:
+          $ref: '#/components/schemas/UserResponse'
+    OtpRequest:
+      type: object
+      required:
+      - phone
+      properties:
+        phone:
+          type: string
+          example: 0900000002
+    OtpRequestResponse:
+      type: object
+      required:
+      - verificationId
+      - expiresIn
+      - message
+      properties:
+        verificationId:
+          type: string
+          example: OTP-VRF-001
+        expiresIn:
+          type: integer
+          description: Thời gian hiệu lực tính bằng giây
+          example: 300
+        message:
+          type: string
+          example: OTP has been sent
+        devOtp:
+          type: string
+          nullable: true
+          example: '123456'
+          description: Chỉ dùng cho local/demo khi sử dụng Mock OTP Provider. Không trả trường này trong production.
+          x-development-only: true
+    OtpVerifyRequest:
+      type: object
+      required:
+      - verificationId
+      - otp
+      properties:
+        verificationId:
+          type: string
+          example: OTP-VRF-001
+        otp:
+          type: string
+          example: '123456'
+    OtpVerifyResponse:
+      type: object
+      required:
+      - verificationToken
+      - verified
+      properties:
+        verificationToken:
+          type: string
+          example: OTP-TOKEN-001
+        verified:
+          type: boolean
+          example: true
+    VehicleRegistration:
+      type: object
+      required:
+      - vehicleTypeId
+      - plateNumber
+      properties:
+        vehicleTypeId:
+          type: string
+          example: CAR_4_SEATS
+        plateNumber:
+          type: string
+          example: 51A-123.45
+        brand:
+          type: string
+          example: Toyota
+        model:
+          type: string
+          example: Vios
+    RegisterDriverRequest:
+      type: object
+      required:
+      - verificationToken
+      - password
+      - fullName
+      - phone
+      - email
+      - driverLicense
+      - vehicle
+      properties:
+        verificationToken:
+          type: string
+          description: Token nhận được sau khi OTP được xác thực
+          example: OTP-TOKEN-001
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: Password123!
+        fullName:
+          type: string
+          example: Tran Van Driver
+        phone:
+          type: string
+          example: 0900000002
+        email:
+          type: string
+          format: email
+          example: driver@example.com
+        driverLicense:
+          type: string
+          example: DL-123456
+        vehicle:
+          $ref: '#/components/schemas/VehicleRegistration'
+    DriverRegistrationResponse:
+      type: object
+      required:
+      - driverId
+      - userId
+      - approvalStatus
+      properties:
+        driverId:
+          type: string
+          example: DRV001
+        userId:
+          type: string
+          example: U002
+        approvalStatus:
+          type: string
+          enum:
+          - PENDING_APPROVAL
+          example: PENDING_APPROVAL
+        message:
+          type: string
+          example: Driver profile created and pending approval
     Error:
       type: object
       required:
       - code
       - message
+      - timestamp
       properties:
         code:
           type: string
@@ -128,13 +288,17 @@ components:
           type: string
           format: date-time
 paths:
-  /auth/register:
+  /auth/customers/register:
     post:
       tags:
-      - Xác thực
-      summary: Đăng ký tài khoản khách hàng
+      - Authentication
+      summary: Đăng ký Customer
       operationId: registerCustomer
       security: []
+      x-srs-trace:
+      - FR01.01
+      - UC01
+      - AC01.01-AC01.04
       requestBody:
         required: true
         content:
@@ -143,7 +307,7 @@ paths:
               $ref: '#/components/schemas/RegisterCustomerRequest'
       responses:
         '201':
-          description: Tạo tài khoản khách hàng thành công
+          description: Customer được tạo thành công
           content:
             application/json:
               schema:
@@ -151,41 +315,45 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '409':
-          description: Tên đăng nhập, email hoặc số điện thoại đã tồn tại
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /auth/login:
     post:
       tags:
-      - Xác thực
-      summary: Đăng nhập
+      - Authentication
+      summary: Đăng nhập và nhận Access Token
       operationId: login
       security: []
+      x-srs-trace:
+      - FR01.03
+      - FR01.10
+      - UC02
+      - AC02.01-AC02.04
+      - AC-G01
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DangNhapRequest'
+              $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
           description: Đăng nhập thành công
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DangNhapResponse'
+                $ref: '#/components/schemas/LoginResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /auth/logout:
     post:
       tags:
-      - Xác thực
+      - Authentication
       summary: Đăng xuất
       operationId: logout
       security:
@@ -195,3 +363,90 @@ paths:
           description: Đăng xuất thành công
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /auth/drivers/otp/request:
+    post:
+      tags:
+      - Authentication
+      summary: Yêu cầu OTP đăng ký Driver
+      operationId: requestDriverOtp
+      security: []
+      x-srs-trace:
+      - FR01.07
+      - UC22
+      - AC22.01
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpRequest'
+      responses:
+        '200':
+          description: OTP đã được tạo/gửi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OtpRequestResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /auth/drivers/otp/verify:
+    post:
+      tags:
+      - Authentication
+      summary: Xác thực OTP của Driver
+      operationId: verifyDriverOtp
+      security: []
+      x-srs-trace:
+      - FR01.08
+      - UC22
+      - AC22.02-AC22.03
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpVerifyRequest'
+      responses:
+        '200':
+          description: OTP hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OtpVerifyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /auth/drivers/register:
+    post:
+      tags:
+      - Authentication
+      summary: Hoàn tất đăng ký Driver sau khi OTP hợp lệ
+      operationId: registerDriver
+      security: []
+      x-srs-trace:
+      - FR01.02
+      - FR01.09
+      - UC22
+      - AC22.04-AC22.05
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDriverRequest'
+      responses:
+        '201':
+          description: Hồ sơ Driver được tạo ở trạng thái PENDING_APPROVAL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverRegistrationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'

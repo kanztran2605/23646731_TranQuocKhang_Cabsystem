@@ -1,0 +1,184 @@
+asyncapi: 2.6.0
+info:
+  title: CAB System Async Events
+  version: 2.0.0
+  description: 'AsyncAPI contract cho RabbitMQ IPC (ARC03, AC-G13). Exchange chính: cab.events (topic).'
+servers:
+  rabbitmq:
+    url: rabbitmq:5672
+    protocol: amqp
+    description: RabbitMQ nội bộ trong Docker network
+defaultContentType: application/json
+channels:
+  booking.created:
+    publish:
+      summary: Booking Service phát khi Booking được tạo
+      message:
+        $ref: '#/components/messages/BookingCreated'
+  driver.offer.created:
+    publish:
+      summary: Matching tạo offer cho Driver
+      message:
+        $ref: '#/components/messages/DriverOfferCreated'
+  driver.accepted:
+    publish:
+      summary: Driver chấp nhận Booking
+      message:
+        $ref: '#/components/messages/DriverAccepted'
+  trip.status.changed:
+    publish:
+      summary: Trip thay đổi trạng thái
+      message:
+        $ref: '#/components/messages/TripStatusChanged'
+  trip.canceled:
+    publish:
+      summary: Trip bị hủy
+      message:
+        $ref: '#/components/messages/TripCanceled'
+  payment.completed:
+    publish:
+      summary: Payment hoàn tất
+      message:
+        $ref: '#/components/messages/PaymentCompleted'
+  review.created:
+    publish:
+      summary: Customer tạo review
+      message:
+        $ref: '#/components/messages/ReviewCreated'
+components:
+  messages:
+    BookingCreated:
+      name: booking.created
+      payload:
+        type: object
+        required:
+        - bookingId
+        - customerId
+        - pickup
+        - vehicleTypeId
+        properties:
+          bookingId:
+            type: string
+          customerId:
+            type: string
+          pickup:
+            $ref: '#/components/schemas/Location'
+          vehicleTypeId:
+            type: string
+    DriverOfferCreated:
+      name: driver.offer.created
+      payload:
+        type: object
+        required:
+        - bookingId
+        - driverId
+        - expiresAt
+        properties:
+          bookingId:
+            type: string
+          driverId:
+            type: string
+          expiresAt:
+            type: string
+            format: date-time
+    DriverAccepted:
+      name: driver.accepted
+      payload:
+        type: object
+        required:
+        - bookingId
+        - driverId
+        - tripId
+        properties:
+          bookingId:
+            type: string
+          driverId:
+            type: string
+          tripId:
+            type: string
+    TripStatusChanged:
+      name: trip.status.changed
+      payload:
+        type: object
+        required:
+        - tripId
+        - status
+        properties:
+          tripId:
+            type: string
+          status:
+            type: string
+            enum:
+            - ARRIVED
+            - PICKED_UP
+            - IN_PROGRESS
+            - COMPLETED
+    TripCanceled:
+      name: trip.canceled
+      payload:
+        type: object
+        required:
+        - tripId
+        - reason
+        properties:
+          tripId:
+            type: string
+          reason:
+            type: string
+          driverId:
+            type: string
+            nullable: true
+          customerId:
+            type: string
+    PaymentCompleted:
+      name: payment.completed
+      payload:
+        type: object
+        required:
+        - paymentId
+        - tripId
+        - status
+        properties:
+          paymentId:
+            type: string
+          tripId:
+            type: string
+          status:
+            type: string
+            enum:
+            - COMPLETED
+          amount:
+            type: number
+    ReviewCreated:
+      name: review.created
+      payload:
+        type: object
+        required:
+        - reviewId
+        - tripId
+        - driverId
+        - rating
+        properties:
+          reviewId:
+            type: string
+          tripId:
+            type: string
+          driverId:
+            type: string
+          rating:
+            type: integer
+            minimum: 1
+            maximum: 5
+  schemas:
+    Location:
+      type: object
+      required:
+      - latitude
+      - longitude
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double

@@ -1,32 +1,20 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: API Hệ thống đặt xe CAB
-  version: 1.0.0
-  description: 'REST API cho hệ thống đặt xe CAB.
-
-    Thiết kế API được xây dựng dựa trên yêu cầu chức năng SRS, Use Case,
-
-    tiêu chí chấp nhận, tác nhân và quy tắc nghiệp vụ.
-
-    '
+  title: CAB System API
+  version: 2.0.0
+  description: REST API cho hệ thống đặt xe CAB, bám theo SRS baseline và Rubric 30 tiêu chí.
 servers:
 - url: http://localhost:8080/api/v1
-  description: Máy chủ phát triển cục bộ
+  description: API Gateway - môi trường local/demo
 tags:
-- name: Tài xế
+- name: Drivers
+  description: Hồ sơ Driver, nearby search, availability và location
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  parameters:
-    DriverId:
-      name: driverId
-      in: path
-      required: true
-      schema:
-        type: string
   responses:
     BadRequest:
       description: Yêu cầu không hợp lệ
@@ -35,13 +23,13 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
     Unauthorized:
-      description: Yêu cầu xác thực hoặc thông tin xác thực không hợp lệ
+      description: Thiếu Access Token hoặc Access Token không hợp lệ
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Forbidden:
-      description: Người dùng không có quyền thực hiện thao tác
+      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
       content:
         application/json:
           schema:
@@ -52,26 +40,102 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Xung đột trạng thái hoặc dữ liệu
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Vượt quá giới hạn request; Gateway trả HTTP 429
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Lỗi máy chủ nội bộ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  parameters:
+    DriverId:
+      name: driverId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     Driver:
+      type: object
+      required:
+      - driverId
+      - userId
+      - fullName
+      - approvalStatus
+      - availabilityStatus
+      properties:
+        driverId:
+          type: string
+          example: DRV001
+        userId:
+          type: string
+          example: U002
+        fullName:
+          type: string
+          example: Tran Van Driver
+        phone:
+          type: string
+          example: 0900000002
+        driverLicense:
+          type: string
+          description: Chỉ trả khi role có quyền xem dữ liệu nhạy cảm
+        approvalStatus:
+          type: string
+          enum:
+          - PENDING_APPROVAL
+          - APPROVED
+          - REJECTED
+        availabilityStatus:
+          type: string
+          enum:
+          - OFFLINE
+          - AVAILABLE
+          - BUSY
+        vehicleTypeId:
+          type: string
+          example: CAR_4_SEATS
+        rating:
+          type: number
+          format: double
+          example: 4.8
+    DriverPublicProfile:
       type: object
       properties:
         driverId:
           type: string
-        userId:
-          type: string
         fullName:
           type: string
-        phone:
-          type: string
-        status:
+        availabilityStatus:
           type: string
           enum:
+          - OFFLINE
           - AVAILABLE
           - BUSY
-          - OFFLINE
-        vehicleTypeId:
-          type: string
+        vehicle:
+          type: object
+          properties:
+            vehicleTypeId:
+              type: string
+            plateNumber:
+              type: string
+            brand:
+              type: string
+            model:
+              type: string
+        rating:
+          type: number
+          format: double
     UpdateDriverRequest:
       type: object
       properties:
@@ -79,19 +143,19 @@ components:
           type: string
         phone:
           type: string
+        driverLicense:
+          type: string
         vehicleTypeId:
           type: string
-    DriverStatusRequest:
+    AvailabilityRequest:
       type: object
       required:
-      - status
+      - online
       properties:
-        status:
-          type: string
-          enum:
-          - AVAILABLE
-          - BUSY
-          - OFFLINE
+        online:
+          type: boolean
+          description: true -> AVAILABLE nếu đủ điều kiện; false -> OFFLINE
+          example: true
     LocationRequest:
       type: object
       required:
@@ -101,27 +165,59 @@ components:
         latitude:
           type: number
           format: double
-          example: 10.7769
+          minimum: -90
+          maximum: 90
+          example: 10.8231
         longitude:
           type: number
           format: double
-          example: 106.7009
-    Location:
+          minimum: -180
+          maximum: 180
+          example: 106.6297
+    NearbyDriver:
+      allOf:
+      - $ref: '#/components/schemas/DriverPublicProfile'
+      - type: object
+        properties:
+          latitude:
+            type: number
+            format: double
+          longitude:
+            type: number
+            format: double
+          distanceKm:
+            type: number
+            format: double
+            example: 0.42
+    PageNearbyDriver:
       type: object
+      required:
+      - page
+      - limit
+      - total
+      - items
       properties:
-        latitude:
-          type: number
-          format: double
-        longitude:
-          type: number
-          format: double
-        address:
-          type: string
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          example: 5
+        total:
+          type: integer
+          example: 5
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NearbyDriver'
     Error:
       type: object
       required:
       - code
       - message
+      - timestamp
       properties:
         code:
           type: string
@@ -133,45 +229,55 @@ components:
           type: string
           format: date-time
 paths:
-  /drivers:
+  /drivers/me:
     get:
       tags:
-      - Tài xế
-      summary: Xem danh sách tài xế
-      operationId: listTài xế
+      - Drivers
+      summary: Lấy hồ sơ Driver hiện tại bằng Access Token
+      operationId: getMyDriverProfile
       security:
       - bearerAuth: []
-      parameters:
-      - name: status
-        in: query
-        schema:
-          type: string
-          enum:
-          - AVAILABLE
-          - BUSY
-          - OFFLINE
-      - name: vehicleTypeId
-        in: query
-        schema:
-          type: string
+      x-srs-trace:
+      - FR01.11
+      - AC03.01-AC03.03
       responses:
         '200':
-          description: Danh sách tài xế
+          description: Hồ sơ Driver hiện tại
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Driver'
+                $ref: '#/components/schemas/Driver'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
   /drivers/{driverId}:
+    get:
+      tags:
+      - Drivers
+      summary: Xem thông tin Driver theo ID
+      operationId: getDriverById
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/DriverId'
+      responses:
+        '200':
+          description: Thông tin Driver được phép xem
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverPublicProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
     put:
       tags:
-      - Tài xế
-      summary: Cập nhật thông tin tài xế
+      - Drivers
+      summary: Cập nhật hồ sơ Driver (Operation Staff/Admin)
       operationId: updateDriver
       security:
       - bearerAuth: []
@@ -185,54 +291,190 @@ paths:
               $ref: '#/components/schemas/UpdateDriverRequest'
       responses:
         '200':
-          description: Cập nhật tài xế thành công
+          description: Driver đã được cập nhật
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Driver'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-  /drivers/{driverId}/status:
-    patch:
+  /drivers/nearby:
+    get:
       tags:
-      - Tài xế
-      summary: Cập nhật trạng thái tài xế
-      operationId: updateDriverStatus
+      - Drivers
+      summary: Tra cứu Driver quanh tọa độ
+      operationId: getNearbyDrivers
+      security:
+      - bearerAuth: []
+      x-srs-trace:
+      - FR03.12
+      - FR03.13
+      - UC26
+      - AC26.01-AC26.06
+      parameters:
+      - name: lat
+        in: query
+        required: true
+        schema:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        example: 10.8231
+      - name: lng
+        in: query
+        required: true
+        schema:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        example: 106.6297
+      - name: radius
+        in: query
+        required: false
+        description: Bán kính km; demo rubric sử dụng 1 km
+        schema:
+          type: number
+          format: double
+          minimum: 0.1
+          maximum: 50
+          default: 1
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 5
+      responses:
+        '200':
+          description: Danh sách Driver theo khoảng cách và phân trang
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageNearbyDriver'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /drivers:
+    get:
+      tags:
+      - Drivers
+      summary: Danh sách Driver cho Operation Staff/Admin
+      operationId: listDrivers
       security:
       - bearerAuth: []
       parameters:
-      - $ref: '#/components/parameters/DriverId'
+      - name: approvalStatus
+        in: query
+        schema:
+          type: string
+          enum:
+          - PENDING_APPROVAL
+          - APPROVED
+          - REJECTED
+      - name: availabilityStatus
+        in: query
+        schema:
+          type: string
+          enum:
+          - OFFLINE
+          - AVAILABLE
+          - BUSY
+      - name: vehicleTypeId
+        in: query
+        schema:
+          type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Danh sách Driver
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Driver'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /drivers/me/availability:
+    patch:
+      tags:
+      - Drivers
+      summary: Bật/tắt trạng thái nhận chuyến của Driver
+      operationId: updateMyAvailability
+      security:
+      - bearerAuth: []
+      x-srs-trace:
+      - FR05.05
+      - FR05.06
+      - UC24
+      - AC24.01-AC24.04
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DriverStatusRequest'
+              $ref: '#/components/schemas/AvailabilityRequest'
       responses:
         '200':
-          description: Cập nhật trạng thái tài xế thành công
+          description: Trạng thái Driver đã cập nhật
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Driver'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /drivers/me/location:
     put:
       tags:
-      - Tài xế
-      summary: Cập nhật vị trí hiện tại của tài xế
-      operationId: updateDriverLocation
+      - Drivers
+      summary: Cập nhật vị trí hiện tại của Driver
+      operationId: updateMyLocation
       security:
       - bearerAuth: []
+      x-srs-trace:
+      - FR05.01
+      - FR05.02
+      - FR05.07
       requestBody:
         required: true
         content:
@@ -241,12 +483,14 @@ paths:
               $ref: '#/components/schemas/LocationRequest'
       responses:
         '200':
-          description: Ghi nhận vị trí thành công
+          description: Vị trí đã được cập nhật
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Location'
+                $ref: '#/components/schemas/LocationRequest'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
