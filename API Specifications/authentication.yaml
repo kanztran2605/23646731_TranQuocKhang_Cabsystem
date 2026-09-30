@@ -90,7 +90,7 @@ components:
       properties:
         identifier:
           type: string
-          description: Email, số điện thoại hoặc username (nếu hệ thống hỗ trợ)
+          description: Email hoặc số điện thoại của User
           example: customer@example.com
         password:
           type: string
@@ -201,20 +201,20 @@ components:
       type: object
       required:
       - vehicleTypeId
-      - plateNumber
+      - licensePlate
       properties:
         vehicleTypeId:
           type: string
           example: CAR_4_SEATS
-        plateNumber:
-          type: string
-          example: 51A-123.45
         brand:
           type: string
           example: Toyota
         model:
           type: string
           example: Vios
+        licensePlate:
+          type: string
+          example: 51A-123.45
     RegisterDriverRequest:
       type: object
       required:

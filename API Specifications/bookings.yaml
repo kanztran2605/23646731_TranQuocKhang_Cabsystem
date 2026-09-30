@@ -124,13 +124,13 @@ components:
         vehicle:
           type: object
           properties:
-            plateNumber:
-              type: string
             vehicleTypeId:
               type: string
             brand:
               type: string
             model:
+              type: string
+            licensePlate:
               type: string
     Booking:
       type: object

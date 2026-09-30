@@ -89,7 +89,8 @@ components:
           example: 0900000002
         driverLicense:
           type: string
-          description: Chỉ trả khi role có quyền xem dữ liệu nhạy cảm
+          description: Chỉ trả khi role có quyền xem dữ liệu nhạy cảm. Giá trị phải được giải mã từ driverLicenseCiphertext;
+            DB không lưu plaintext.
         approvalStatus:
           type: string
           enum:
@@ -127,11 +128,11 @@ components:
           properties:
             vehicleTypeId:
               type: string
-            plateNumber:
-              type: string
             brand:
               type: string
             model:
+              type: string
+            licensePlate:
               type: string
         rating:
           type: number
@@ -145,6 +146,7 @@ components:
           type: string
         driverLicense:
           type: string
+          description: Giá trị đầu vào dạng nghiệp vụ; driver-service phải mã hóa trước khi lưu trữ.
         vehicleTypeId:
           type: string
     AvailabilityRequest:

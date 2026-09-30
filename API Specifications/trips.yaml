@@ -136,18 +136,18 @@ components:
     ReviewRequest:
       type: object
       required:
-      - rating
+      - score
       properties:
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-          example: 5
         comment:
           type: string
           maxLength: 1000
           example: Driver phục vụ tốt
           description: Phải được validate/sanitize theo NFR33
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
     Review:
       type: object
       properties:
@@ -159,15 +159,21 @@ components:
           type: string
         driverId:
           type: string
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
         comment:
           type: string
         createdAt:
           type: string
           format: date-time
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+      required:
+      - reviewId
+      - tripId
+      - customerId
+      - driverId
+      - score
     Error:
       type: object
       required:

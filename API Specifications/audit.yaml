@@ -64,22 +64,6 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
-    NhatKyKiemToanLog:
-      type: object
-      properties:
-        auditLogId:
-          type: string
-        userId:
-          type: string
-        action:
-          type: string
-        targetType:
-          type: string
-        targetId:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
     Error:
       type: object
       required:
@@ -95,20 +79,101 @@ components:
         timestamp:
           type: string
           format: date-time
+    AuditLog:
+      type: object
+      required:
+      - auditLogId
+      - actorId
+      - action
+      - entityType
+      - entityId
+      - success
+      - createdAt
+      properties:
+        auditLogId:
+          type: string
+          example: AUD001
+        actorId:
+          type: string
+          nullable: true
+          description: User ID hoặc System Actor thực hiện hành động
+          example: U001
+        action:
+          type: string
+          example: DRIVER_APPROVED
+        entityType:
+          type: string
+          example: DRIVER
+        entityId:
+          type: string
+          example: DRV001
+        success:
+          type: boolean
+          example: true
+        ipAddress:
+          type: string
+          nullable: true
+          example: 127.0.0.1
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+    PageAuditLog:
+      type: object
+      required:
+      - page
+      - limit
+      - total
+      - items
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          example: 20
+        total:
+          type: integer
+          minimum: 0
+          example: 25
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
 paths:
   /audit-logs:
     get:
       tags:
       - Nhật ký kiểm toán
-      summary: Xem nhật ký kiểm toán
-      operationId: getNhatKyKiemToanLogs
+      summary: Xem Audit Log
+      operationId: getAuditLogs
       security:
       - bearerAuth: []
       parameters:
+      - name: actorId
+        in: query
+        schema:
+          type: string
       - name: action
         in: query
         schema:
           type: string
+      - name: entityType
+        in: query
+        schema:
+          type: string
+      - name: entityId
+        in: query
+        schema:
+          type: string
+      - name: success
+        in: query
+        schema:
+          type: boolean
       - name: from
         in: query
         schema:
@@ -119,16 +184,35 @@ paths:
         schema:
           type: string
           format: date-time
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
       responses:
         '200':
-          description: Nhật ký kiểm toán logs
+          description: Danh sách Audit Log
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/NhatKyKiemToanLog'
+                $ref: '#/components/schemas/PageAuditLog'
         '403':
           $ref: '#/components/responses/Forbidden'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-srs-trace:
+      - FR11.04
+      - UC21
+      - AC-G04

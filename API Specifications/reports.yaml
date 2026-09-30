@@ -64,20 +64,6 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
-    Report:
-      type: object
-      properties:
-        from:
-          type: string
-          format: date
-        to:
-          type: string
-          format: date
-        totalChuyến đi:
-          type: integer
-        totalRevenue:
-          type: number
-          format: double
     Error:
       type: object
       required:
@@ -93,6 +79,132 @@ components:
         timestamp:
           type: string
           format: date-time
+    TripReport:
+      type: object
+      required:
+      - from
+      - to
+      - totalTrips
+      - completedTrips
+      - canceledTrips
+      - completionRate
+      - cancellationRate
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        totalTrips:
+          type: integer
+          minimum: 0
+          example: 100
+        completedTrips:
+          type: integer
+          minimum: 0
+          example: 82
+        canceledTrips:
+          type: integer
+          minimum: 0
+          example: 12
+        completionRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.82
+        cancellationRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.12
+        generatedAt:
+          type: string
+          format: date-time
+    RevenueReport:
+      type: object
+      required:
+      - from
+      - to
+      - totalRevenue
+      - successfulPayments
+      - failedPayments
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        totalRevenue:
+          type: number
+          format: double
+          example: 12500000
+        successfulPayments:
+          type: integer
+          minimum: 0
+          example: 80
+        failedPayments:
+          type: integer
+          minimum: 0
+          example: 5
+        generatedAt:
+          type: string
+          format: date-time
+    DriverPerformance:
+      type: object
+      required:
+      - driverId
+      - from
+      - to
+      - totalTrips
+      - completedTrips
+      - canceledTrips
+      - completionRate
+      - averageRating
+      properties:
+        driverId:
+          type: string
+          example: DRV001
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        totalTrips:
+          type: integer
+          minimum: 0
+          example: 50
+        completedTrips:
+          type: integer
+          minimum: 0
+          example: 45
+        canceledTrips:
+          type: integer
+          minimum: 0
+          example: 3
+        completionRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.9
+        averageRating:
+          type: number
+          format: double
+          minimum: 1
+          maximum: 5
+          example: 4.8
+        generatedAt:
+          type: string
+          format: date-time
+    DriverPerformanceList:
+      type: array
+      items:
+        $ref: '#/components/schemas/DriverPerformance'
 paths:
   /reports/trips:
     get:
@@ -121,11 +233,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Report'
+                $ref: '#/components/schemas/TripReport'
         '403':
           $ref: '#/components/responses/Forbidden'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-srs-trace:
+      - FR10.01-FR10.07
+      - UC19
   /reports/revenue:
     get:
       tags:
@@ -153,8 +272,59 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Report'
+                $ref: '#/components/schemas/RevenueReport'
         '403':
           $ref: '#/components/responses/Forbidden'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-srs-trace:
+      - FR10.01-FR10.07
+      - UC19
+  /reports/drivers:
+    get:
+      tags:
+      - Báo cáo
+      summary: Xem báo cáo hiệu quả Driver
+      operationId: getDriverPerformanceReport
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: driverId
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Báo cáo hiệu quả Driver
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverPerformanceList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-srs-trace:
+      - FR10.01-FR10.07
+      - UC19

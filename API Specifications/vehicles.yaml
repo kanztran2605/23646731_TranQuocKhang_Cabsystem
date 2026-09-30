@@ -80,23 +80,39 @@ components:
           type: string
         vehicleTypeId:
           type: string
-        plateNumber:
-          type: string
         status:
           type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+          example: ACTIVE
+        licensePlate:
+          type: string
+        brand:
+          type: string
+          example: Toyota
+        model:
+          type: string
+          example: Vios
     VehicleRequest:
       type: object
       required:
       - driverId
       - vehicleTypeId
-      - plateNumber
+      - licensePlate
       properties:
         driverId:
           type: string
         vehicleTypeId:
           type: string
-        plateNumber:
+        licensePlate:
           type: string
+        brand:
+          type: string
+          example: Toyota
+        model:
+          type: string
+          example: Vios
     Error:
       type: object
       required:

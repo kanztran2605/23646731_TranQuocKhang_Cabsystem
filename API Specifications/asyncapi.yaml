@@ -1,8 +1,11 @@
 asyncapi: 2.6.0
 info:
   title: CAB System Async Events
-  version: 2.0.0
-  description: 'AsyncAPI contract cho RabbitMQ IPC (ARC03, AC-G13). Exchange chính: cab.events (topic).'
+  version: 2.1.0
+  description: 'AsyncAPI contract cho giao tiếp bất đồng bộ giữa các microservice của CAB System thông qua RabbitMQ. Exchange
+    chính: cab.events, loại topic.
+
+    '
 servers:
   rabbitmq:
     url: rabbitmq:5672
@@ -12,43 +15,54 @@ defaultContentType: application/json
 channels:
   booking.created:
     publish:
-      summary: Booking Service phát khi Booking được tạo
+      summary: Booking Service phát khi một Booking hợp lệ được tạo
       message:
         $ref: '#/components/messages/BookingCreated'
   driver.offer.created:
     publish:
-      summary: Matching tạo offer cho Driver
+      summary: Booking Service phát khi tạo Driver Offer
       message:
         $ref: '#/components/messages/DriverOfferCreated'
+  booking.no_driver_found:
+    publish:
+      summary: Booking Service phát khi quá trình tìm Driver kết thúc nhưng không tìm được Driver phù hợp
+      message:
+        $ref: '#/components/messages/BookingNoDriverFound'
   driver.accepted:
     publish:
-      summary: Driver chấp nhận Booking
+      summary: Booking Service phát khi Driver chấp nhận Booking
       message:
         $ref: '#/components/messages/DriverAccepted'
   trip.status.changed:
     publish:
-      summary: Trip thay đổi trạng thái
+      summary: Booking Service phát khi Trip thay đổi trạng thái
       message:
         $ref: '#/components/messages/TripStatusChanged'
   trip.canceled:
     publish:
-      summary: Trip bị hủy
+      summary: Booking Service phát khi Trip bị hủy
       message:
         $ref: '#/components/messages/TripCanceled'
   payment.completed:
     publish:
-      summary: Payment hoàn tất
+      summary: Payment Service phát khi Payment hoàn thành thành công
       message:
         $ref: '#/components/messages/PaymentCompleted'
+  payment.failed:
+    publish:
+      summary: Payment Service phát khi Payment thất bại
+      message:
+        $ref: '#/components/messages/PaymentFailed'
   review.created:
     publish:
-      summary: Customer tạo review
+      summary: Review Service phát khi Customer tạo Review hợp lệ
       message:
         $ref: '#/components/messages/ReviewCreated'
 components:
   messages:
     BookingCreated:
       name: booking.created
+      title: Booking Created
       payload:
         type: object
         required:
@@ -67,6 +81,7 @@ components:
             type: string
     DriverOfferCreated:
       name: driver.offer.created
+      title: Driver Offer Created
       payload:
         type: object
         required:
@@ -81,8 +96,31 @@ components:
           expiresAt:
             type: string
             format: date-time
+    BookingNoDriverFound:
+      name: booking.no_driver_found
+      title: Booking No Driver Found
+      payload:
+        type: object
+        required:
+        - bookingId
+        - customerId
+        - reason
+        properties:
+          bookingId:
+            type: string
+          customerId:
+            type: string
+          reason:
+            type: string
+            enum:
+            - NO_SUITABLE_DRIVER
+            - MATCHING_TIMEOUT
+          occurredAt:
+            type: string
+            format: date-time
     DriverAccepted:
       name: driver.accepted
+      title: Driver Accepted
       payload:
         type: object
         required:
@@ -98,6 +136,7 @@ components:
             type: string
     TripStatusChanged:
       name: trip.status.changed
+      title: Trip Status Changed
       payload:
         type: object
         required:
@@ -106,6 +145,10 @@ components:
         properties:
           tripId:
             type: string
+          driverId:
+            type: string
+          customerId:
+            type: string
           status:
             type: string
             enum:
@@ -113,8 +156,12 @@ components:
             - PICKED_UP
             - IN_PROGRESS
             - COMPLETED
+          changedAt:
+            type: string
+            format: date-time
     TripCanceled:
       name: trip.canceled
+      title: Trip Canceled
       payload:
         type: object
         required:
@@ -130,8 +177,12 @@ components:
             nullable: true
           customerId:
             type: string
+          canceledAt:
+            type: string
+            format: date-time
     PaymentCompleted:
       name: payment.completed
+      title: Payment Completed
       payload:
         type: object
         required:
@@ -143,29 +194,75 @@ components:
             type: string
           tripId:
             type: string
+          customerId:
+            type: string
           status:
             type: string
             enum:
             - COMPLETED
           amount:
             type: number
+            format: double
+          paymentMethod:
+            type: string
+          providerReference:
+            type: string
+            nullable: true
+          paidAt:
+            type: string
+            format: date-time
+    PaymentFailed:
+      name: payment.failed
+      title: Payment Failed
+      payload:
+        type: object
+        required:
+        - paymentId
+        - tripId
+        - status
+        properties:
+          paymentId:
+            type: string
+          tripId:
+            type: string
+          customerId:
+            type: string
+          status:
+            type: string
+            enum:
+            - FAILED
+          amount:
+            type: number
+            format: double
+          failureReason:
+            type: string
+          providerReference:
+            type: string
+            nullable: true
+          failedAt:
+            type: string
+            format: date-time
     ReviewCreated:
       name: review.created
+      title: Review Created
       payload:
         type: object
         required:
         - reviewId
         - tripId
+        - customerId
         - driverId
-        - rating
+        - score
         properties:
           reviewId:
             type: string
           tripId:
             type: string
+          customerId:
+            type: string
           driverId:
             type: string
-          rating:
+          score:
             type: integer
             minimum: 1
             maximum: 5

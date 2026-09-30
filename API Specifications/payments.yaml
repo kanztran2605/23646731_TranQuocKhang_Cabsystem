@@ -136,6 +136,14 @@ components:
         createdAt:
           type: string
           format: date-time
+        failureReason:
+          type: string
+          nullable: true
+          example: PROVIDER_DECLINED
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
     PaymentCallbackRequest:
       type: object
       required:
@@ -154,6 +162,11 @@ components:
         providerReference:
           type: string
           example: MOCK123
+        failureReason:
+          type: string
+          nullable: true
+          description: Lý do thất bại khi status = FAILED
+          example: PROVIDER_DECLINED
     ReplayResponse:
       type: object
       properties:
@@ -236,6 +249,10 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
   /payments/{paymentId}:
     get:
       tags:
@@ -259,6 +276,10 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
   /payments/provider/callback:
     post:
       tags:
@@ -294,6 +315,10 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
   /payments/{paymentId}/retry:
     post:
       tags:
@@ -320,3 +345,7 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'

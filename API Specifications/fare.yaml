@@ -28,22 +28,6 @@ components:
       schema:
         type: string
   schemas:
-    CuocPhi:
-      type: object
-      properties:
-        fareId:
-          type: string
-        tripId:
-          type: string
-        amount:
-          type: number
-          format: double
-        currency:
-          type: string
-          example: VND
-        calculatedAt:
-          type: string
-          format: date-time
     Error:
       type: object
       required:
@@ -59,6 +43,35 @@ components:
         timestamp:
           type: string
           format: date-time
+    Fare:
+      type: object
+      properties:
+        fareId:
+          type: string
+        tripId:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: VND
+        calculatedAt:
+          type: string
+          format: date-time
+        vehicleTypeId:
+          type: string
+          example: CAR_4_SEATS
+        pricingData:
+          type: object
+          additionalProperties: true
+          description: Snapshot dữ liệu/quy tắc dùng để tính Fare
+      required:
+      - fareId
+      - tripId
+      - amount
+      - currency
+      - calculatedAt
   responses:
     BadRequest:
       description: Yêu cầu không hợp lệ
@@ -107,8 +120,8 @@ paths:
     post:
       tags:
       - Cước phí
-      summary: Tính cước chuyến đi
-      operationId: calculateCuocPhi
+      summary: Tính Fare cho Trip
+      operationId: calculateFare
       security:
       - bearerAuth: []
       parameters:
@@ -119,7 +132,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CuocPhi'
+                $ref: '#/components/schemas/Fare'
         '409':
           description: Chuyến đi chưa hoàn thành hoặc thiếu dữ liệu cần thiết
           content:
@@ -128,3 +141,16 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-srs-trace:
+      - FR06.01-FR06.03
+      - UC11
