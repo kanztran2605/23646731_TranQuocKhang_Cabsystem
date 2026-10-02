@@ -2155,7 +2155,7 @@ Requirements Traceability Matrix (RTM) được sử dụng để đảm bảo c
 | Constraint / NFR | Mục tiêu kỹ thuật | Acceptance Criteria / Evidence |
 |---|---|---|
 | **ARC01 – API Gateway** | Client sử dụng Gateway làm entry point chính | **AC-G12** |
-| **ARC02 – Synchronous IPC** | Service có thể giao tiếp HTTP/REST khi cần phản hồi trực tiếp | Kiểm thử IPC giữa các service |
+| **ARC02 – Synchronous IPC** | API Gateway và các Microservice sử dụng gRPC cho giao tiếp đồng bộ khi cần phản hồi trực tiếp | Kiểm thử IPC giữa các service |
 | **ARC03 – Asynchronous IPC** | Business event được truyền qua Message Broker/RabbitMQ | **AC-G13** |
 | **ARC04 – Containerization** | Các component chạy trong Docker; local/demo dùng Docker Compose | `docker compose ps` và Healthcheck |
 | **ARC05 – Configuration & Secrets** | Secret/config được cung cấp bằng environment/secret mechanism; `.env` thật không được commit | Kiểm tra `.gitignore`, `.env.example` và Git repository |

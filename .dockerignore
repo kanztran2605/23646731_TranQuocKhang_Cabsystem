@@ -1,0 +1,98 @@
+# =========================================================
+# CAB System - Docker Ignore
+# =========================================================
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# AI development instructions
+.ai/
+AI_CONTEXT.md
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node.js dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+
+# Tests / coverage
+coverage/
+**/coverage/
+.nyc_output/
+
+# Logs
+logs/
+**/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local Docker data
+docker-data/
+postgres-data/
+rabbitmq-data/
+redis-data/
+
+# Documentation not required inside runtime images
+docs/
+postman/
+
+# Generated reports / binary documents
+reports/
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.png
+*.jpg
+*.jpeg
+
+# Local certificates / private keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Database dumps
+*.dump
+*.backup
+*.sql.gz
+
+# Cache
+.cache/
+.eslintcache

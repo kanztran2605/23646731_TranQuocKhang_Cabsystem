@@ -129,7 +129,9 @@ Các quan hệ service-to-service chính:
 | trip-service | driver-service | Driver Location / ETA |
 | review-service | trip-service | Validate Completed Trip |
 
-Contract cốt lõi nằm trong `grpc/internal-service-contracts.proto`.
+Contract gRPC chính thức của hệ thống được quản lý tập trung tại thư mục `/proto/`.
+
+Mỗi microservice có file `.proto` tương ứng; các message dùng chung được đặt tại `/proto/common/common.proto`.
 
 ## 6. RabbitMQ events
 
