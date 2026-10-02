@@ -1,0 +1,26 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY services/audit-service/package*.json ./services/audit-service/
+
+RUN cd services/audit-service \
+    && npm install --omit=dev --no-audit --no-fund \
+    && npm cache clean --force
+
+COPY proto ./proto
+COPY shared ./shared
+COPY services/audit-service/src ./services/audit-service/src
+
+WORKDIR /app/services/audit-service
+
+ENV NODE_ENV=production
+
+EXPOSE 3010 50060
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.HTTP_PORT||3010)+'/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+
+USER node
+
+CMD ["node", "src/server.js"]
