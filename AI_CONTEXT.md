@@ -21,28 +21,257 @@ Mục tiêu là triển khai CAB System MVP theo đúng các tài liệu thiết
 
 ---
 
-## 2. Source of Truth
+## 2. Source of Truth and Priority Rules
 
-Khi có mâu thuẫn, AI KHÔNG được tự suy đoán.
+AI không được sử dụng một thứ tự ưu tiên duy nhất cho mọi loại thông tin.
 
-Ưu tiên kiểm tra theo thứ tự:
+Mỗi loại quyết định phải sử dụng tài liệu phù hợp làm Source of Truth.
+
+Nếu các tài liệu có mâu thuẫn mà các rule bên dưới không giải quyết được, AI phải DỪNG và yêu cầu người dùng xác nhận.
+
+AI không được tự suy đoán hoặc tự sửa business rule.
+
+---
+
+### 2.1 Business Requirement
+
+Source of Truth:
 
 1. Customer Requirement
 2. SRS
+
+Dùng để xác định:
+
+- Business Need
+- Business Goal
+- Stakeholder
+- Actor
+- Functional Requirement
+- Non-functional Requirement
+- Business Rule cấp yêu cầu
+- MVP Scope
+
+DDD hoặc code không được tự tạo requirement mới.
+
+---
+
+### 2.2 Domain Model and Business Rules
+
+Source of Truth:
+
+1. DDD FINAL
+2. SRS
+
+Dùng để xác định:
+
+- Bounded Context
+- Aggregate
+- Aggregate Root
+- Entity
+- Value Object
+- Domain Service
+- Domain Policy
+- Invariant
+- State Machine
+- Domain Event
+- Ownership
+
+Nếu SRS mô tả chung nhưng DDD đã chi tiết hóa rule mà không mâu thuẫn Requirement thì sử dụng DDD FINAL.
+
+---
+
+### 2.3 Data Model
+
+Source of Truth:
+
+1. ERD FINAL
+2. DDD FINAL
+
+Dùng để xác định:
+
+- Table
+- Column
+- PK
+- FK nội bộ Context
+- Relationship
+- Unique Constraint
+- Database ownership
+- Data relationship
+
+Không được tạo physical foreign key xuyên Microservice database.
+
+---
+
+### 2.4 Microservice Boundary and Communication
+
+Source of Truth:
+
+1. Microservice Architecture Design FINAL
+2. DDD FINAL
+3. API Specifications FINAL
+
+Dùng để xác định:
+
+- Microservice boundary
+- Service ownership
+- Database-per-Service
+- API Gateway
+- gRPC
+- RabbitMQ
+- Redis
+- External Provider
+- Service dependency
+- Deployment communication
+
+Architecture FINAL hiện chốt:
+
+Client
+→ REST HTTPS/JSON
+→ API Gateway
+
+API Gateway
+→ gRPC
+→ Microservices
+
+Synchronous Service-to-Service
+→ gRPC
+
+Asynchronous Service-to-Service
+→ RabbitMQ
+
+---
+
+### 2.5 Public API Contract
+
+Source of Truth:
+
+1. API Specifications FINAL
+2. DDD FINAL
+3. SRS
+
+Dùng để xác định:
+
+- Endpoint
+- HTTP Method
+- Request
+- Response
+- HTTP Status Code
+- Authentication requirement
+- Authorization
+- Query Parameter
+- Error contract
+
+Không tự đổi API contract trong lúc implement.
+
+Nếu cần đổi phải yêu cầu xác nhận trước.
+
+---
+
+### 2.6 gRPC Contract
+
+Source of Truth:
+
+1. `/proto/`
+2. Microservice Architecture Design FINAL
 3. DDD FINAL
-4. ERD FINAL
-5. Bounded Context FINAL
-6. Microservice Architecture Design FINAL
-7. API Specifications FINAL
-8. Test Cases FINAL
-9. Business Process Model
-10. README
 
-Nếu hai tài liệu vẫn mâu thuẫn, phải dừng và báo cho người dùng trước khi thay đổi business rule.
+Dùng để xác định:
 
-DDD, ERD, Bounded Context và Microservice Architecture hiện tại được xem là baseline đã khóa.
+- gRPC Service
+- RPC Method
+- Request Message
+- Response Message
+- Internal synchronous contract
 
-Không tự ý tách/gộp Bounded Context hoặc Microservice.
+Không tự thêm RPC nếu không có nhu cầu nghiệp vụ rõ ràng.
+
+---
+
+### 2.7 Event Contract
+
+Source of Truth:
+
+1. `/contracts/events/`
+2. AsyncAPI FINAL
+3. DDD Domain Events
+
+Dùng để xác định:
+
+- Event Name
+- Routing Key
+- Producer
+- Consumer
+- Payload
+- Event Envelope
+- Schema Version
+- Idempotency requirement
+
+Không tự đổi Event Name hoặc Payload khi consumer đã phụ thuộc vào contract.
+
+---
+
+### 2.8 Testing and Acceptance
+
+Source of Truth:
+
+1. Test Cases FINAL
+2. Acceptance Criteria trong SRS
+3. DDD Business Invariants
+
+Dùng để xác định:
+
+- Expected Result
+- Functional Test
+- Integration Test
+- Security Test
+- Platform Test
+- 30 evaluation criteria
+
+Feature chỉ được xem là DONE khi các Test Case liên quan PASS.
+
+---
+
+### 2.9 Implementation Details
+
+Source of Truth:
+
+1. Existing source code nếu không mâu thuẫn thiết kế
+2. AI_CONTEXT.md
+3. Dev Agent rules
+4. Established project conventions
+
+AI được phép quyết định implementation detail như:
+
+- function name
+- internal helper
+- folder nhỏ
+- logging helper
+- reusable utility
+
+nhưng không được dùng implementation detail để thay đổi business rule hoặc architecture.
+
+---
+
+### 2.10 Conflict Resolution Rule
+
+Khi phát hiện conflict:
+
+1. Xác định loại conflict.
+2. Xác định Source of Truth tương ứng.
+3. So sánh tài liệu.
+4. Nếu rule ưu tiên giải quyết được thì dùng tài liệu ưu tiên.
+5. Nếu conflict ảnh hưởng Business Rule, API Contract, Database Ownership hoặc Service Boundary mà chưa thể xác định chắc chắn:
+
+STOP.
+
+Báo cho người dùng:
+
+- tài liệu A nói gì;
+- tài liệu B nói gì;
+- ảnh hưởng là gì;
+- cần người dùng xác nhận quyết định nào.
+
+Không tự sửa tài liệu hoặc code để che conflict.
 
 ---
 

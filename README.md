@@ -8,58 +8,50 @@
 
 ## 📌 Giới thiệu
 
-**CAB System** là hệ thống đặt xe trực tuyến được xây dựng theo định hướng **Service-Oriented Architecture / Microservices**.
+# CAB System
 
-Hệ thống hỗ trợ toàn bộ quy trình nghiệp vụ từ khi Customer tạo yêu cầu đặt xe cho đến khi chuyến đi hoàn thành, thanh toán và đánh giá Driver.
+CAB System là nền tảng đặt xe trực tuyến (Ride-Hailing Platform) được xây dựng theo kiến trúc Microservices, Domain-Driven Design (DDD), Database-per-Service và Event-Driven Architecture.
 
-Mục tiêu chính của hệ thống:
+Project được triển khai cho phiên bản MVP với mục tiêu hỗ trợ toàn bộ quy trình:
 
-- Tự động tìm kiếm và phân công Driver phù hợp.
-- Cho phép Customer đặt xe và theo dõi trạng thái chuyến đi.
-- Cho phép Driver quản lý trạng thái hoạt động và thực hiện chuyến.
-- Hỗ trợ thanh toán tiền mặt và thanh toán điện tử.
-- Hỗ trợ thông báo cho Customer và Driver.
-- Hỗ trợ đánh giá Driver sau chuyến đi.
-- Cung cấp chức năng quản lý và giám sát cho Operation Staff.
-- Đảm bảo Authentication, Authorization và các yêu cầu bảo mật.
-- Có khả năng mở rộng độc lập giữa các thành phần.
+Customer tạo Booking  
+→ hệ thống tìm Driver phù hợp  
+→ Driver nhận chuyến  
+→ Trip được thực hiện  
+→ tính Fare  
+→ Payment  
+→ Notification  
+→ Review  
+→ Reporting / Audit
 
 ---
 
-## 🎯 Business Flow chính
+# 1. Architecture
+
+CAB System sử dụng:
+
+- Node.js
+- Microservices Architecture
+- Domain-Driven Design (DDD)
+- Database-per-Service
+- PostgreSQL 16
+- PostGIS
+- Redis
+- RabbitMQ
+- gRPC
+- REST API
+- Docker
+- Docker Compose
+
+Luồng giao tiếp chính:
 
 ```text
-Customer
-   │
-   ▼
-Đăng ký / Đăng nhập
-   │
-   ▼
-Tạo yêu cầu đặt xe
-   │
-   ▼
-Tìm Driver phù hợp
-   │
-   ▼
-Driver nhận chuyến
-   │
-   ▼
-Driver đến điểm đón
-   │
-   ▼
-Đón Customer
-   │
-   ▼
-Đang thực hiện chuyến
-   │
-   ▼
-Hoàn thành chuyến
-   │
-   ▼
-Tính cước
-   │
-   ▼
-Thanh toán
-   │
-   ▼
-Đánh giá Driver
+Client
+   |
+   | REST API (HTTPS/JSON)
+   v
+API Gateway
+   |
+   | gRPC
+   v
+Microservices
