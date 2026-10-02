@@ -2172,7 +2172,7 @@ Requirements Traceability Matrix (RTM) được sử dụng để đảm bảo c
 | **1** | Kiến trúc Source Code | **NFR20** | — | Architecture Review | Mở cây source + giải thích trách nhiệm Gateway/Services/Infrastructure |
 | **2** | `.gitignore`, `.env` và Secrets | **ARC05** | — | Configuration Verification | GitHub không có `.env` thật; có `.gitignore` và `.env.example` |
 | **3** | API Gateway | **ARC01, NFR37** | — | **AC-G12** | Chứng minh Gateway là external entry point |
-| **4** | IPC giữa Microservices | **ARC02, ARC03** | — | **AC-G13** | HTTP IPC + RabbitMQ event |
+| **4** | IPC giữa Microservices | **ARC02, ARC03** | — | **AC-G13** | gRPC synchronous IPC + RabbitMQ asynchronous event |
 | **5** | Docker Compose | **ARC04** | — | Deployment Verification | `docker compose up -d` + `docker compose ps` |
 | **6** | `/health`, `/ready`, `/health/services` | **NFR36** | — | **AC-G11** | Postman gọi đủ 3 endpoint |
 | **7** | Kafka/RabbitMQ | **ARC03** | — | **AC-G13** | RabbitMQ container + Exchange/Queue/Event |
