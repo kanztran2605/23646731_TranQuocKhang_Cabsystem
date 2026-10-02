@@ -2,10 +2,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY services/customer-service/package*.json ./services/customer-service/
+# Install dependencies at /app/node_modules so both
+# /app/shared and /app/services/customer-service can resolve them.
+COPY services/customer-service/package*.json ./
 
-RUN cd services/customer-service \
-    && npm install --omit=dev --no-audit --no-fund \
+RUN npm install --omit=dev --no-audit --no-fund \
     && npm cache clean --force
 
 COPY proto ./proto

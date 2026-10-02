@@ -2,10 +2,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY services/auth-service/package*.json ./services/auth-service/
+# Install dependencies at /app/node_modules so both
+# /app/shared and /app/services/auth-service can resolve them.
+COPY services/auth-service/package*.json ./
 
-RUN cd services/auth-service \
-    && npm install --omit=dev --no-audit --no-fund \
+RUN npm install --omit=dev --no-audit --no-fund \
     && npm cache clean --force
 
 COPY proto ./proto
