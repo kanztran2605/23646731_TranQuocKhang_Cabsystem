@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package cab.audit.v1;
+
+import "common/common.proto";
+
+service AuditService {
+  rpc GetAuditLogs(
+    GetAuditLogsRequest
+  ) returns (PageAuditLog);
+}
+
+message GetAuditLogsRequest {
+  cab.common.v1.RequestContext context = 1;
+
+  optional string actor_user_id = 2;
+  optional string action = 3;
+  optional string entity_type = 4;
+  optional string entity_id = 5;
+  optional bool success = 6;
+
+  optional string from = 7;
+  optional string to = 8;
+
+  int32 page = 9;
+  int32 limit = 10;
+}
+
+message AuditLog {
+  string audit_id = 1;
+
+  optional string event_id = 2;
+  optional string correlation_id = 3;
+  optional string actor_user_id = 4;
+
+  string action = 5;
+  string entity_type = 6;
+  string entity_id = 7;
+
+  bool success = 8;
+
+  optional string ip_address = 9;
+
+  // Internal serialization of OpenAPI metadata object.
+  optional string metadata_json = 10;
+
+  string timestamp = 11;
+}
+
+message PageAuditLog {
+  int32 page = 1;
+  int32 limit = 2;
+  int64 total = 3;
+  repeated AuditLog items = 4;
+}

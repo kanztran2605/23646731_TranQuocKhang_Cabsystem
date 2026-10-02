@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package cab.common.v1;
+
+// Shared transport metadata propagated by API Gateway to protected RPCs.
+// Gateway performs JWT validation/coarse-grained authorization.
+// Owning microservice still enforces domain authorization.
+message RequestContext {
+  string actor_user_id = 1;
+  string actor_role = 2;
+  optional string actor_customer_id = 3;
+  optional string actor_driver_id = 4;
+  repeated string permissions = 5;
+  string correlation_id = 6;
+  optional string ip_address = 7;
+}
+
+message Empty {}
+
+message Location {
+  double latitude = 1;
+  double longitude = 2;
+  optional string address = 3;
+}
+
+// Every microservice implements this service.
+// API Gateway uses it for GET /health/services.
+service HealthService {
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1; // healthy | unhealthy
+  optional string detail = 2;
+}
