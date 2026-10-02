@@ -1,0 +1,469 @@
+asyncapi: 2.6.0
+info:
+  title: CAB System Async Events
+  version: 3.0.0
+  description: 'RabbitMQ contract theo DDD FINAL. Topic exchange: cab.events. Mọi event dùng common envelope eventId/eventType/occurredAt/producer/correlationId/schemaVersion/payload.
+    Consumer phải idempotent.'
+servers:
+  rabbitmq:
+    url: rabbitmq:5672
+    protocol: amqp
+    description: RabbitMQ nội bộ trong Docker network
+defaultContentType: application/json
+channels:
+  booking.created:
+    publish:
+      summary: Booking hợp lệ đã được persist; matching được kích hoạt nội bộ.
+      message:
+        $ref: '#/components/messages/BookingCreated'
+    x-producer: booking-service
+    x-consumers:
+    - notification-service
+  driver.offer.created:
+    publish:
+      summary: Driver Offer được tạo.
+      message:
+        $ref: '#/components/messages/DriverOfferCreated'
+    x-producer: booking-service
+    x-consumers:
+    - notification-service
+  booking.no_driver_found:
+    publish:
+      summary: Matching kết thúc không tìm được Driver.
+      message:
+        $ref: '#/components/messages/BookingNoDriverFound'
+    x-producer: booking-service
+    x-consumers:
+    - notification-service
+    - audit-service
+  driver.accepted:
+    publish:
+      summary: Driver Assignment được xác nhận; trip-service tạo Trip ASSIGNED.
+      message:
+        $ref: '#/components/messages/DriverAccepted'
+    x-producer: booking-service
+    x-consumers:
+    - trip-service
+    - driver-service
+    - notification-service
+  trip.status.changed:
+    publish:
+      summary: Trip chuyển trạng thái hợp lệ.
+      message:
+        $ref: '#/components/messages/TripStatusChanged'
+    x-producer: trip-service
+    x-consumers:
+    - driver-service
+    - notification-service
+    - payment-service
+    - report-service
+    - audit-service
+  trip.canceled:
+    publish:
+      summary: Trip bị hủy hợp lệ.
+      message:
+        $ref: '#/components/messages/TripCanceled'
+    x-producer: trip-service
+    x-consumers:
+    - driver-service
+    - notification-service
+    - report-service
+    - audit-service
+  payment.completed:
+    publish:
+      summary: Payment hoàn thành.
+      message:
+        $ref: '#/components/messages/PaymentCompleted'
+    x-producer: payment-service
+    x-consumers:
+    - notification-service
+    - report-service
+    - audit-service
+  payment.failed:
+    publish:
+      summary: Payment thất bại.
+      message:
+        $ref: '#/components/messages/PaymentFailed'
+    x-producer: payment-service
+    x-consumers:
+    - notification-service
+    - report-service
+    - audit-service
+  review.created:
+    publish:
+      summary: Review hợp lệ được tạo.
+      message:
+        $ref: '#/components/messages/ReviewCreated'
+    x-producer: review-service
+    x-consumers:
+    - report-service
+components:
+  messages:
+    BookingCreated:
+      name: booking.created
+      title: booking.created
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/BookingCreatedPayload'
+    DriverOfferCreated:
+      name: driver.offer.created
+      title: driver.offer.created
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/DriverOfferCreatedPayload'
+    BookingNoDriverFound:
+      name: booking.no_driver_found
+      title: booking.no_driver_found
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/BookingNoDriverFoundPayload'
+    DriverAccepted:
+      name: driver.accepted
+      title: driver.accepted
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/DriverAcceptedPayload'
+    TripStatusChanged:
+      name: trip.status.changed
+      title: trip.status.changed
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/TripStatusChangedPayload'
+    TripCanceled:
+      name: trip.canceled
+      title: trip.canceled
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/TripCanceledPayload'
+    PaymentCompleted:
+      name: payment.completed
+      title: payment.completed
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/PaymentCompletedPayload'
+    PaymentFailed:
+      name: payment.failed
+      title: payment.failed
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/PaymentFailedPayload'
+    ReviewCreated:
+      name: review.created
+      title: review.created
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/ReviewCreatedPayload'
+  schemas:
+    EventEnvelope:
+      type: object
+      required:
+      - eventId
+      - eventType
+      - occurredAt
+      - producer
+      - correlationId
+      - schemaVersion
+      - payload
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        producer:
+          type: string
+        correlationId:
+          type: string
+        schemaVersion:
+          type: integer
+          minimum: 1
+          example: 1
+        payload:
+          type: object
+    BookingCreatedPayload:
+      type: object
+      required:
+      - bookingId
+      - customerId
+      - vehicleTypeId
+      - createdAt
+      properties:
+        bookingId:
+          type: string
+        customerId:
+          type: string
+        vehicleTypeId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    DriverOfferCreatedPayload:
+      type: object
+      required:
+      - offerId
+      - bookingId
+      - driverId
+      - expiresAt
+      - createdAt
+      properties:
+        offerId:
+          type: string
+        bookingId:
+          type: string
+        driverId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    BookingNoDriverFoundPayload:
+      type: object
+      required:
+      - bookingId
+      - customerId
+      - reason
+      - occurredAt
+      properties:
+        bookingId:
+          type: string
+        customerId:
+          type: string
+        reason:
+          type: string
+          enum:
+          - NO_SUITABLE_DRIVER
+          - MATCHING_TIMEOUT
+        occurredAt:
+          type: string
+          format: date-time
+    DriverAcceptedPayload:
+      type: object
+      required:
+      - bookingId
+      - customerId
+      - driverId
+      - vehicleId
+      - vehicleTypeId
+      - acceptedAt
+      properties:
+        bookingId:
+          type: string
+        customerId:
+          type: string
+        driverId:
+          type: string
+        vehicleId:
+          type: string
+        vehicleTypeId:
+          type: string
+        acceptedAt:
+          type: string
+          format: date-time
+    TripStatusChangedPayload:
+      type: object
+      required:
+      - tripId
+      - bookingId
+      - customerId
+      - driverId
+      - vehicleId
+      - vehicleTypeId
+      - tripDistance
+      - fromStatus
+      - toStatus
+      - changedAt
+      properties:
+        tripId:
+          type: string
+        bookingId:
+          type: string
+        customerId:
+          type: string
+        driverId:
+          type: string
+        vehicleId:
+          type: string
+        vehicleTypeId:
+          type: string
+        tripDistance:
+          type: number
+          format: double
+          minimum: 0
+          nullable: true
+          description: Bắt buộc có giá trị cuối cùng khi toStatus = COMPLETED.
+        fromStatus:
+          type: string
+          nullable: true
+        toStatus:
+          type: string
+          enum:
+          - ASSIGNED
+          - ARRIVED
+          - PICKED_UP
+          - IN_PROGRESS
+          - COMPLETED
+          - CANCELED
+        changedAt:
+          type: string
+          format: date-time
+    TripCanceledPayload:
+      type: object
+      required:
+      - tripId
+      - bookingId
+      - customerId
+      - driverId
+      - reason
+      - canceledBy
+      - canceledAt
+      properties:
+        tripId:
+          type: string
+        bookingId:
+          type: string
+        customerId:
+          type: string
+        driverId:
+          type: string
+        reason:
+          type: string
+        canceledBy:
+          type: string
+        canceledAt:
+          type: string
+          format: date-time
+    PaymentCompletedPayload:
+      type: object
+      required:
+      - paymentId
+      - fareId
+      - tripId
+      - customerId
+      - amount
+      - currency
+      - paymentMethod
+      - paidAt
+      properties:
+        paymentId:
+          type: string
+        fareId:
+          type: string
+        tripId:
+          type: string
+        customerId:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        paymentMethod:
+          type: string
+          enum:
+          - CASH
+          - ELECTRONIC
+        providerReference:
+          type: string
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+    PaymentFailedPayload:
+      type: object
+      required:
+      - paymentId
+      - fareId
+      - tripId
+      - customerId
+      - amount
+      - currency
+      - failureReason
+      - failedAt
+      properties:
+        paymentId:
+          type: string
+        fareId:
+          type: string
+        tripId:
+          type: string
+        customerId:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        failureReason:
+          type: string
+        providerReference:
+          type: string
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+    ReviewCreatedPayload:
+      type: object
+      required:
+      - reviewId
+      - tripId
+      - customerId
+      - driverId
+      - score
+      - createdAt
+      properties:
+        reviewId:
+          type: string
+        tripId:
+          type: string
+        customerId:
+          type: string
+        driverId:
+          type: string
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        createdAt:
+          type: string
+          format: date-time

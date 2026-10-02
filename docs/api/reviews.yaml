@@ -1,0 +1,149 @@
+openapi: 3.0.3
+info:
+  title: CAB System API - Rating & Review
+  version: 3.0.0
+  description: Public REST contract qua API Gateway cho review-service. Review chỉ được tạo khi Trip COMPLETED, thuộc Customer
+    hiện tại và mỗi Trip tối đa một Review.
+servers:
+- url: http://localhost:8080/api/v1
+  description: API Gateway - môi trường local/demo
+tags:
+- name: Reviews
+  description: Rating & Review
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TripId:
+      name: tripId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    ReviewRequest:
+      type: object
+      required:
+      - score
+      properties:
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 1000
+          description: Validate/sanitize trước khi lưu/hiển thị.
+    Review:
+      type: object
+      required:
+      - reviewId
+      - tripId
+      - customerId
+      - driverId
+      - score
+      - createdAt
+      properties:
+        reviewId:
+          type: string
+        tripId:
+          type: string
+        customerId:
+          type: string
+        driverId:
+          type: string
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+  responses:
+    BadRequest:
+      description: Yêu cầu không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Thiếu/sai token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Không đủ quyền hoặc Trip không thuộc Customer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Không tìm thấy Trip
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Trip chưa COMPLETED hoặc đã có Review
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+paths:
+  /trips/{tripId}/reviews:
+    post:
+      tags:
+      - Reviews
+      summary: Customer đánh giá Driver sau Trip hoàn thành
+      operationId: createTripReview
+      security:
+      - bearerAuth: []
+      description: Gateway route tới review-service. review-service xác minh Trip qua trip-service bằng gRPC synchronous trước
+        khi tạo Review và publish review.created.
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+      responses:
+        '201':
+          description: Review được tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      x-srs-trace:
+      - UC15

@@ -1,0 +1,217 @@
+openapi: 3.0.3
+info:
+  title: CAB System API - Audit
+  version: 3.0.0
+  description: audit-service sở hữu audit_db, consume các event/thao tác quan trọng và cung cấp API tra cứu Audit Log cho
+    User có quyền phù hợp.
+servers:
+- url: http://localhost:8080/api/v1
+  description: API Gateway - môi trường local/demo
+tags:
+- name: Nhật ký kiểm toán
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Forbidden:
+      description: Người dùng không có quyền thực hiện thao tác
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Yêu cầu không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Thiếu Access Token hoặc Access Token không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Không tìm thấy tài nguyên
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Xung đột trạng thái hoặc dữ liệu
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Vượt quá giới hạn request; Gateway trả HTTP 429
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Lỗi máy chủ nội bộ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          example: INVALID_REQUEST
+        message:
+          type: string
+          example: Request data is invalid
+        timestamp:
+          type: string
+          format: date-time
+    AuditLog:
+      type: object
+      required:
+      - auditId
+      - action
+      - entityType
+      - entityId
+      - success
+      - timestamp
+      properties:
+        auditId:
+          type: string
+          example: AUD001
+        eventId:
+          type: string
+          nullable: true
+          description: Unique khi log phát sinh từ Integration Event.
+        correlationId:
+          type: string
+          nullable: true
+        actorUserId:
+          type: string
+          nullable: true
+          example: U001
+        action:
+          type: string
+          example: DRIVER_APPROVED
+        entityType:
+          type: string
+          example: DRIVER
+        entityId:
+          type: string
+          example: DRV001
+        success:
+          type: boolean
+          example: true
+        ipAddress:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+    PageAuditLog:
+      type: object
+      required:
+      - page
+      - limit
+      - total
+      - items
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          example: 20
+        total:
+          type: integer
+          minimum: 0
+          example: 25
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
+paths:
+  /audit-logs:
+    get:
+      tags:
+      - Nhật ký kiểm toán
+      summary: Xem Audit Log
+      operationId: getAuditLogs
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: actorUserId
+        in: query
+        schema:
+          type: string
+      - name: action
+        in: query
+        schema:
+          type: string
+      - name: entityType
+        in: query
+        schema:
+          type: string
+      - name: entityId
+        in: query
+        schema:
+          type: string
+      - name: success
+        in: query
+        schema:
+          type: boolean
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Danh sách Audit Log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageAuditLog'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-srs-trace:
+      - FR11.04
+      - UC21
+      - AC-G04

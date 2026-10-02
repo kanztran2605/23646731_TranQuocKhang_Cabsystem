@@ -1,0 +1,26 @@
+{
+  "name": "cab-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CAB System - Ride-Hailing Platform using Microservices, DDD and Event-Driven Architecture",
+  "scripts": {
+    "compose:config": "docker compose config",
+    "up": "docker compose up -d",
+    "up:build": "docker compose up -d --build",
+    "down": "docker compose down",
+    "down:volumes": "docker compose down -v",
+    "restart": "docker compose restart",
+    "ps": "docker compose ps",
+    "logs": "docker compose logs -f",
+    "logs:gateway": "docker compose logs -f api-gateway",
+    "logs:rabbitmq": "docker compose logs -f rabbitmq",
+    "logs:postgres": "docker compose logs -f postgres",
+    "db:reset": "bash scripts/reset-db.sh",
+    "db:seed": "bash scripts/seed-db.sh",
+    "test": "bash scripts/test-all.sh",
+    "setup": "bash scripts/setup.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
