@@ -24,6 +24,11 @@ const authRoutes =
     './routes/auth.routes'
   );
 
+const usersRoutes =
+  require(
+    './routes/users.routes'
+  );
+
 const {
   AppError,
 } = require(
@@ -73,9 +78,7 @@ app.use(
       if (
         !origin ||
         env.CORS_ORIGINS
-          .includes(
-            origin,
-          )
+          .includes(origin)
       ) {
         callback(
           null,
@@ -110,35 +113,25 @@ app.use(
   }),
 );
 
-/*
- * Health is outside /api/v1.
- */
 app.use(
   healthRoutes,
 );
 
-/*
- * Every external business request
- * passes through Gateway rate limit.
- */
 app.use(
   '/api/v1',
   apiRateLimit,
 );
 
-/*
- * REST -> gRPC orchestration.
- */
 app.use(
   '/api/v1/auth',
   authRoutes,
 );
 
-/*
- * Other business routes are added
- * only when the owning service is
- * implemented.
- */
+app.use(
+  '/api/v1/users',
+  usersRoutes,
+);
+
 app.use(
   notFoundHandler,
 );

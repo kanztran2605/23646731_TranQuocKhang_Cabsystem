@@ -77,6 +77,7 @@ function unary(
     try {
       callback(
         null,
+
         await handler(
           call.request,
         ),
@@ -97,6 +98,30 @@ function createCustomerGrpcHandlers() {
       unary(
         customerService
           .createCustomerProfile,
+      ),
+
+    getMyProfile:
+      unary(
+        customerService
+          .getMyProfile,
+      ),
+
+    updateMyProfile:
+      unary(
+        customerService
+          .updateMyProfile,
+      ),
+
+    listCustomers:
+      unary(
+        customerService
+          .listCustomers,
+      ),
+
+    getCustomerById:
+      unary(
+        customerService
+          .getCustomerById,
       ),
 
     getCustomerByUserId:
