@@ -1073,7 +1073,7 @@ erDiagram
 | ID | Architecture Constraint | Diễn giải |
 |---|---|---|
 | **ARC01** | **API Gateway** | API Gateway là điểm truy cập chính cho các request từ client bên ngoài và chịu trách nhiệm routing, authentication/authorization ở mức phù hợp và các cross-cutting concern. |
-| **ARC02** | **Synchronous IPC** | Giao tiếp đồng bộ giữa các thành phần có thể sử dụng HTTP/REST khi cần nhận kết quả trực tiếp. |
+| **ARC02** | **Synchronous IPC** | Giao tiếp đồng bộ từ API Gateway đến các Microservice và giữa các Microservice khi cần phản hồi trực tiếp sử dụng gRPC. Client bên ngoài giao tiếp với API Gateway thông qua REST API (HTTPS/JSON). |
 | **ARC03** | **Asynchronous IPC** | Các sự kiện nghiệp vụ cần xử lý bất đồng bộ như Booking Created, Driver Accepted, Trip Status Changed và Payment Completed được truyền thông qua Message Broker như RabbitMQ. |
 | **ARC04** | **Containerization** | Các thành phần triển khai phải có khả năng được đóng gói bằng Docker container. Môi trường local/demo được orchestration bằng Docker Compose. |
 | **ARC05** | **Configuration & Secrets** | Thông tin cấu hình và secret phải được cung cấp thông qua biến môi trường hoặc cơ chế quản lý secret. File `.env` chứa secret thực tế không được lưu vào source repository; repository chỉ lưu `.env.example`. |
@@ -2172,7 +2172,7 @@ Requirements Traceability Matrix (RTM) được sử dụng để đảm bảo c
 | **1** | Kiến trúc Source Code | **NFR20** | — | Architecture Review | Mở cây source + giải thích trách nhiệm Gateway/Services/Infrastructure |
 | **2** | `.gitignore`, `.env` và Secrets | **ARC05** | — | Configuration Verification | GitHub không có `.env` thật; có `.gitignore` và `.env.example` |
 | **3** | API Gateway | **ARC01, NFR37** | — | **AC-G12** | Chứng minh Gateway là external entry point |
-| **4** | IPC giữa Microservices | **ARC02, ARC03** | — | **AC-G13** | HTTP IPC + RabbitMQ event |
+| **4** | IPC giữa Microservices | **ARC02, ARC03** | — | **AC-G13** | gRPC synchronous IPC + RabbitMQ asynchronous event |
 | **5** | Docker Compose | **ARC04** | — | Deployment Verification | `docker compose up -d` + `docker compose ps` |
 | **6** | `/health`, `/ready`, `/health/services` | **NFR36** | — | **AC-G11** | Postman gọi đủ 3 endpoint |
 | **7** | Kafka/RabbitMQ | **ARC03** | — | **AC-G13** | RabbitMQ container + Exchange/Queue/Event |
