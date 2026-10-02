@@ -10,11 +10,18 @@ const cors =
   require('cors');
 
 const env =
-  require('./config/env');
+  require(
+    './config/env'
+  );
 
 const healthRoutes =
   require(
     './routes/health.routes'
+  );
+
+const authRoutes =
+  require(
+    './routes/auth.routes'
   );
 
 const {
@@ -65,9 +72,10 @@ app.use(
     ) {
       if (
         !origin ||
-        env.CORS_ORIGINS.includes(
-          origin,
-        )
+        env.CORS_ORIGINS
+          .includes(
+            origin,
+          )
       ) {
         callback(
           null,
@@ -103,17 +111,15 @@ app.use(
 );
 
 /*
- * Health endpoints are intentionally
- * outside /api/v1.
+ * Health is outside /api/v1.
  */
 app.use(
   healthRoutes,
 );
 
 /*
- * Every external business API is under
- * /api/v1 and passes through Gateway
- * cross-cutting controls.
+ * Every external business request
+ * passes through Gateway rate limit.
  */
 app.use(
   '/api/v1',
@@ -121,13 +127,18 @@ app.use(
 );
 
 /*
- * Business route modules are mounted
- * incrementally as the owning services
- * are implemented.
- *
- * Gateway MUST NOT contain domain logic.
+ * REST -> gRPC orchestration.
  */
+app.use(
+  '/api/v1/auth',
+  authRoutes,
+);
 
+/*
+ * Other business routes are added
+ * only when the owning service is
+ * implemented.
+ */
 app.use(
   notFoundHandler,
 );
