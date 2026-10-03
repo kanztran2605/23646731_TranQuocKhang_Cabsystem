@@ -29,6 +29,16 @@ const customerRoutes =
     './routes/customer.routes'
   );
 
+const driverRoutes =
+  require(
+    './routes/driver.routes'
+  );
+
+const vehicleRoutes =
+  require(
+    './routes/vehicle.routes'
+  );
+
 const {
   AppError,
 } = require(
@@ -130,6 +140,16 @@ app.use(
 app.use(
   '/api/v1/users',
   customerRoutes,
+);
+
+app.use(
+  '/api/v1/drivers',
+  driverRoutes,
+);
+
+app.use(
+  '/api/v1',
+  vehicleRoutes,
 );
 
 app.use(

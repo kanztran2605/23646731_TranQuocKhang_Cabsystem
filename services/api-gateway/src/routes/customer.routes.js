@@ -274,16 +274,23 @@ function parse(
   return result.data;
 }
 
-function assertCustomerProfileRole(
+function assertOwnedProfileRole(
   req,
 ) {
   if (
-    req.auth.role !==
-    'CUSTOMER'
+    ![
+      'CUSTOMER',
+      'DRIVER',
+    ].includes(req.auth.role)
   ) {
-    throw AppError.forbidden(
-      'Current profile is not owned by customer-service',
-      'FORBIDDEN',
+    throw new AppError(
+      'Profile ownership for this role is not defined by the current contract',
+      {
+        code:
+          'PROFILE_COMPOSITION_PENDING',
+
+        statusCode: 503,
+      },
     );
   }
 }
@@ -291,13 +298,21 @@ function assertCustomerProfileRole(
 function composeMyProfile(
   identity,
   profile,
+  role,
 ) {
   return {
     userId:
       identity.userId,
 
-    customerId:
-      profile.customerId,
+    ...(role === 'CUSTOMER'
+      ? {
+          customerId:
+            profile.customerId,
+        }
+      : {
+          driverId:
+            profile.driverId,
+        }),
 
     fullName:
       profile.fullName,
@@ -319,7 +334,7 @@ function composeMyProfile(
     role:
       identity.role,
 
-    status:
+    accountStatus:
       identity.accountStatus,
   };
 }
@@ -352,7 +367,7 @@ function composeCustomer(
       profile.dateOfBirth ||
       null,
 
-    status:
+    accountStatus:
       identity.accountStatus,
   };
 }
@@ -370,7 +385,7 @@ router.get(
       req,
       res,
     ) => {
-      assertCustomerProfileRole(
+      assertOwnedProfileRole(
         req,
       );
 
@@ -379,41 +394,55 @@ router.get(
           'auth',
         );
 
-      const customerClient =
-        getBusinessClient(
-          'customer',
+      const identity =
+        await call(
+          authClient,
+
+          'getUserIdentity',
+
+          {
+            context:
+              buildRequestContext(
+                req,
+              ),
+
+            userId:
+              req.auth.userId,
+          },
         );
 
-      const [
-        identity,
-        profile,
-      ] =
-        await Promise.all([
-          call(
-            authClient,
-            'getUserIdentity',
-            {
-              context:
-                buildRequestContext(
-                  req,
-                ),
+      const profile =
+        req.auth.role ===
+        'CUSTOMER'
+          ? await call(
+              getBusinessClient(
+                'customer',
+              ),
 
-              userId:
-                req.auth.userId,
-            },
-          ),
+              'getMyProfile',
 
-          call(
-            customerClient,
-            'getMyProfile',
-            {
-              context:
-                buildRequestContext(
-                  req,
-                ),
-            },
-          ),
-        ]);
+              {
+                context:
+                  buildRequestContext(
+                    req,
+                  ),
+              },
+            )
+
+          : await call(
+              getBusinessClient(
+                'driver',
+              ),
+
+              'getMyDriverProfile',
+
+              {
+                context:
+                  buildRequestContext(
+                    req,
+                  ),
+              },
+            );
 
       res
         .status(200)
@@ -421,6 +450,7 @@ router.get(
           composeMyProfile(
             identity,
             profile,
+            req.auth.role,
           ),
         );
     },
@@ -440,7 +470,7 @@ router.put(
       req,
       res,
     ) => {
-      assertCustomerProfileRole(
+      assertOwnedProfileRole(
         req,
       );
 
@@ -450,35 +480,48 @@ router.put(
           req.body,
         );
 
-      const authClient =
-        getBusinessClient(
-          'auth',
-        );
-
-      const customerClient =
-        getBusinessClient(
-          'customer',
-        );
-
       const profile =
-        await call(
-          customerClient,
-
-          'updateMyProfile',
-
-          {
-            context:
-              buildRequestContext(
-                req,
+        req.auth.role ===
+        'CUSTOMER'
+          ? await call(
+              getBusinessClient(
+                'customer',
               ),
 
-            ...body,
-          },
-        );
+              'updateMyProfile',
+
+              {
+                context:
+                  buildRequestContext(
+                    req,
+                  ),
+
+                ...body,
+              },
+            )
+
+          : await call(
+              getBusinessClient(
+                'driver',
+              ),
+
+              'updateMyDriverProfile',
+
+              {
+                context:
+                  buildRequestContext(
+                    req,
+                  ),
+
+                ...body,
+              },
+            );
 
       const identity =
         await call(
-          authClient,
+          getBusinessClient(
+            'auth',
+          ),
 
           'getUserIdentity',
 
@@ -499,6 +542,7 @@ router.put(
           composeMyProfile(
             identity,
             profile,
+            req.auth.role,
           ),
         );
     },
