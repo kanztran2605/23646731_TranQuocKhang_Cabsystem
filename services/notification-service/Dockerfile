@@ -2,10 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY services/notification-service/package*.json ./services/notification-service/
+COPY services/notification-service/package*.json ./
 
-RUN cd services/notification-service \
-    && npm install --omit=dev --no-audit --no-fund \
+RUN npm install --omit=dev --no-audit --no-fund \
     && npm cache clean --force
 
 COPY proto ./proto

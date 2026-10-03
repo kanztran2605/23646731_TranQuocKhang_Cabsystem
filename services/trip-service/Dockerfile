@@ -2,10 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY services/trip-service/package*.json ./services/trip-service/
+COPY services/trip-service/package*.json ./
 
-RUN cd services/trip-service \
-    && npm install --omit=dev --no-audit --no-fund \
+RUN npm install --omit=dev --no-audit --no-fund \
     && npm cache clean --force
 
 COPY proto ./proto

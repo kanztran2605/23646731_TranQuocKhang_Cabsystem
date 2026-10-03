@@ -2,10 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY services/payment-service/package*.json ./services/payment-service/
+COPY services/payment-service/package*.json ./
 
-RUN cd services/payment-service \
-    && npm install --omit=dev --no-audit --no-fund \
+RUN npm install --omit=dev --no-audit --no-fund \
     && npm cache clean --force
 
 COPY proto ./proto

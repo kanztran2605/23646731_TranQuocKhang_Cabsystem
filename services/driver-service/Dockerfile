@@ -2,10 +2,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY services/driver-service/package*.json ./services/driver-service/
+# Install dependencies at /app/node_modules.
+#
+# This is required because both:
+#   /app/shared/*
+#   /app/services/driver-service/*
+# use the same dependencies.
+#
+# Node can resolve /app/node_modules from both locations.
+COPY services/driver-service/package*.json ./
 
-RUN cd services/driver-service \
-    && npm install --omit=dev --no-audit --no-fund \
+RUN npm install --omit=dev --no-audit --no-fund \
     && npm cache clean --force
 
 COPY proto ./proto
