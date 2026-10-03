@@ -1,521 +1,236 @@
 name: cab-system
 
 services:
-
-  # =======================================================
-  # INFRASTRUCTURE
-  # =======================================================
-
   postgres:
     image: postgis/postgis:16-3.4
     container_name: cab-postgres
     restart: unless-stopped
-
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
-
     volumes:
       - cab_postgres_data:/var/lib/postgresql/data
       - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
       - ./infrastructure/postgres/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
-
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d postgres"
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 20
+    networks: [cab-network]
 
-    networks:
-      - cab-network
-
+  mongodb:
+    image: mongo:7
+    container_name: cab-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
+    volumes:
+      - cab_mongodb_data:/data/db
+      - ./infrastructure/mongodb/init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 2)'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [cab-network]
 
   rabbitmq:
     image: rabbitmq:3-management
     container_name: cab-rabbitmq
     restart: unless-stopped
-
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
-
     ports:
-      - "15672:15672"
-
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - cab_rabbitmq_data:/var/lib/rabbitmq
-
+      - ./infrastructure/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./infrastructure/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     healthcheck:
-      test:
-        [
-          "CMD",
-          "rabbitmq-diagnostics",
-          "-q",
-          "ping"
-        ]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20
-
-    networks:
-      - cab-network
-
+    networks: [cab-network]
 
   redis:
     image: redis:7-alpine
     container_name: cab-redis
     restart: unless-stopped
-
-    command:
-      [
-        "redis-server",
-        "--appendonly",
-        "yes",
-        "--requirepass",
-        "${REDIS_PASSWORD}"
-      ]
-
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     volumes:
       - cab_redis_data:/data
-
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"
-        ]
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
       interval: 5s
       timeout: 5s
       retries: 20
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # API GATEWAY
-  # =======================================================
+    networks: [cab-network]
 
   api-gateway:
     build:
       context: .
       dockerfile: services/api-gateway/Dockerfile
-
     container_name: cab-api-gateway
     restart: unless-stopped
-
-    env_file:
-      - .env
-
+    env_file: [.env]
     environment:
       SERVICE_NAME: api-gateway
-      PORT: ${API_GATEWAY_PORT}
-
+      PORT: ${GATEWAY_PORT}
+      API_GATEWAY_PORT: ${GATEWAY_PORT}
     ports:
-      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
-
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:
-      redis:
-        condition: service_healthy
-      auth-service:
-        condition: service_started
-      customer-service:
-        condition: service_started
-      driver-service:
-        condition: service_started
-      booking-service:
-        condition: service_started
-      trip-service:
-        condition: service_started
-      payment-service:
-        condition: service_started
-      notification-service:
-        condition: service_started
-      review-service:
-        condition: service_started
-      report-service:
-        condition: service_started
-      audit-service:
-        condition: service_started
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # AUTH SERVICE
-  # =======================================================
+      redis: { condition: service_healthy }
+      auth-service: { condition: service_started }
+      customer-service: { condition: service_started }
+      driver-service: { condition: service_started }
+      booking-service: { condition: service_started }
+      trip-service: { condition: service_started }
+      payment-service: { condition: service_started }
+      notification-service: { condition: service_started }
+      review-service: { condition: service_started }
+    networks: [cab-network]
 
   auth-service:
-    build:
-      context: .
-      dockerfile: services/auth-service/Dockerfile
-
+    build: { context: ., dockerfile: services/auth-service/Dockerfile }
     container_name: cab-auth-service
     restart: unless-stopped
-
-    env_file:
-      - .env
-
+    env_file: [.env]
     environment:
       SERVICE_NAME: auth-service
-      HTTP_PORT: ${AUTH_HTTP_PORT}
+      HTTP_PORT: 3001
       GRPC_PORT: ${AUTH_GRPC_PORT}
-      DB_NAME: ${AUTH_DB}
-
-    expose:
-      - "${AUTH_HTTP_PORT}"
-      - "${AUTH_GRPC_PORT}"
-
+      DB_NAME: ${AUTH_DB_NAME}
+    expose: ["3001", "${AUTH_GRPC_PORT}"]
     depends_on:
-      postgres:
-        condition: service_healthy
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # CUSTOMER SERVICE
-  # =======================================================
+      postgres: { condition: service_healthy }
+    networks: [cab-network]
 
   customer-service:
-    build:
-      context: .
-      dockerfile: services/customer-service/Dockerfile
-
+    build: { context: ., dockerfile: services/customer-service/Dockerfile }
     container_name: cab-customer-service
     restart: unless-stopped
-
-    env_file:
-      - .env
-
+    env_file: [.env]
     environment:
       SERVICE_NAME: customer-service
-      HTTP_PORT: ${CUSTOMER_HTTP_PORT}
+      HTTP_PORT: 3002
       GRPC_PORT: ${CUSTOMER_GRPC_PORT}
-      DB_NAME: ${CUSTOMER_DB}
-
-    expose:
-      - "${CUSTOMER_HTTP_PORT}"
-      - "${CUSTOMER_GRPC_PORT}"
-
+      DB_NAME: ${CUSTOMER_DB_NAME}
+    expose: ["3002", "${CUSTOMER_GRPC_PORT}"]
     depends_on:
-      postgres:
-        condition: service_healthy
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # DRIVER SERVICE
-  # =======================================================
+      postgres: { condition: service_healthy }
+    networks: [cab-network]
 
   driver-service:
-    build:
-      context: .
-      dockerfile: services/driver-service/Dockerfile
-
+    build: { context: ., dockerfile: services/driver-service/Dockerfile }
     container_name: cab-driver-service
     restart: unless-stopped
-
-    env_file:
-      - .env
-
+    env_file: [.env]
     environment:
       SERVICE_NAME: driver-service
-      HTTP_PORT: ${DRIVER_HTTP_PORT}
+      HTTP_PORT: 3003
       GRPC_PORT: ${DRIVER_GRPC_PORT}
-      DB_NAME: ${DRIVER_DB}
-
-    expose:
-      - "${DRIVER_HTTP_PORT}"
-      - "${DRIVER_GRPC_PORT}"
-
+      DB_NAME: ${DRIVER_DB_NAME}
+    expose: ["3003", "${DRIVER_GRPC_PORT}"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # BOOKING SERVICE
-  # =======================================================
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    networks: [cab-network]
 
   booking-service:
-    build:
-      context: .
-      dockerfile: services/booking-service/Dockerfile
-
+    build: { context: ., dockerfile: services/booking-service/Dockerfile }
     container_name: cab-booking-service
     restart: unless-stopped
-
-    env_file:
-      - .env
-
+    env_file: [.env]
     environment:
       SERVICE_NAME: booking-service
-      HTTP_PORT: ${BOOKING_HTTP_PORT}
+      HTTP_PORT: 3004
       GRPC_PORT: ${BOOKING_GRPC_PORT}
-      DB_NAME: ${BOOKING_DB}
-
-    expose:
-      - "${BOOKING_HTTP_PORT}"
-      - "${BOOKING_GRPC_PORT}"
-
+      DB_NAME: ${BOOKING_DB_NAME}
+    expose: ["3004", "${BOOKING_GRPC_PORT}"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      customer-service:
-        condition: service_started
-      driver-service:
-        condition: service_started
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # TRIP SERVICE
-  # =======================================================
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      customer-service: { condition: service_started }
+      driver-service: { condition: service_started }
+    networks: [cab-network]
 
   trip-service:
-    build:
-      context: .
-      dockerfile: services/trip-service/Dockerfile
-
+    build: { context: ., dockerfile: services/trip-service/Dockerfile }
     container_name: cab-trip-service
     restart: unless-stopped
-
-    env_file:
-      - .env
-
+    env_file: [.env]
     environment:
       SERVICE_NAME: trip-service
-      HTTP_PORT: ${TRIP_HTTP_PORT}
+      HTTP_PORT: 3005
       GRPC_PORT: ${TRIP_GRPC_PORT}
-      DB_NAME: ${TRIP_DB}
-
-    expose:
-      - "${TRIP_HTTP_PORT}"
-      - "${TRIP_GRPC_PORT}"
-
+      DB_NAME: ${TRIP_DB_NAME}
+    expose: ["3005", "${TRIP_GRPC_PORT}"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      driver-service:
-        condition: service_started
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # PAYMENT SERVICE
-  # =======================================================
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      driver-service: { condition: service_started }
+    networks: [cab-network]
 
   payment-service:
-    build:
-      context: .
-      dockerfile: services/payment-service/Dockerfile
-
+    build: { context: ., dockerfile: services/payment-service/Dockerfile }
     container_name: cab-payment-service
     restart: unless-stopped
-
-    env_file:
-      - .env
-
+    env_file: [.env]
     environment:
       SERVICE_NAME: payment-service
-      HTTP_PORT: ${PAYMENT_HTTP_PORT}
+      HTTP_PORT: 3006
       GRPC_PORT: ${PAYMENT_GRPC_PORT}
-      DB_NAME: ${PAYMENT_DB}
-
-    expose:
-      - "${PAYMENT_HTTP_PORT}"
-      - "${PAYMENT_GRPC_PORT}"
-
+      DB_NAME: ${PAYMENT_DB_NAME}
+    expose: ["3006", "${PAYMENT_GRPC_PORT}"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # NOTIFICATION SERVICE
-  # =======================================================
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    networks: [cab-network]
 
   notification-service:
-    build:
-      context: .
-      dockerfile: services/notification-service/Dockerfile
-
+    build: { context: ., dockerfile: services/notification-service/Dockerfile }
     container_name: cab-notification-service
     restart: unless-stopped
-
-    env_file:
-      - .env
-
+    env_file: [.env]
     environment:
       SERVICE_NAME: notification-service
-      HTTP_PORT: ${NOTIFICATION_HTTP_PORT}
+      HTTP_PORT: 3007
       GRPC_PORT: ${NOTIFICATION_GRPC_PORT}
-      DB_NAME: ${NOTIFICATION_DB}
-
-    expose:
-      - "${NOTIFICATION_HTTP_PORT}"
-      - "${NOTIFICATION_GRPC_PORT}"
-
+    expose: ["3007", "${NOTIFICATION_GRPC_PORT}"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # REVIEW SERVICE
-  # =======================================================
+      mongodb: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    networks: [cab-network]
 
   review-service:
-    build:
-      context: .
-      dockerfile: services/review-service/Dockerfile
-
+    build: { context: ., dockerfile: services/review-service/Dockerfile }
     container_name: cab-review-service
     restart: unless-stopped
-
-    env_file:
-      - .env
-
+    env_file: [.env]
     environment:
       SERVICE_NAME: review-service
-      HTTP_PORT: ${REVIEW_HTTP_PORT}
+      HTTP_PORT: 3008
       GRPC_PORT: ${REVIEW_GRPC_PORT}
-      DB_NAME: ${REVIEW_DB}
-
-    expose:
-      - "${REVIEW_HTTP_PORT}"
-      - "${REVIEW_GRPC_PORT}"
-
+      DB_NAME: ${REVIEW_DB_NAME}
+    expose: ["3008", "${REVIEW_GRPC_PORT}"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      trip-service:
-        condition: service_started
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # REPORT SERVICE
-  # =======================================================
-
-  report-service:
-    build:
-      context: .
-      dockerfile: services/report-service/Dockerfile
-
-    container_name: cab-report-service
-    restart: unless-stopped
-
-    env_file:
-      - .env
-
-    environment:
-      SERVICE_NAME: report-service
-      HTTP_PORT: ${REPORT_HTTP_PORT}
-      GRPC_PORT: ${REPORT_GRPC_PORT}
-      DB_NAME: ${REPORTING_DB}
-
-    expose:
-      - "${REPORT_HTTP_PORT}"
-      - "${REPORT_GRPC_PORT}"
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-    networks:
-      - cab-network
-
-
-  # =======================================================
-  # AUDIT SERVICE
-  # =======================================================
-
-  audit-service:
-    build:
-      context: .
-      dockerfile: services/audit-service/Dockerfile
-
-    container_name: cab-audit-service
-    restart: unless-stopped
-
-    env_file:
-      - .env
-
-    environment:
-      SERVICE_NAME: audit-service
-      HTTP_PORT: ${AUDIT_HTTP_PORT}
-      GRPC_PORT: ${AUDIT_GRPC_PORT}
-      DB_NAME: ${AUDIT_DB}
-
-    expose:
-      - "${AUDIT_HTTP_PORT}"
-      - "${AUDIT_GRPC_PORT}"
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-    networks:
-      - cab-network
-
-
-# =========================================================
-# NETWORK
-# =========================================================
+      postgres: { condition: service_healthy }
+      trip-service: { condition: service_started }
+    networks: [cab-network]
 
 networks:
   cab-network:
-    name: cab-network
     driver: bridge
-
-
-# =========================================================
-# VOLUMES
-# =========================================================
 
 volumes:
   cab_postgres_data:
+  cab_mongodb_data:
   cab_rabbitmq_data:
   cab_redis_data:

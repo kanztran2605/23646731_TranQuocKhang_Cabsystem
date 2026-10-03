@@ -33,7 +33,6 @@ function csv(name, fallback = '') {
 
 const env = Object.freeze({
   NODE_ENV: process.env.NODE_ENV || 'development',
-
   SERVICE_NAME: process.env.SERVICE_NAME || 'api-gateway',
 
   API_GATEWAY_HOST:
@@ -41,7 +40,9 @@ const env = Object.freeze({
 
   API_GATEWAY_PORT: positiveInteger(
     'API_GATEWAY_PORT',
-    process.env.PORT || 8080,
+    process.env.GATEWAY_PORT ||
+      process.env.PORT ||
+      8080,
   ),
 
   CORS_ORIGINS: csv(
@@ -49,7 +50,9 @@ const env = Object.freeze({
     'http://localhost:3000,http://localhost:5173',
   ),
 
-  JWT_SECRET: requiredString('JWT_SECRET'),
+  JWT_SECRET: requiredString(
+    'JWT_SECRET',
+  ),
 
   REDIS_HOST: requiredString(
     'REDIS_HOST',
@@ -67,22 +70,12 @@ const env = Object.freeze({
 
   RATE_LIMIT_WINDOW_MS: positiveInteger(
     'RATE_LIMIT_WINDOW_MS',
-    1000,
+    10000,
   ),
 
   RATE_LIMIT_MAX_REQUESTS: positiveInteger(
     'RATE_LIMIT_MAX_REQUESTS',
-    1000,
-  ),
-
-  BOOKING_IDEMPOTENCY_TTL_SECONDS: positiveInteger(
-    'BOOKING_IDEMPOTENCY_TTL_SECONDS',
-    86400,
-  ),
-
-  BOOKING_IDEMPOTENCY_PROCESSING_TTL_SECONDS: positiveInteger(
-    'BOOKING_IDEMPOTENCY_PROCESSING_TTL_SECONDS',
-    30,
+    3,
   ),
 
   GRPC_HEALTH_TIMEOUT_MS: positiveInteger(
@@ -90,94 +83,84 @@ const env = Object.freeze({
     1500,
   ),
 
-  AUTH_SERVICE_HOST: requiredString(
-    'AUTH_SERVICE_HOST',
+  AUTH_GRPC_HOST: requiredString(
+    'AUTH_GRPC_HOST',
     'auth-service',
   ),
+
   AUTH_GRPC_PORT: positiveInteger(
     'AUTH_GRPC_PORT',
     50051,
   ),
 
-  CUSTOMER_SERVICE_HOST: requiredString(
-    'CUSTOMER_SERVICE_HOST',
+  CUSTOMER_GRPC_HOST: requiredString(
+    'CUSTOMER_GRPC_HOST',
     'customer-service',
   ),
+
   CUSTOMER_GRPC_PORT: positiveInteger(
     'CUSTOMER_GRPC_PORT',
     50052,
   ),
 
-  DRIVER_SERVICE_HOST: requiredString(
-    'DRIVER_SERVICE_HOST',
+  DRIVER_GRPC_HOST: requiredString(
+    'DRIVER_GRPC_HOST',
     'driver-service',
   ),
+
   DRIVER_GRPC_PORT: positiveInteger(
     'DRIVER_GRPC_PORT',
     50053,
   ),
 
-  BOOKING_SERVICE_HOST: requiredString(
-    'BOOKING_SERVICE_HOST',
+  BOOKING_GRPC_HOST: requiredString(
+    'BOOKING_GRPC_HOST',
     'booking-service',
   ),
+
   BOOKING_GRPC_PORT: positiveInteger(
     'BOOKING_GRPC_PORT',
     50054,
   ),
 
-  TRIP_SERVICE_HOST: requiredString(
-    'TRIP_SERVICE_HOST',
+  TRIP_GRPC_HOST: requiredString(
+    'TRIP_GRPC_HOST',
     'trip-service',
   ),
+
   TRIP_GRPC_PORT: positiveInteger(
     'TRIP_GRPC_PORT',
     50055,
   ),
 
-  PAYMENT_SERVICE_HOST: requiredString(
-    'PAYMENT_SERVICE_HOST',
+  PAYMENT_GRPC_HOST: requiredString(
+    'PAYMENT_GRPC_HOST',
     'payment-service',
   ),
+
   PAYMENT_GRPC_PORT: positiveInteger(
     'PAYMENT_GRPC_PORT',
     50056,
   ),
 
-  NOTIFICATION_SERVICE_HOST: requiredString(
-    'NOTIFICATION_SERVICE_HOST',
+  NOTIFICATION_GRPC_HOST: requiredString(
+    'NOTIFICATION_GRPC_HOST',
     'notification-service',
   ),
+
   NOTIFICATION_GRPC_PORT: positiveInteger(
     'NOTIFICATION_GRPC_PORT',
     50057,
   ),
 
-  REVIEW_SERVICE_HOST: requiredString(
-    'REVIEW_SERVICE_HOST',
+  REVIEW_GRPC_HOST: requiredString(
+    'REVIEW_GRPC_HOST',
     'review-service',
   ),
+
   REVIEW_GRPC_PORT: positiveInteger(
     'REVIEW_GRPC_PORT',
     50058,
-  ),
-
-  REPORT_SERVICE_HOST: requiredString(
-    'REPORT_SERVICE_HOST',
-    'report-service',
-  ),
-  REPORT_GRPC_PORT: positiveInteger(
-    'REPORT_GRPC_PORT',
-    50059,
-  ),
-
-  AUDIT_SERVICE_HOST: requiredString(
-    'AUDIT_SERVICE_HOST',
-    'audit-service',
-  ),
-  AUDIT_GRPC_PORT: positiveInteger(
-    'AUDIT_GRPC_PORT',
-    50060,
   ),
 });
 

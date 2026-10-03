@@ -5,43 +5,13 @@ package cab.trip.v1;
 import "common/common.proto";
 
 service TripService {
-  rpc GetTrip(
-    GetTripRequest
-  ) returns (Trip);
-
-  rpc UpdateTripStatus(
-    UpdateTripStatusRequest
-  ) returns (Trip);
-
-  rpc CancelTrip(
-    CancelTripRequest
-  ) returns (Trip);
-
-  rpc GetTripStatusHistory(
-    GetTripStatusHistoryRequest
-  ) returns (TripStatusHistoryResponse);
-
-  rpc GetTripByBooking(
-    GetTripByBookingRequest
-  ) returns (Trip);
-
-  rpc GetActiveTrips(
-    GetActiveTripsRequest
-  ) returns (TripListResponse);
-
-  rpc GetAbnormalTrips(
-    GetAbnormalTripsRequest
-  ) returns (TripListResponse);
-
-  rpc ResolveAbnormalTrip(
-    ResolveAbnormalTripRequest
-  ) returns (Trip);
-
-  // Internal synchronous contract:
-  // review-service -> trip-service
-  rpc ValidateCompletedTrip(
-    ValidateCompletedTripRequest
-  ) returns (CompletedTripValidation);
+  rpc GetTrip(GetTripRequest) returns (Trip);
+  rpc GetTripByBooking(GetTripByBookingRequest) returns (Trip);
+  rpc UpdateTripStatus(UpdateTripStatusRequest) returns (Trip);
+  rpc UpdateTripLocation(UpdateTripLocationRequest) returns (TripLocation);
+  rpc CancelTrip(CancelTripRequest) returns (Trip);
+  rpc GetTripStatusHistory(GetTripStatusHistoryRequest) returns (TripStatusHistoryResponse);
+  rpc ValidateCompletedTrip(ValidateCompletedTripRequest) returns (CompletedTripValidation);
 }
 
 message Trip {
@@ -50,32 +20,13 @@ message Trip {
   string customer_id = 3;
   string driver_id = 4;
   string vehicle_id = 5;
-  string vehicle_type_id = 6;
-
-  string status = 7;
-  // ASSIGNED
-  // ARRIVED
-  // PICKED_UP
-  // IN_PROGRESS
-  // COMPLETED
-  // CANCELED
-
-  optional double distance_km = 8;
-  optional double trip_distance = 9;
-
-  optional string cancel_reason = 10;
-  optional string canceled_at = 11;
-  optional string completed_at = 12;
-
-  optional string estimated_arrival_at = 13;
-
-  optional string assigned_at = 14;
-  optional string arrived_at = 15;
-  optional string picked_up_at = 16;
-  optional string started_at = 17;
-
-  bool abnormal_flag = 18;
-  optional string abnormal_reason = 19;
+  string status = 6; // ASSIGNED | ARRIVED | IN_PROGRESS | COMPLETED | CANCELED
+  bool paid = 7;
+  optional string cancel_reason = 8;
+  string created_at = 9;
+  string updated_at = 10;
+  optional string completed_at = 11;
+  optional string canceled_at = 12;
 }
 
 message GetTripRequest {
@@ -83,12 +34,30 @@ message GetTripRequest {
   string trip_id = 2;
 }
 
+message GetTripByBookingRequest {
+  cab.common.v1.RequestContext context = 1;
+  string booking_id = 2;
+}
+
 message UpdateTripStatusRequest {
   cab.common.v1.RequestContext context = 1;
   string trip_id = 2;
+  string status = 3; // ARRIVED | IN_PROGRESS | COMPLETED
+}
 
-  string status = 3;
-  // ARRIVED | PICKED_UP | IN_PROGRESS | COMPLETED
+message UpdateTripLocationRequest {
+  cab.common.v1.RequestContext context = 1;
+  string trip_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+}
+
+message TripLocation {
+  string location_id = 1;
+  string trip_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+  string recorded_at = 5;
 }
 
 message CancelTripRequest {
@@ -105,42 +74,13 @@ message GetTripStatusHistoryRequest {
 message TripStatusHistoryItem {
   string history_id = 1;
   string trip_id = 2;
-
   optional string from_status = 3;
   string to_status = 4;
-
-  optional string changed_by_user_id = 5;
-  optional string reason = 6;
-
-  string changed_at = 7;
+  string changed_at = 5;
 }
 
 message TripStatusHistoryResponse {
   repeated TripStatusHistoryItem items = 1;
-}
-
-message GetTripByBookingRequest {
-  cab.common.v1.RequestContext context = 1;
-  string booking_id = 2;
-}
-
-message GetActiveTripsRequest {
-  cab.common.v1.RequestContext context = 1;
-}
-
-message GetAbnormalTripsRequest {
-  cab.common.v1.RequestContext context = 1;
-}
-
-message TripListResponse {
-  repeated Trip items = 1;
-}
-
-message ResolveAbnormalTripRequest {
-  cab.common.v1.RequestContext context = 1;
-  string trip_id = 2;
-  string resolution = 3;
-  string note = 4;
 }
 
 message ValidateCompletedTripRequest {
@@ -153,6 +93,6 @@ message CompletedTripValidation {
   string booking_id = 2;
   string customer_id = 3;
   string driver_id = 4;
-  string status = 5;
-  bool completed = 6;
+  bool completed = 5;
+  string status = 6;
 }

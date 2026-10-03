@@ -5,89 +5,23 @@ package cab.payment.v1;
 import "common/common.proto";
 
 service PaymentService {
-  rpc GetTripFare(
-    GetTripFareRequest
-  ) returns (Fare);
-
-  rpc CreatePayment(
-    CreatePaymentRequest
-  ) returns (Payment);
-
-  rpc GetPayment(
-    GetPaymentRequest
-  ) returns (Payment);
-
-  rpc PaymentProviderCallback(
-    PaymentProviderCallbackRequest
-  ) returns (Payment);
-
-  rpc RetryPayment(
-    RetryPaymentRequest
-  ) returns (Payment);
-
-  rpc GetPaymentTransactions(
-    GetPaymentTransactionsRequest
-  ) returns (PaymentTransactionListResponse);
-}
-
-message PricingPolicySnapshot {
-  double base_fare = 1;
-  double per_km_rate = 2;
-  double minimum_fare = 3;
-  string currency = 4;
-  string version = 5;
-}
-
-message Fare {
-  string fare_id = 1;
-  string trip_id = 2;
-  string vehicle_type_id = 3;
-  double trip_distance = 4;
-  double amount = 5;
-  string currency = 6;
-
-  // Internal serialization of optional OpenAPI pricingData object.
-  optional string pricing_data_json = 7;
-
-  PricingPolicySnapshot pricing_policy_snapshot = 8;
-  string calculated_at = 9;
-}
-
-message GetTripFareRequest {
-  cab.common.v1.RequestContext context = 1;
-  string trip_id = 2;
-}
-
-message CreatePaymentRequest {
-  cab.common.v1.RequestContext context = 1;
-  string trip_id = 2;
-
-  // Maps from HTTP Idempotency-Key.
-  string idempotency_key = 3;
-
-  string method = 4;
-  // CASH | ELECTRONIC
+  rpc GetPayment(GetPaymentRequest) returns (Payment);
+  rpc GetPaymentByBooking(GetPaymentByBookingRequest) returns (Payment);
+  rpc PayExistingPayment(PayExistingPaymentRequest) returns (Payment);
+  rpc PaymentCallback(PaymentCallbackRequest) returns (Payment);
 }
 
 message Payment {
   string payment_id = 1;
-  string fare_id = 2;
-  string trip_id = 3;
+  string booking_id = 2;
+  optional string trip_id = 3;
   string customer_id = 4;
-
   double amount = 5;
-  string currency = 6;
-
-  string payment_method = 7;
-  // CASH | ELECTRONIC
-
-  string status = 8;
-  // PENDING | COMPLETED | FAILED
-
-  optional string provider_reference = 9;
-  optional string created_at = 10;
-  optional string failure_reason = 11;
-  optional string paid_at = 12;
+  bool eligible = 6;
+  string status = 7; // PENDING | COMPLETED
+  optional string idempotency_key = 8;
+  string created_at = 9;
+  optional string paid_at = 10;
 }
 
 message GetPaymentRequest {
@@ -95,58 +29,19 @@ message GetPaymentRequest {
   string payment_id = 2;
 }
 
-message PaymentProviderCallbackRequest {
-  // Maps from X-Provider-Signature.
-  string provider_signature = 1;
-
-  string payment_id = 2;
-
-  string status = 3;
-  // COMPLETED | FAILED
-
-  string provider_reference = 4;
-  optional string failure_reason = 5;
-
-  string correlation_id = 6;
+message GetPaymentByBookingRequest {
+  cab.common.v1.RequestContext context = 1;
+  string booking_id = 2;
 }
 
-message RetryPaymentRequest {
+message PayExistingPaymentRequest {
   cab.common.v1.RequestContext context = 1;
   string payment_id = 2;
-
-  // Required to prevent replay / duplicate transaction.
   string idempotency_key = 3;
 }
 
-message GetPaymentTransactionsRequest {
+message PaymentCallbackRequest {
   cab.common.v1.RequestContext context = 1;
-
-  optional string status = 2;
-  // PENDING | COMPLETED | FAILED
-
-  optional string from = 3;
-  optional string to = 4;
-
-  int32 page = 5;
-  int32 limit = 6;
-}
-
-message PaymentTransaction {
-  string transaction_id = 1;
   string payment_id = 2;
-
-  optional string provider_reference = 3;
-
-  string status = 4;
-
-  double amount = 5;
-  string currency = 6;
-
-  optional string failure_reason = 7;
-
-  string processed_at = 8;
-}
-
-message PaymentTransactionListResponse {
-  repeated PaymentTransaction items = 1;
+  string status = 3; // COMPLETED in demo
 }

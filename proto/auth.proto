@@ -5,157 +5,32 @@ package cab.auth.v1;
 import "common/common.proto";
 
 service AuthService {
-  // Gateway orchestration:
-  // POST /auth/customers/register
-  //
-  // auth-service owns Identity & Access only.
-  // Customer Profile is created through customer-service.
-  rpc RegisterCustomerIdentity(
-    RegisterCustomerIdentityRequest
-  ) returns (UserIdentity);
-
+  rpc CreateAccount(CreateAccountRequest) returns (Account);
   rpc Login(LoginRequest) returns (LoginResponse);
-
-  rpc Logout(
-    LogoutRequest
-  ) returns (cab.common.v1.Empty);
-
-  rpc RequestDriverOtp(
-    OtpRequest
-  ) returns (OtpRequestResponse);
-
-  rpc VerifyDriverOtp(
-    OtpVerifyRequest
-  ) returns (OtpVerifyResponse);
-
-  // Gateway orchestration:
-  // POST /auth/drivers/register
-  //
-  // Driver Profile / Driver Application / Vehicle
-  // remain owned by driver-service.
-  rpc RegisterDriverIdentity(
-    RegisterDriverIdentityRequest
-  ) returns (UserIdentity);
-
-  rpc RefreshAccessToken(
-    RefreshTokenRequest
-  ) returns (RefreshTokenResponse);
-
-  // Used by Gateway when composing Identity + Profile responses.
-  rpc GetUserIdentity(
-    GetUserIdentityRequest
-  ) returns (UserIdentity);
-
-  rpc ListRoles(
-    ListRolesRequest
-  ) returns (RoleListResponse);
-
-  rpc UpdateRolePermissions(
-    UpdateRolePermissionsRequest
-  ) returns (Role);
 }
 
-message RegisterCustomerIdentityRequest {
-  string password = 1;
-  string phone = 2;
-  string email = 3;
-  string correlation_id = 4;
-}
-
-message RegisterDriverIdentityRequest {
-  string verification_token = 1;
+message CreateAccountRequest {
+  string email = 1;
   string password = 2;
-  string phone = 3;
-  string email = 4;
-  string correlation_id = 5;
+  string role = 3; // CUSTOMER | DRIVER | ADMIN
 }
 
-message UserIdentity {
+message Account {
   string user_id = 1;
-  optional string phone = 2;
-  optional string email = 3;
-  string role = 4;
-  string account_status = 5;
+  string email = 2;
+  string role = 3;
+  string status = 4; // ACTIVE | INACTIVE
+  string created_at = 5;
 }
 
 message LoginRequest {
-  string identifier = 1;
+  string email = 1;
   string password = 2;
-  string correlation_id = 3;
 }
 
 message LoginResponse {
   string access_token = 1;
-  string refresh_token = 2;
-  string token_type = 3;
-  int32 expires_in = 4;
-  int32 refresh_expires_in = 5;
-  UserIdentity user = 6;
-}
-
-message LogoutRequest {
-  cab.common.v1.RequestContext context = 1;
-  string refresh_token = 2;
-}
-
-message OtpRequest {
-  string phone = 1;
-  string correlation_id = 2;
-}
-
-message OtpRequestResponse {
-  string verification_id = 1;
-  int32 expires_in = 2;
-  string message = 3;
-  optional string dev_otp = 4;
-}
-
-message OtpVerifyRequest {
-  string verification_id = 1;
-  string otp = 2;
-  string correlation_id = 3;
-}
-
-message OtpVerifyResponse {
-  string verification_token = 1;
-  bool verified = 2;
-}
-
-message RefreshTokenRequest {
-  string refresh_token = 1;
-  string correlation_id = 2;
-}
-
-message RefreshTokenResponse {
-  string access_token = 1;
-  string refresh_token = 2;
-  string token_type = 3;
-  int32 expires_in = 4;
-  int32 refresh_expires_in = 5;
-  UserIdentity user = 6;
-}
-
-message GetUserIdentityRequest {
-  cab.common.v1.RequestContext context = 1;
   string user_id = 2;
-}
-
-message ListRolesRequest {
-  cab.common.v1.RequestContext context = 1;
-}
-
-message Role {
-  string role_id = 1;
-  string name = 2;
-  repeated string permissions = 3;
-}
-
-message RoleListResponse {
-  repeated Role items = 1;
-}
-
-message UpdateRolePermissionsRequest {
-  cab.common.v1.RequestContext context = 1;
-  string role_id = 2;
-  repeated string permissions = 3;
+  string role = 3;
+  int64 expires_in_seconds = 4;
 }

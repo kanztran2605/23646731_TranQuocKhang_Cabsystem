@@ -275,6 +275,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /drivers/pending-approval:
+    get:
+      tags:
+      - Driver
+      summary: Danh sách Driver đang chờ duyệt
+      operationId: listPendingDrivers
+      security:
+      - bearerAuth: []
+      x-roles:
+      - ADMIN
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          example: 1
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+          example: 5
+      responses:
+        '200':
+          description: Danh sách Driver PENDING_APPROVAL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NearbyPage'
+        '401':
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Không có quyền Admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /drivers/{did}:
     get:
       tags:

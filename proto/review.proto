@@ -5,18 +5,13 @@ package cab.review.v1;
 import "common/common.proto";
 
 service ReviewService {
-  rpc CreateTripReview(
-    CreateTripReviewRequest
-  ) returns (Review);
+  rpc CreateReview(CreateReviewRequest) returns (Review);
 }
 
-message CreateTripReviewRequest {
+message CreateReviewRequest {
   cab.common.v1.RequestContext context = 1;
   string trip_id = 2;
-
-  int32 score = 3;
-  // 1..5
-
+  int32 score = 3; // 1..5
   optional string comment = 4;
 }
 
@@ -25,10 +20,7 @@ message Review {
   string trip_id = 2;
   string customer_id = 3;
   string driver_id = 4;
-
   int32 score = 5;
-
   optional string comment = 6;
-
   string created_at = 7;
 }

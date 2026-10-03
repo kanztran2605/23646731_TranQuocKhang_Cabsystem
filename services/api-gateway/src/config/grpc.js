@@ -9,7 +9,7 @@ const SERVICE_DEFINITIONS = Object.freeze({
     protoFile: 'auth.proto',
     packageName: 'cab.auth.v1',
     serviceName: 'AuthService',
-    host: env.AUTH_SERVICE_HOST,
+    host: env.AUTH_GRPC_HOST,
     port: env.AUTH_GRPC_PORT,
   }),
 
@@ -19,7 +19,7 @@ const SERVICE_DEFINITIONS = Object.freeze({
     protoFile: 'customer.proto',
     packageName: 'cab.customer.v1',
     serviceName: 'CustomerService',
-    host: env.CUSTOMER_SERVICE_HOST,
+    host: env.CUSTOMER_GRPC_HOST,
     port: env.CUSTOMER_GRPC_PORT,
   }),
 
@@ -29,7 +29,7 @@ const SERVICE_DEFINITIONS = Object.freeze({
     protoFile: 'driver.proto',
     packageName: 'cab.driver.v1',
     serviceName: 'DriverService',
-    host: env.DRIVER_SERVICE_HOST,
+    host: env.DRIVER_GRPC_HOST,
     port: env.DRIVER_GRPC_PORT,
   }),
 
@@ -39,7 +39,7 @@ const SERVICE_DEFINITIONS = Object.freeze({
     protoFile: 'booking.proto',
     packageName: 'cab.booking.v1',
     serviceName: 'BookingService',
-    host: env.BOOKING_SERVICE_HOST,
+    host: env.BOOKING_GRPC_HOST,
     port: env.BOOKING_GRPC_PORT,
   }),
 
@@ -49,7 +49,7 @@ const SERVICE_DEFINITIONS = Object.freeze({
     protoFile: 'trip.proto',
     packageName: 'cab.trip.v1',
     serviceName: 'TripService',
-    host: env.TRIP_SERVICE_HOST,
+    host: env.TRIP_GRPC_HOST,
     port: env.TRIP_GRPC_PORT,
   }),
 
@@ -59,7 +59,7 @@ const SERVICE_DEFINITIONS = Object.freeze({
     protoFile: 'payment.proto',
     packageName: 'cab.payment.v1',
     serviceName: 'PaymentService',
-    host: env.PAYMENT_SERVICE_HOST,
+    host: env.PAYMENT_GRPC_HOST,
     port: env.PAYMENT_GRPC_PORT,
   }),
 
@@ -69,7 +69,7 @@ const SERVICE_DEFINITIONS = Object.freeze({
     protoFile: 'notification.proto',
     packageName: 'cab.notification.v1',
     serviceName: 'NotificationService',
-    host: env.NOTIFICATION_SERVICE_HOST,
+    host: env.NOTIFICATION_GRPC_HOST,
     port: env.NOTIFICATION_GRPC_PORT,
   }),
 
@@ -79,34 +79,13 @@ const SERVICE_DEFINITIONS = Object.freeze({
     protoFile: 'review.proto',
     packageName: 'cab.review.v1',
     serviceName: 'ReviewService',
-    host: env.REVIEW_SERVICE_HOST,
+    host: env.REVIEW_GRPC_HOST,
     port: env.REVIEW_GRPC_PORT,
-  }),
-
-  report: Object.freeze({
-    key: 'report',
-    name: 'report-service',
-    protoFile: 'report.proto',
-    packageName: 'cab.report.v1',
-    serviceName: 'ReportService',
-    host: env.REPORT_SERVICE_HOST,
-    port: env.REPORT_GRPC_PORT,
-  }),
-
-  audit: Object.freeze({
-    key: 'audit',
-    name: 'audit-service',
-    protoFile: 'audit.proto',
-    packageName: 'cab.audit.v1',
-    serviceName: 'AuditService',
-    host: env.AUDIT_SERVICE_HOST,
-    port: env.AUDIT_GRPC_PORT,
   }),
 });
 
 function getServiceDefinition(serviceKey) {
-  const definition =
-    SERVICE_DEFINITIONS[serviceKey];
+  const definition = SERVICE_DEFINITIONS[serviceKey];
 
   if (!definition) {
     throw new Error(
@@ -118,8 +97,7 @@ function getServiceDefinition(serviceKey) {
 }
 
 function getServiceAddress(serviceKey) {
-  const service =
-    getServiceDefinition(serviceKey);
+  const service = getServiceDefinition(serviceKey);
 
   return `${service.host}:${service.port}`;
 }

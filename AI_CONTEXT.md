@@ -1,938 +1,453 @@
-# CAB System - AI Project Context
+# CAB System — AI / Codex Project Context
 
-## 1. Project Overview
+## 0. Mandatory instruction
 
-CAB System là hệ thống đặt xe trực tuyến (Ride-Hailing Platform) được xây dựng theo:
+This file is the **first context file for Codex/AI**.
 
-- Node.js
-- Microservices Architecture
-- Domain-Driven Design (DDD)
-- Database-per-Service
-- Event-Driven Architecture
-- REST API ở public boundary
-- gRPC cho synchronous internal communication
-- RabbitMQ cho asynchronous communication
-- PostgreSQL 16
-- PostGIS cho driver-service
-- Redis cho API Gateway
-- Docker / Docker Compose
+The repository contains legacy implementation from an older 10-service design. **Never infer requirements from old code, Git history, deleted files or stale comments when they conflict with the sources below.** Refactor legacy code to the current design; do not resurrect removed features.
 
-Mục tiêu là triển khai CAB System MVP theo đúng các tài liệu thiết kế đã được khóa.
+If a conflict cannot be resolved by the rules below, STOP and report the conflict instead of inventing a new business rule.
 
 ---
 
-## 2. Source of Truth and Priority Rules
+## 1. Current project objective
 
-AI không được sử dụng một thứ tự ưu tiên duy nhất cho mọi loại thông tin.
+Build a deterministic **MVP / Demo MSA** for classroom evaluation:
 
-Mỗi loại quyết định phải sử dụng tài liệu phù hợp làm Source of Truth.
-
-Nếu các tài liệu có mâu thuẫn mà các rule bên dưới không giải quyết được, AI phải DỪNG và yêu cầu người dùng xác nhận.
-
-AI không được tự suy đoán hoặc tự sửa business rule.
-
----
-
-### 2.1 Business Requirement
-
-Source of Truth:
-
-1. Customer Requirement
-2. SRS
-
-Dùng để xác định:
-
-- Business Need
-- Business Goal
-- Stakeholder
-- Actor
-- Functional Requirement
-- Non-functional Requirement
-- Business Rule cấp yêu cầu
-- MVP Scope
-
-DDD hoặc code không được tự tạo requirement mới.
+- cover all 30 rubric items;
+- target ≤30 seconds of manual demo per rubric item;
+- prefer simple, local, deterministic flows;
+- no real external provider/API key dependency;
+- no production-grade feature unless the SRS/rubric requires it.
 
 ---
 
-### 2.2 Domain Model and Business Rules
+## 2. Source-of-truth rules
 
-Source of Truth:
+### 2.1 Requirement / scope
 
-1. DDD FINAL
-2. SRS
+1. `docs/requirements/SRS.md`
+2. `docs/requirements/Customer Requirement.docx`
 
-Dùng để xác định:
+SRS is the current MVP interpretation. Do not re-expand production requirements that SRS intentionally simplified.
 
-- Bounded Context
-- Aggregate
-- Aggregate Root
-- Entity
-- Value Object
-- Domain Service
-- Domain Policy
-- Invariant
-- State Machine
-- Domain Event
-- Ownership
+### 2.2 Domain model / invariants
 
-Nếu SRS mô tả chung nhưng DDD đã chi tiết hóa rule mà không mâu thuẫn Requirement thì sử dụng DDD FINAL.
+1. `docs/architecture/DDD.docx`
+2. `docs/requirements/SRS.md`
 
----
+Use for Bounded Context, Aggregate, state machine, ownership and business rules.
 
-### 2.3 Data Model
+### 2.3 Public REST API
 
-Source of Truth:
+1. `docs/api/*.yaml`
+2. SRS / DDD
 
-1. ERD FINAL
-2. DDD FINAL
+REST exists only at the API Gateway boundary.
 
-Dùng để xác định:
+### 2.4 gRPC
 
-- Table
-- Column
-- PK
-- FK nội bộ Context
-- Relationship
-- Unique Constraint
-- Database ownership
-- Data relationship
+1. `proto/`
+2. SRS / DDD topology
 
-Không được tạo physical foreign key xuyên Microservice database.
+Proto is the executable synchronous contract after this refactor.
 
----
+### 2.5 Events
 
-### 2.4 Microservice Boundary and Communication
+1. `docs/api/asyncapi.yaml`
+2. `contracts/events/`
+3. DDD event table
+4. SRS ARC05
 
-Source of Truth:
+All four must describe the same 8 routing keys.
 
-1. Microservice Architecture Design FINAL
-2. DDD FINAL
-3. API Specifications FINAL
+### 2.6 Data model
 
-Dùng để xác định:
+1. Final ERD image in `docs/architecture/ERD.png`
+2. DDD
+3. SRS data model
+4. `infrastructure/postgres/init.sql` / Mongo init after refactor
 
-- Microservice boundary
-- Service ownership
-- Database-per-Service
-- API Gateway
-- gRPC
-- RabbitMQ
-- Redis
-- External Provider
-- Service dependency
-- Deployment communication
+Cross-service IDs are logical references; no physical FK across databases.
 
-Architecture FINAL hiện chốt:
+### 2.7 Tests / acceptance
 
-Client
-→ REST HTTPS/JSON
-→ API Gateway
+1. `docs/test/CAB System Test Cases.xlsx`
+2. SRS Acceptance Criteria
+3. DDD invariants
 
-API Gateway
-→ gRPC
-→ Microservices
+A feature is not DONE until its related tests pass.
 
-Synchronous Service-to-Service
-→ gRPC
+### 2.8 Existing source code
 
-Asynchronous Service-to-Service
-→ RabbitMQ
+Use existing code only when it does not conflict with the sources above. Old implementation is reusable material, not authority.
 
 ---
 
-### 2.5 Public API Contract
+## 3. Locked runtime scope
 
-Source of Truth:
+Exactly **8 business services + API Gateway**:
 
-1. API Specifications FINAL
-2. DDD FINAL
-3. SRS
+1. `auth-service`
+2. `customer-service`
+3. `driver-service`
+4. `booking-service`
+5. `trip-service`
+6. `payment-service`
+7. `notification-service`
+8. `review-service`
+9. `api-gateway` as platform entry point
 
-Dùng để xác định:
+Infrastructure:
 
-- Endpoint
-- HTTP Method
-- Request
-- Response
-- HTTP Status Code
-- Authentication requirement
-- Authorization
-- Query Parameter
-- Error contract
+- PostgreSQL 16 + PostGIS, one container, 7 logical DBs
+- MongoDB for `notification_db`
+- Redis for Gateway infrastructure only
+- RabbitMQ exchange `cab.events`
+- Docker Compose
 
-Không tự đổi API contract trong lúc implement.
+Forbidden / removed:
 
-Nếu cần đổi phải yêu cầu xác nhận trước.
+- `report-service`
+- `audit-service`
+- Pricing/Fare service or Fare aggregate
+- PaymentTransaction/provider orchestration
+- real Map/Payment/SMS/Email/Push providers
 
----
-
-### 2.6 gRPC Contract
-
-Source of Truth:
-
-1. `/proto/`
-2. Microservice Architecture Design FINAL
-3. DDD FINAL
-
-Dùng để xác định:
-
-- gRPC Service
-- RPC Method
-- Request Message
-- Response Message
-- Internal synchronous contract
-
-Không tự thêm RPC nếu không có nhu cầu nghiệp vụ rõ ràng.
+Do not recreate them.
 
 ---
 
-### 2.7 Event Contract
+## 4. Database ownership
 
-Source of Truth:
+```text
+auth-service         -> auth_db
+customer-service     -> customer_db
+driver-service       -> driver_db (PostGIS enabled)
+booking-service      -> booking_db
+trip-service         -> trip_db
+payment-service      -> payment_db
+notification-service -> notification_db (MongoDB)
+review-service       -> review_db
+```
 
-1. `/contracts/events/`
-2. AsyncAPI FINAL
-3. DDD Domain Events
+Rules:
 
-Dùng để xác định:
-
-- Event Name
-- Routing Key
-- Producer
-- Consumer
-- Payload
-- Event Envelope
-- Schema Version
-- Idempotency requirement
-
-Không tự đổi Event Name hoặc Payload khi consumer đã phụ thuộc vào contract.
-
----
-
-### 2.8 Testing and Acceptance
-
-Source of Truth:
-
-1. Test Cases FINAL
-2. Acceptance Criteria trong SRS
-3. DDD Business Invariants
-
-Dùng để xác định:
-
-- Expected Result
-- Functional Test
-- Integration Test
-- Security Test
-- Platform Test
-- 30 evaluation criteria
-
-Feature chỉ được xem là DONE khi các Test Case liên quan PASS.
+- a service directly reads/writes only its owned DB;
+- no cross-database physical FK;
+- cross-context validation/query uses the locked gRPC link;
+- async projections/side effects use RabbitMQ events;
+- Redis never stores Booking/Trip/Payment source-of-truth state.
 
 ---
 
-### 2.9 Implementation Details
+## 5. Communication topology
 
-Source of Truth:
+### 5.1 External
 
-1. Existing source code nếu không mâu thuẫn thiết kế
-2. AI_CONTEXT.md
-3. Dev Agent rules
-4. Established project conventions
+```text
+Client --REST/JSON--> API Gateway
+```
 
-AI được phép quyết định implementation detail như:
+Client never calls a business service directly.
 
-- function name
-- internal helper
-- folder nhỏ
-- logging helper
-- reusable utility
+### 5.2 Gateway -> business service
 
-nhưng không được dùng implementation detail để thay đổi business rule hoặc architecture.
+Gateway calls all 8 business services using gRPC.
 
----
+### 5.3 Service-to-service gRPC
 
-### 2.10 Conflict Resolution Rule
+Only these caller directions are allowed unless SRS is changed:
 
-Khi phát hiện conflict:
+```text
+Booking -> Customer : validate/get Customer
+Booking -> Driver   : nearby/matching + current Driver state
+Trip    -> Driver   : Driver/location data
+Review  -> Trip     : validate COMPLETED + ownership + Driver
+```
 
-1. Xác định loại conflict.
-2. Xác định Source of Truth tương ứng.
-3. So sánh tài liệu.
-4. Nếu rule ưu tiên giải quyết được thì dùng tài liệu ưu tiên.
-5. Nếu conflict ảnh hưởng Business Rule, API Contract, Database Ownership hoặc Service Boundary mà chưa thể xác định chắc chắn:
-
-STOP.
-
-Báo cho người dùng:
-
-- tài liệu A nói gì;
-- tài liệu B nói gì;
-- ảnh hưởng là gì;
-- cần người dùng xác nhận quyết định nào.
-
-Không tự sửa tài liệu hoặc code để che conflict.
+Do not add Booking->Trip, Trip->Payment, Payment->Trip, Auth->Customer or other synchronous pairs.
 
 ---
 
-## 3. Final Bounded Contexts
-
-CAB System gồm 10 Bounded Context:
-
-1. Identity & Access
-2. Customer Management
-3. Driver & Vehicle Management
-4. Booking Management
-5. Trip Management
-6. Fare & Payment
-7. Notification
-8. Rating & Review
-9. Reporting
-10. Audit
-
----
-
-## 4. Final Microservices
-
-Hệ thống có đúng 10 microservice:
-
-1. auth-service
-2. customer-service
-3. driver-service
-4. booking-service
-5. trip-service
-6. payment-service
-7. notification-service
-8. review-service
-9. report-service
-10. audit-service
-
-Ngoài ra có:
-
-- api-gateway
-- RabbitMQ
-- Redis
-- PostgreSQL/PostGIS
-- External Providers
-
-Không được tạo:
-
-- operation-service
-- dispatch-service
-- user-service
-
-Không được gộp:
-
-- Trip vào booking-service
-- Reporting và Audit thành operation-service
-
----
-
-## 5. Database Ownership
-
-Mỗi service chỉ được trực tiếp đọc/ghi database của chính nó.
-
-Mapping:
-
-- auth-service -> auth_db
-- customer-service -> customer_db
-- driver-service -> driver_db
-- booking-service -> booking_db
-- trip-service -> trip_db
-- payment-service -> payment_db
-- notification-service -> notification_db
-- review-service -> review_db
-- report-service -> reporting_db
-- audit-service -> audit_db
-
-driver_db sử dụng PostgreSQL + PostGIS.
-
-Không được tạo physical foreign key xuyên database.
-
-Các ID xuyên Context chỉ là logical reference.
-
-Ví dụ:
-
-- userId
-- customerId
-- driverId
-- vehicleId
-- vehicleTypeId
-- bookingId
-- tripId
-- fareId
-- paymentId
-
----
-
-## 6. Roles
-
-Các Role nghiệp vụ chính được định nghĩa trong DDD:
-
-- CUSTOMER
-- DRIVER
-- OPERATION_STAFF
-- SYSTEM_ADMINISTRATOR
-
-Management / Business Owner là stakeholder trong SRS.
-
-Không tự tạo thêm persisted Role nếu chưa được API/SRS xác nhận.
-
----
-
-## 7. Booking Rules
-
-Booking Aggregate thuộc booking-service.
-
-Booking chứa:
-
-- Pickup Location
-- Destination
-- Requested Vehicle Type
-- Booking Status
-- Driver Offer
-- Driver Assignment
-- Matching Timeout
-
-Booking Status:
-
-CREATED
--> SEARCHING
--> ASSIGNED
-
-hoặc:
-
-SEARCHING
--> NO_DRIVER_FOUND
-
-ASSIGNED và NO_DRIVER_FOUND là terminal states của Booking Matching trong MVP.
-
-Không tồn tại Dispatch Aggregate hoặc Dispatch Service.
-
-Chỉ Driver có:
-
-ApprovalStatus = APPROVED
-
-và:
-
-AvailabilityStatus = AVAILABLE
-
-mới được tham gia Driver Matching.
-
-Vehicle phải hợp lệ và đúng Requested Vehicle Type.
-
----
-
-## 8. Driver Rules
-
-ApprovalStatus:
-
-- PENDING_APPROVAL
-- APPROVED
-- REJECTED
-
-AvailabilityStatus:
-
-- OFFLINE
-- AVAILABLE
-- BUSY
-
-Không sử dụng ONLINE như giá trị database chính thức.
-
-Driver nhận Trip:
-
-AVAILABLE -> BUSY
-
-Khi Trip kết thúc/hủy phù hợp:
-
-BUSY -> AVAILABLE
-
-Driver Location dùng cho:
-
-- Nearby Driver
-- Matching
-- ETA
-
----
-
-## 9. Trip Rules
-
-Trip thuộc duy nhất trip-service.
-
-Trip chỉ được tạo sau Driver Assignment hợp lệ.
-
-driver.accepted được consume bởi trip-service để tạo Trip.
-
-Một bookingId chỉ được tạo tối đa một Trip.
-
-Consumer phải idempotent.
-
-Trip State Machine:
-
-ASSIGNED
--> ARRIVED
--> PICKED_UP
--> IN_PROGRESS
--> COMPLETED
-
-Không được skip state bắt buộc.
-
-COMPLETED và CANCELED là terminal state.
-
-Chỉ assigned Driver được phép cập nhật Trip Status.
-
-Trip lưu:
-
-- Driver
-- Vehicle
-- Vehicle Type
-- Trip Distance
-- Trip Status History
-- cancellation information
-
----
-
-## 10. Fare Rules
-
-Fare thuộc payment-service.
-
-Fare chỉ được tạo khi Trip COMPLETED.
-
-Công thức MVP:
-
-Fare =
-max(
-  MinimumFare,
-  BaseFare + TripDistance * PerKmRate
-)
-
-Pricing Policy phụ thuộc Vehicle Type.
-
-Fare phải lưu Pricing Policy Snapshot để truy vết.
-
-Không hard-code pricing như business rule cố định nếu chưa có dữ liệu chính thức.
-
-Pricing demo phải nằm trong config/seed và được ghi rõ là giả định MVP.
-
----
-
-## 11. Payment Rules
-
-Payment thuộc payment-service.
-
-Payment hỗ trợ:
-
-- CASH
-- ELECTRONIC
-
-Electronic Payment chỉ COMPLETED sau khi Payment Provider callback được xác thực.
-
-Phải hỗ trợ:
-
-- Idempotency-Key
-- replay protection
-- duplicate protection
-- providerReference
-- Payment Transaction
-
-Cùng Idempotency Key và cùng request hợp lệ:
-
-- không tạo Payment mới
-- không tạo Transaction mới
-- không double charge
-- trả kết quả của lần xử lý trước
-
-Không lưu trực tiếp:
-
-- card number
-- CVV
-- sensitive bank account data
-
----
-
-## 12. Review Rules
-
-Review thuộc review-service.
-
-Chỉ được tạo khi:
-
-- Trip tồn tại
-- Trip thuộc Customer
-- Trip COMPLETED
-- Customer chưa Review Trip đó
-
-Review gồm:
-
-- Score
-- Comment
-
-Comment phải được validate/sanitize.
-
-Sau khi tạo thành công publish:
-
-review.created
-
----
-
-## 13. RabbitMQ
-
-Message broker:
-
-RabbitMQ
+## 6. RabbitMQ contract
 
 Exchange:
 
+```text
 cab.events
+```
 
-Exchange type:
+Type:
 
+```text
 topic
+```
 
-Domain/Integration Events:
+Canonical events:
 
-- booking.created
-- driver.offer.created
-- booking.no_driver_found
-- driver.accepted
-- trip.status.changed
-- trip.canceled
-- payment.completed
-- payment.failed
-- review.created
+| Event | Producer | Consumer(s) |
+|---|---|---|
+| `booking.created` | booking-service | payment-service |
+| `offer.created` | booking-service | notification-service |
+| `driver.accepted` | booking-service | trip-service |
+| `driver.approval.changed` | driver-service | notification-service |
+| `trip.status.changed` | trip-service | notification-service |
+| `trip.canceled` | trip-service | driver-service, notification-service |
+| `trip.completed` | trip-service | driver-service, payment-service |
+| `payment.completed` | payment-service | trip-service, notification-service |
 
-Event Envelope chuẩn:
+Legacy event names are forbidden:
 
-- eventId
-- eventType
-- occurredAt
-- producer
-- correlationId
-- schemaVersion
-- payload
+```text
+driver.offer.created
+booking.no_driver_found
+payment.failed
+review.created
+```
 
-Consumer phải idempotent.
+Common event envelope is intentionally small:
 
-Event không chuyển ownership Aggregate.
+```json
+{
+  "eventId": "uuid",
+  "eventType": "booking.created",
+  "occurredAt": "ISO-8601",
+  "payload": {}
+}
+```
 
-Consumer chỉ được cập nhật database của chính mình.
-
----
-
-## 14. Event Ownership
-
-booking-service publishes:
-
-- booking.created
-- driver.offer.created
-- booking.no_driver_found
-- driver.accepted
-
-trip-service consumes:
-
-- driver.accepted
-
-trip-service publishes:
-
-- trip.status.changed
-- trip.canceled
-
-driver-service consumes:
-
-- driver.accepted
-- trip.status.changed
-- trip.canceled
-
-payment-service consumes:
-
-- trip.status.changed when toStatus = COMPLETED
-
-payment-service publishes:
-
-- payment.completed
-- payment.failed
-
-notification-service consumes business events required by DDD.
-
-review-service publishes:
-
-- review.created
-
-report-service consumes:
-
-- trip.status.changed
-- trip.canceled
-- payment.completed
-- payment.failed
-- review.created
-
-audit-service consumes relevant critical business events according to DDD.
+Consumers must be idempotent. Event payload field names are descriptive internal names, not REST demo aliases.
 
 ---
 
-## 15. Communication Rules
+## 7. Payment lifecycle — critical rule
 
-Public communication:
+This rule must never regress.
 
-Client
--> REST API HTTPS/JSON
--> API Gateway
+### 7.1 Booking creation
 
-Internal synchronous communication:
+```text
+Booking persisted
+ -> publish booking.created
+ -> payment-service creates exactly one Payment
+    bookingId = event.bookingId
+    tripId = NULL
+    amount = 50000
+    eligible = false
+    status = PENDING
+```
 
-API Gateway
--> gRPC
--> Microservices
+`Payment.bookingId` is UNIQUE. Duplicate `booking.created` returns/keeps the existing Payment.
 
-Important service-to-service gRPC:
+### 7.2 Trip completion
 
-Booking Service
--> Customer Service
-Validate / Get Customer
+```text
+Trip -> COMPLETED
+ -> publish trip.completed with tripId + bookingId
+ -> payment-service finds existing Payment by bookingId
+ -> attach tripId
+ -> eligible = true
+```
 
-Booking Service
--> Driver Service
-Driver Matching / Nearby Driver
+`trip.completed` must never create a second Payment.
 
-Trip Service
--> Driver Service
-Driver Location / ETA
+### 7.3 Payment action
 
-Review Service
--> Trip Service
-Validate Completed Trip
+Customer/System pays the existing Payment using `Idempotency-Key`, demo value `P1`.
 
-Do not introduce synchronous coupling when RabbitMQ event communication already satisfies the requirement.
+- require `status=PENDING`;
+- require `eligible=true`;
+- same key + same request => return same Payment;
+- same key + conflicting request => conflict;
+- mock callback completes the Payment;
+- completed Payment publishes `payment.completed`;
+- trip-service consumes it and sets `paid=true`.
 
----
-
-## 16. External Providers
-
-### Map / Routing Provider
-
-Used mainly by trip-service for:
-
-- Route
-- Distance
-- ETA
-
-### Payment Provider
-
-Used by payment-service for:
-
-- electronic payment
-- callback / webhook
-
-### Notification Provider
-
-Used by notification-service for:
-
-- SMS
-- Push
-- Email
-
-MVP may use mock providers.
+No real payment provider and no sensitive card/account data.
 
 ---
 
-## 17. API Gateway
+## 8. Driver / Booking / Trip rules
 
-API Gateway handles:
+### Driver
 
-- Routing
-- JWT validation
-- Authentication
-- coarse-grained Authorization
-- Rate Limiting
-- Request Correlation
-- Logging
-- Monitoring
-- Error handling
+OTP mock:
 
-Gateway must NOT contain domain business logic.
+```text
+123
+```
 
-Business authorization must still be enforced inside the owning service.
+Approval:
 
-Example:
+```text
+PENDING_APPROVAL | APPROVED | REJECTED
+```
 
-Trip Service must verify that the Driver updating a Trip is the assigned Driver.
+Availability:
 
----
+```text
+OFFLINE | AVAILABLE | BUSY
+```
 
-## 18. Redis
+Matching eligibility:
 
-Redis is infrastructure.
+```text
+APPROVED + AVAILABLE + compatible vehicle type
+```
 
-Used primarily for:
+Nearby smoke may display multiple states; matching must use only eligible drivers.
 
-- API Gateway caching
-- rate limiting
-- temporary/session-like data when needed
+### Booking
 
-Redis is NOT source of truth for business data.
+MVP flow:
 
----
+```text
+persist Booking
+ -> booking.created
+ -> validate Customer
+ -> find nearest eligible Driver
+ -> create ONE Offer
+ -> offer.created
+```
 
-## 19. Security Requirements
+If no eligible Driver:
 
-Must protect against:
+```text
+Booking.status = NO_DRIVER_FOUND
+```
 
-- plaintext password storage
-- SQL injection
-- XSS
-- invalid JWT
-- expired JWT
-- JWT tampering
-- unauthorized access
-- forbidden role access
-- sensitive data exposure
-- payment replay
-- duplicate charge
+Do not implement offer TTL, expiration, rejection loop, matching retry scheduler or restart recovery orchestration.
 
-Use:
+### Offer accept
 
-- bcrypt
-- parameterized queries
-- validation
-- sanitization
-- Helmet / security headers
-- rate limiting
-- encryption where required
+```text
+OPEN -> ACCEPTED
+ -> DriverAssignment
+ -> Booking ASSIGNED
+ -> driver.accepted
+ -> Trip ASSIGNED
+ -> Driver BUSY
+```
 
-.env and secrets must never be committed.
+### Trip
 
----
+State machine:
 
-## 20. Health Checks
+```text
+ASSIGNED -> ARRIVED -> IN_PROGRESS -> COMPLETED
+```
 
-API Gateway:
+Cancel is allowed only in valid pre-terminal states and requires a reason.
 
-- GET /health
-- GET /ready
-- GET /health/services
+Smoke #17 requires at least one `lat/lng` update while `IN_PROGRESS` before `COMPLETED`.
 
-Each microservice:
+Terminal:
 
-- GET /health
-- GET /ready
+```text
+COMPLETED | CANCELED
+```
 
-/ready must verify required dependencies.
-
----
-
-## 21. Repository Rules
-
-Do not modify architecture without explicit approval.
-
-Do not create files outside the intended service boundary.
-
-Keep business logic out of controllers/routes.
-
-Preferred separation:
-
-- domain
-- repositories
-- services
-- grpc
-- events
-- providers
-- config
-
-Shared infrastructure helpers may live under /shared.
-
-Avoid sharing domain models between microservices.
+No `PICKED_UP`, ETA or abnormal-trip workflow.
 
 ---
 
-## 22. AI Working Model
+## 9. Notification / Review
 
-ChatGPT is the main AI coordinator.
+### Notification
 
-Three logical roles are used:
+- MongoDB `notification_db`.
+- Consume only the event bindings defined in AsyncAPI/RabbitMQ definitions.
+- Persist local Notification document.
+- Deduplicate by source `eventId`.
+- No SMS/Email/Push provider.
+- Notification failure must not roll back the source business transaction.
 
-### BA Agent
+### Review
 
-Responsible for:
-
-- requirement analysis
-- SRS/DDD/API interpretation
-- business rule validation
-- acceptance criteria clarification
-- preventing requirement drift
-
-### Dev Agent
-
-Responsible for:
-
-- implementation
-- database
-- gRPC
-- RabbitMQ
-- API Gateway
-- Docker
-- security implementation
-
-### Test Agent
-
-Responsible for:
-
-- functional testing
-- integration testing
-- security testing
-- event verification
-- database verification
-- 30-criteria traceability
-
-A feature should follow:
-
-BA analysis
--> Dev implementation
--> Test verification
--> PASS / FAIL
-
-If FAIL:
-
-Test
--> Dev fix
--> Test again
+- only Customer owning a `COMPLETED` Trip;
+- `Review -> Trip` gRPC validates completed/ownership/driver;
+- score 1..5;
+- one Review per Trip in MVP;
+- comment must be handled safely for XSS smoke;
+- Review publishes no event in current MVP.
 
 ---
 
-## 23. Development Principles
+## 10. Naming rule
 
-Priority:
+Public REST/demo may use short aliases for fast typing:
 
-Correctness
--> Consistency with DDD
--> Security
--> Testability
--> Simplicity
--> Performance
+```text
+uid cid did vid bid oid tid pid rid
+pw s lat lng vt amt r star c
+```
 
-Avoid over-engineering.
+Internal Proto/Event/Domain/Repository code should use descriptive names:
 
-Do not invent business rules.
+```text
+user_id / userId
+customer_id / customerId
+driver_id / driverId
+booking_id / bookingId
+trip_id / tripId
+payment_id / paymentId
+```
 
-Do not silently change API contracts.
-
-Do not bypass Gateway for client-facing requests.
-
-Do not allow service to directly query another service's database.
+Do not shorten internal contracts merely to save typing.
 
 ---
 
-## 24. Definition of Done
+## 11. Demo values
 
-A feature is DONE only when:
+```text
+Customer: c@c.com / 123
+Driver:   d@d.com / 123
+Admin:    a@a.com / 123
+OTP:      123
+Payment amount: 50000
+Idempotency-Key: P1
+Cancel reason: x
+Review: star=5, c=ok
+Nearby radius: 1 km
+Rate limit demo: 3 requests / 10 seconds
+```
 
-- requirement is identified
-- owning service is correct
-- API contract is respected
-- database ownership is respected
-- validation exists
-- authorization exists
-- tests pass
-- event publish/consume is verified when applicable
-- database result is verified
-- error cases are tested
-- documentation is updated if necessary
-- corresponding Test Cases / rubric criteria are satisfied
+---
+
+## 12. Implementation order for refactor
+
+Do not implement randomly. Preferred milestones:
+
+1. README + AI context
+2. Proto + Event Contracts + AsyncAPI + RabbitMQ definitions
+3. Docker Compose + `.env.example` + DB init/seed + Mongo init
+4. shared infrastructure helpers
+5. API Gateway
+6. Auth / Customer / Driver / Booking refactor
+7. Trip
+8. Payment
+9. Notification
+10. Review
+11. automated tests
+12. 30-rubric smoke pack
+
+At each milestone:
+
+- run syntax/config tests;
+- run related service/integration tests;
+- compare to Test Cases;
+- do not commit until passing.
+
+---
+
+## 13. Conflict handling
+
+If code/docs disagree:
+
+1. classify the conflict (requirement, domain, API, gRPC, event, data, test);
+2. use the source-of-truth rule for that category;
+3. refactor legacy code toward the current contract;
+4. if two authoritative sources still conflict, STOP and report both sides to the user.
+
+Never silently invent a ninth service, new event, new state, new provider or new cross-service DB access.

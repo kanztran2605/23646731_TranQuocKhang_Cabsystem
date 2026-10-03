@@ -5,49 +5,25 @@ package cab.notification.v1;
 import "common/common.proto";
 
 service NotificationService {
-  rpc GetNotifications(
-    GetNotificationsRequest
-  ) returns (PageNotification);
-
-  rpc MarkNotificationRead(
-    MarkNotificationReadRequest
-  ) returns (cab.common.v1.Empty);
-}
-
-message GetNotificationsRequest {
-  cab.common.v1.RequestContext context = 1;
-  int32 page = 2;
-  int32 limit = 3;
+  rpc ListNotifications(ListNotificationsRequest) returns (NotificationList);
 }
 
 message Notification {
   string notification_id = 1;
   string source_event_id = 2;
   string recipient_user_id = 3;
-
-  string notification_type = 4;
-
-  string notification_status = 5;
-  // PENDING | PROCESSED | FAILED
-
+  string type = 4;
+  string reference = 5;
   string message = 6;
-
-  optional string delivery_status = 7;
-  // PENDING | SENT | DELIVERED | FAILED
-
-  optional string read_at = 8;
-
-  string created_at = 9;
+  string status = 7; // SENT
+  string created_at = 8;
 }
 
-message PageNotification {
-  int32 page = 1;
-  int32 limit = 2;
-  int64 total = 3;
-  repeated Notification items = 4;
-}
-
-message MarkNotificationReadRequest {
+message ListNotificationsRequest {
   cab.common.v1.RequestContext context = 1;
-  string notification_id = 2;
+  int32 limit = 2;
+}
+
+message NotificationList {
+  repeated Notification items = 1;
 }

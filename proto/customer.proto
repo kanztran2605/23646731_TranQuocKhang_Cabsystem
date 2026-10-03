@@ -5,75 +5,29 @@ package cab.customer.v1;
 import "common/common.proto";
 
 service CustomerService {
-  // Called by Gateway after auth-service successfully
-  // creates a CUSTOMER identity.
-  rpc CreateCustomerProfile(
-    CreateCustomerProfileRequest
-  ) returns (CustomerProfile);
-
-  rpc GetMyProfile(
-    GetMyProfileRequest
-  ) returns (CustomerProfile);
-
-  rpc UpdateMyProfile(
-    UpdateMyProfileRequest
-  ) returns (CustomerProfile);
-
-  rpc ListCustomers(
-    ListCustomersRequest
-  ) returns (CustomerListResponse);
-
-  rpc GetCustomerById(
-    GetCustomerByIdRequest
-  ) returns (CustomerProfile);
-
-  // Internal synchronous contract:
-  // booking-service -> customer-service
-  rpc GetCustomerByUserId(
-    GetCustomerByUserIdRequest
-  ) returns (CustomerProfile);
+  rpc CreateCustomerProfile(CreateCustomerProfileRequest) returns (Customer);
+  rpc GetCustomer(GetCustomerRequest) returns (Customer);
+  rpc GetCustomerByUserId(GetCustomerByUserIdRequest) returns (Customer);
+  rpc ValidateCustomer(ValidateCustomerRequest) returns (CustomerValidation);
 }
 
-message CustomerProfile {
+message Customer {
   string customer_id = 1;
   string user_id = 2;
-  string full_name = 3;
+  string name = 3;
   optional string address = 4;
-  optional string date_of_birth = 5; // ISO-8601 date
+  string created_at = 5;
+  string updated_at = 6;
 }
 
 message CreateCustomerProfileRequest {
   string user_id = 1;
-  string full_name = 2;
-  string correlation_id = 3;
-}
-
-message GetMyProfileRequest {
-  cab.common.v1.RequestContext context = 1;
-}
-
-message UpdateMyProfileRequest {
-  cab.common.v1.RequestContext context = 1;
-  optional string full_name = 2;
+  string name = 2;
   optional string address = 3;
-  optional string date_of_birth = 4;
+  string correlation_id = 4;
 }
 
-message ListCustomersRequest {
-  cab.common.v1.RequestContext context = 1;
-  optional string keyword = 2;
-  int32 page = 3;
-  int32 page_size = 4;
-}
-
-message CustomerListResponse {
-  int32 page = 1;
-  int32 page_size = 2;
-  int64 total = 3;
-  repeated CustomerProfile items = 4;
-}
-
-message GetCustomerByIdRequest {
+message GetCustomerRequest {
   cab.common.v1.RequestContext context = 1;
   string customer_id = 2;
 }
@@ -81,4 +35,15 @@ message GetCustomerByIdRequest {
 message GetCustomerByUserIdRequest {
   string user_id = 1;
   string correlation_id = 2;
+}
+
+message ValidateCustomerRequest {
+  string customer_id = 1;
+  string correlation_id = 2;
+}
+
+message CustomerValidation {
+  bool valid = 1;
+  string customer_id = 2;
+  string user_id = 3;
 }

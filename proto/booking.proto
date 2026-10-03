@@ -5,54 +5,11 @@ package cab.booking.v1;
 import "common/common.proto";
 
 service BookingService {
-  rpc CreateBooking(
-    CreateBookingRequest
-  ) returns (Booking);
-
-  rpc GetBooking(
-    GetBookingRequest
-  ) returns (Booking);
-
-  rpc GetMyBookings(
-    GetMyBookingsRequest
-  ) returns (PageBooking);
-
-  rpc GetMyDriverOffers(
-    GetMyDriverOffersRequest
-  ) returns (DriverOfferListResponse);
-
-  rpc AcceptDriverOffer(
-    AcceptDriverOfferRequest
-  ) returns (AcceptOfferResponse);
-
-  rpc RejectDriverOffer(
-    RejectDriverOfferRequest
-  ) returns (cab.common.v1.Empty);
-}
-
-message CreateBookingRequest {
-  cab.common.v1.RequestContext context = 1;
-
-  // Maps from HTTP Idempotency-Key.
-  string idempotency_key = 2;
-
-  cab.common.v1.Location pickup = 3;
-  cab.common.v1.Location destination = 4;
-  string vehicle_type_id = 5;
-}
-
-message AssignedVehicle {
-  optional string vehicle_type_id = 1;
-  optional string brand = 2;
-  optional string model = 3;
-  optional string license_plate = 4;
-}
-
-message AssignedDriver {
-  optional string driver_id = 1;
-  optional string full_name = 2;
-  optional double rating = 3;
-  optional AssignedVehicle vehicle = 4;
+  rpc CreateBooking(CreateBookingRequest) returns (Booking);
+  rpc GetBooking(GetBookingRequest) returns (Booking);
+  rpc ListMyBookings(ListMyBookingsRequest) returns (BookingPage);
+  rpc ListMyOffers(ListMyOffersRequest) returns (OfferList);
+  rpc AcceptOffer(AcceptOfferRequest) returns (AcceptOfferResponse);
 }
 
 message Booking {
@@ -60,15 +17,19 @@ message Booking {
   string customer_id = 2;
   cab.common.v1.Location pickup = 3;
   cab.common.v1.Location destination = 4;
-  string vehicle_type_id = 5;
-
-  string status = 6;
-  // CREATED | SEARCHING | ASSIGNED | NO_DRIVER_FOUND
-
-  optional AssignedDriver assigned_driver = 7;
-  optional string created_at = 8;
-  optional string matching_started_at = 9;
+  string vehicle_type = 5;
+  string status = 6; // SEARCHING | ASSIGNED | NO_DRIVER_FOUND
+  optional string offer_id = 7;
+  optional string driver_id = 8;
+  optional string created_at = 9;
   optional string assigned_at = 10;
+}
+
+message CreateBookingRequest {
+  cab.common.v1.RequestContext context = 1;
+  cab.common.v1.Location pickup = 2;
+  cab.common.v1.Location destination = 3;
+  string vehicle_type = 4;
 }
 
 message GetBookingRequest {
@@ -76,72 +37,45 @@ message GetBookingRequest {
   string booking_id = 2;
 }
 
-message GetMyBookingsRequest {
+message ListMyBookingsRequest {
   cab.common.v1.RequestContext context = 1;
   int32 page = 2;
   int32 limit = 3;
 }
 
-message PageBooking {
+message BookingPage {
   int32 page = 1;
   int32 limit = 2;
   int64 total = 3;
   repeated Booking items = 4;
 }
 
-message DriverOffer {
+message Offer {
   string offer_id = 1;
   string booking_id = 2;
   string driver_id = 3;
   optional string vehicle_id = 4;
-
-  optional cab.common.v1.Location pickup = 5;
-  optional cab.common.v1.Location destination = 6;
-
-  optional string vehicle_type_id = 7;
-
-  string status = 8;
-  // PENDING | ACCEPTED | REJECTED | EXPIRED
-
-  string expires_at = 9;
-  optional string responded_at = 10;
-  string created_at = 11;
+  string status = 5; // OPEN | ACCEPTED
+  string created_at = 6;
+  optional string accepted_at = 7;
 }
 
-message GetMyDriverOffersRequest {
+message ListMyOffersRequest {
   cab.common.v1.RequestContext context = 1;
 }
 
-message DriverOfferListResponse {
-  repeated DriverOffer items = 1;
+message OfferList {
+  repeated Offer items = 1;
 }
 
-message AcceptDriverOfferRequest {
+message AcceptOfferRequest {
   cab.common.v1.RequestContext context = 1;
   string offer_id = 2;
-}
-
-message DriverAssignment {
-  string assignment_id = 1;
-  string booking_id = 2;
-  string offer_id = 3;
-  string driver_id = 4;
-  string vehicle_id = 5;
-  string assigned_at = 6;
 }
 
 message AcceptOfferResponse {
-  string booking_id = 1;
-  string status = 2; // ASSIGNED
-  DriverAssignment assignment = 3;
-
-  // Intentionally NO trip_id.
-  //
-  // booking-service publishes driver.accepted.
-  // trip-service creates Trip asynchronously.
-}
-
-message RejectDriverOfferRequest {
-  cab.common.v1.RequestContext context = 1;
-  string offer_id = 2;
+  string offer_id = 1;
+  string booking_id = 2;
+  string offer_status = 3; // ACCEPTED
+  bool trip_pending = 4; // trip is created asynchronously from driver.accepted
 }

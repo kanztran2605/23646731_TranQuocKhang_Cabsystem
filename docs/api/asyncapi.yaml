@@ -1,13 +1,13 @@
 asyncapi: 2.6.0
 info:
   title: CAB System RabbitMQ Events
-  version: 4.0.0
-  description: 'Integration Events tối thiểu theo SRS/DDD FINAL. Exchange topic: cab.events. Consumer phải idempotent.'
+  version: 5.0.0
+  description: Canonical asynchronous contracts for the 8-service MVP. Consumers must be idempotent.
 servers:
   rabbitmq:
     url: rabbitmq:5672
     protocol: amqp
-    description: RabbitMQ nội bộ Docker network
+    description: RabbitMQ inside the Docker network
 defaultContentType: application/json
 x-rabbitmq-topology:
   exchange:
@@ -15,379 +15,202 @@ x-rabbitmq-topology:
     type: topic
     durable: true
   queues:
-  - name: payment.q
-    bindings:
-    - booking.created
-    - trip.completed
-  - name: trip.q
-    bindings:
-    - driver.accepted
-    - payment.completed
-  - name: driver.q
-    bindings:
-    - trip.canceled
-    - trip.completed
-  - name: notification.q
-    bindings:
-    - offer.created
-    - driver.approval.changed
-    - trip.status.changed
-    - trip.canceled
-    - payment.completed
+    - name: cab.payment.q
+      bindings: [booking.created, trip.completed]
+    - name: cab.trip.q
+      bindings: [driver.accepted, payment.completed]
+    - name: cab.driver.q
+      bindings: [trip.canceled, trip.completed]
+    - name: cab.notification.q
+      bindings: [offer.created, driver.approval.changed, trip.status.changed, trip.canceled, payment.completed]
 channels:
   booking.created:
     publish:
-      summary: Booking persist thành công; Payment Service tạo đúng một Payment PENDING.
-      message:
-        $ref: '#/components/messages/BookingCreated'
+      message: { $ref: '#/components/messages/BookingCreated' }
     x-producer: booking-service
-    x-consumers:
-    - payment-service
+    x-consumers: [payment-service]
   offer.created:
     publish:
-      summary: Booking tạo Offer cho Driver.
-      message:
-        $ref: '#/components/messages/OfferCreated'
+      message: { $ref: '#/components/messages/OfferCreated' }
     x-producer: booking-service
-    x-consumers:
-    - notification-service
+    x-consumers: [notification-service]
   driver.accepted:
     publish:
-      summary: Driver Accept Offer; Trip Service tạo Trip ASSIGNED.
-      message:
-        $ref: '#/components/messages/DriverAccepted'
+      message: { $ref: '#/components/messages/DriverAccepted' }
     x-producer: booking-service
-    x-consumers:
-    - trip-service
+    x-consumers: [trip-service]
   driver.approval.changed:
     publish:
-      summary: Admin Approve/Reject Driver.
-      message:
-        $ref: '#/components/messages/DriverApprovalChanged'
+      message: { $ref: '#/components/messages/DriverApprovalChanged' }
     x-producer: driver-service
-    x-consumers:
-    - notification-service
+    x-consumers: [notification-service]
   trip.status.changed:
     publish:
-      summary: Trip chuyển state hợp lệ.
-      message:
-        $ref: '#/components/messages/TripStatusChanged'
+      message: { $ref: '#/components/messages/TripStatusChanged' }
     x-producer: trip-service
-    x-consumers:
-    - notification-service
+    x-consumers: [notification-service]
   trip.canceled:
     publish:
-      summary: Trip bị hủy; Driver được release và Notification được lưu.
-      message:
-        $ref: '#/components/messages/TripCanceled'
+      message: { $ref: '#/components/messages/TripCanceled' }
     x-producer: trip-service
-    x-consumers:
-    - driver-service
-    - notification-service
+    x-consumers: [driver-service, notification-service]
   trip.completed:
     publish:
-      summary: Trip hoàn thành; Driver AVAILABLE; Payment hiện có gắn tid + eligible=true.
-      message:
-        $ref: '#/components/messages/TripCompleted'
+      message: { $ref: '#/components/messages/TripCompleted' }
     x-producer: trip-service
-    x-consumers:
-    - driver-service
-    - payment-service
+    x-consumers: [driver-service, payment-service]
   payment.completed:
     publish:
-      summary: Payment hoàn tất; Trip paid=true và lưu Notification.
-      message:
-        $ref: '#/components/messages/PaymentCompleted'
+      message: { $ref: '#/components/messages/PaymentCompleted' }
     x-producer: payment-service
-    x-consumers:
-    - trip-service
-    - notification-service
+    x-consumers: [trip-service, notification-service]
 components:
   messages:
     BookingCreated:
       name: booking.created
-      title: booking.created
       payload:
         allOf:
-        - $ref: '#/components/schemas/EventEnvelope'
-        - type: object
-          properties:
-            payload:
-              $ref: '#/components/schemas/BookingCreatedPayload'
+          - { $ref: '#/components/schemas/EventEnvelope' }
+          - type: object
+            properties:
+              payload: { $ref: '#/components/schemas/BookingCreatedPayload' }
     OfferCreated:
       name: offer.created
-      title: offer.created
       payload:
         allOf:
-        - $ref: '#/components/schemas/EventEnvelope'
-        - type: object
-          properties:
-            payload:
-              $ref: '#/components/schemas/OfferCreatedPayload'
+          - { $ref: '#/components/schemas/EventEnvelope' }
+          - type: object
+            properties:
+              payload: { $ref: '#/components/schemas/OfferCreatedPayload' }
     DriverAccepted:
       name: driver.accepted
-      title: driver.accepted
       payload:
         allOf:
-        - $ref: '#/components/schemas/EventEnvelope'
-        - type: object
-          properties:
-            payload:
-              $ref: '#/components/schemas/DriverAcceptedPayload'
+          - { $ref: '#/components/schemas/EventEnvelope' }
+          - type: object
+            properties:
+              payload: { $ref: '#/components/schemas/DriverAcceptedPayload' }
     DriverApprovalChanged:
       name: driver.approval.changed
-      title: driver.approval.changed
       payload:
         allOf:
-        - $ref: '#/components/schemas/EventEnvelope'
-        - type: object
-          properties:
-            payload:
-              $ref: '#/components/schemas/DriverApprovalChangedPayload'
+          - { $ref: '#/components/schemas/EventEnvelope' }
+          - type: object
+            properties:
+              payload: { $ref: '#/components/schemas/DriverApprovalChangedPayload' }
     TripStatusChanged:
       name: trip.status.changed
-      title: trip.status.changed
       payload:
         allOf:
-        - $ref: '#/components/schemas/EventEnvelope'
-        - type: object
-          properties:
-            payload:
-              $ref: '#/components/schemas/TripStatusChangedPayload'
+          - { $ref: '#/components/schemas/EventEnvelope' }
+          - type: object
+            properties:
+              payload: { $ref: '#/components/schemas/TripStatusChangedPayload' }
     TripCanceled:
       name: trip.canceled
-      title: trip.canceled
       payload:
         allOf:
-        - $ref: '#/components/schemas/EventEnvelope'
-        - type: object
-          properties:
-            payload:
-              $ref: '#/components/schemas/TripCanceledPayload'
+          - { $ref: '#/components/schemas/EventEnvelope' }
+          - type: object
+            properties:
+              payload: { $ref: '#/components/schemas/TripCanceledPayload' }
     TripCompleted:
       name: trip.completed
-      title: trip.completed
       payload:
         allOf:
-        - $ref: '#/components/schemas/EventEnvelope'
-        - type: object
-          properties:
-            payload:
-              $ref: '#/components/schemas/TripCompletedPayload'
+          - { $ref: '#/components/schemas/EventEnvelope' }
+          - type: object
+            properties:
+              payload: { $ref: '#/components/schemas/TripCompletedPayload' }
     PaymentCompleted:
       name: payment.completed
-      title: payment.completed
       payload:
         allOf:
-        - $ref: '#/components/schemas/EventEnvelope'
-        - type: object
-          properties:
-            payload:
-              $ref: '#/components/schemas/PaymentCompletedPayload'
+          - { $ref: '#/components/schemas/EventEnvelope' }
+          - type: object
+            properties:
+              payload: { $ref: '#/components/schemas/PaymentCompletedPayload' }
   schemas:
     EventEnvelope:
       type: object
-      required:
-      - eventId
-      - eventType
-      - occurredAt
-      - payload
+      required: [eventId, eventType, occurredAt, payload]
       properties:
-        eventId:
-          type: string
-          format: uuid
-        eventType:
-          type: string
-        occurredAt:
-          type: string
-          format: date-time
-        payload:
-          type: object
+        eventId: { type: string, format: uuid }
+        eventType: { type: string }
+        occurredAt: { type: string, format: date-time }
+        payload: { type: object }
     BookingCreatedPayload:
       type: object
-      required:
-      - bid
-      - cid
-      - createdAt
+      required: [bookingId, customerId, createdAt]
       properties:
-        bid:
-          type: integer
-          example: 6
-        cid:
-          type: integer
-          example: 1
-        createdAt:
-          type: string
-          format: date-time
+        bookingId: { type: string, example: '6' }
+        customerId: { type: string, example: '1' }
+        createdAt: { type: string, format: date-time }
     OfferCreatedPayload:
       type: object
-      required:
-      - oid
-      - bid
-      - did
-      - createdAt
+      required: [offerId, bookingId, driverId, createdAt]
       properties:
-        oid:
-          type: integer
-          example: 1
-        bid:
-          type: integer
-          example: 6
-        did:
-          type: integer
-          example: 1
-        createdAt:
-          type: string
-          format: date-time
+        offerId: { type: string, example: '1' }
+        bookingId: { type: string, example: '6' }
+        driverId: { type: string, example: '1' }
+        createdAt: { type: string, format: date-time }
     DriverAcceptedPayload:
       type: object
-      required:
-      - bid
-      - cid
-      - did
-      - vid
-      - acceptedAt
+      required: [bookingId, customerId, driverId, vehicleId, acceptedAt]
       properties:
-        bid:
-          type: integer
-          example: 6
-        cid:
-          type: integer
-          example: 1
-        did:
-          type: integer
-          example: 1
-        vid:
-          type: integer
-          example: 1
-        acceptedAt:
-          type: string
-          format: date-time
+        bookingId: { type: string, example: '6' }
+        customerId: { type: string, example: '1' }
+        driverId: { type: string, example: '1' }
+        vehicleId: { type: string, example: '1' }
+        acceptedAt: { type: string, format: date-time }
     DriverApprovalChangedPayload:
       type: object
-      required:
-      - did
-      - uid
-      - ap
-      - changedAt
+      required: [driverId, userId, approvalStatus, changedAt]
       properties:
-        did:
-          type: integer
-          example: 5
-        uid:
-          type: integer
-          example: 5
-        ap:
-          type: string
-          enum:
-          - APPROVED
-          - REJECTED
-          example: APPROVED
-        changedAt:
-          type: string
-          format: date-time
+        driverId: { type: string, example: '5' }
+        userId: { type: string, example: '5' }
+        approvalStatus: { type: string, enum: [APPROVED, REJECTED] }
+        changedAt: { type: string, format: date-time }
     TripStatusChangedPayload:
       type: object
-      required:
-      - tid
-      - cid
-      - did
-      - fromS
-      - toS
-      - changedAt
+      required: [tripId, customerId, driverId, fromStatus, toStatus, changedAt]
       properties:
-        tid:
-          type: integer
-          example: 1
-        cid:
-          type: integer
-          example: 1
-        did:
-          type: integer
-          example: 1
-        fromS:
+        tripId: { type: string, example: '1' }
+        customerId: { type: string, example: '1' }
+        driverId: { type: string, example: '1' }
+        fromStatus:
           type: string
           nullable: true
-          example: ASSIGNED
-        toS:
+          enum: [ASSIGNED, ARRIVED, IN_PROGRESS, COMPLETED, CANCELED]
+        toStatus:
           type: string
-          example: ARRIVED
-        changedAt:
-          type: string
-          format: date-time
+          enum: [ASSIGNED, ARRIVED, IN_PROGRESS, COMPLETED, CANCELED]
+        changedAt: { type: string, format: date-time }
     TripCanceledPayload:
       type: object
-      required:
-      - tid
-      - cid
-      - did
-      - r
-      - canceledAt
+      required: [tripId, customerId, driverId, reason, canceledAt]
       properties:
-        tid:
-          type: integer
-          example: 1
-        cid:
-          type: integer
-          example: 1
-        did:
-          type: integer
-          example: 1
-        r:
-          type: string
-          example: x
-        canceledAt:
-          type: string
-          format: date-time
+        tripId: { type: string, example: '1' }
+        customerId: { type: string, example: '1' }
+        driverId: { type: string, example: '1' }
+        reason: { type: string, example: x }
+        canceledAt: { type: string, format: date-time }
     TripCompletedPayload:
       type: object
-      required:
-      - tid
-      - bid
-      - cid
-      - did
-      - completedAt
+      required: [tripId, bookingId, customerId, driverId, completedAt]
       properties:
-        tid:
-          type: integer
-          example: 1
-        bid:
-          type: integer
-          example: 6
-        cid:
-          type: integer
-          example: 1
-        did:
-          type: integer
-          example: 1
-        completedAt:
-          type: string
-          format: date-time
+        tripId: { type: string, example: '1' }
+        bookingId: { type: string, example: '6' }
+        customerId: { type: string, example: '1' }
+        driverId: { type: string, example: '1' }
+        completedAt: { type: string, format: date-time }
     PaymentCompletedPayload:
       type: object
-      required:
-      - pid
-      - bid
-      - tid
-      - cid
-      - amt
-      - paidAt
+      required: [paymentId, bookingId, tripId, customerId, amount, paidAt]
       properties:
-        pid:
-          type: integer
-          example: 1
-        bid:
-          type: integer
-          example: 6
-        tid:
-          type: integer
-          example: 1
-        cid:
-          type: integer
-          example: 1
-        amt:
-          type: number
-          example: 50000
-        paidAt:
-          type: string
-          format: date-time
+        paymentId: { type: string, example: '1' }
+        bookingId: { type: string, example: '6' }
+        tripId: { type: string, example: '1' }
+        customerId: { type: string, example: '1' }
+        amount: { type: number, example: 50000 }
+        paidAt: { type: string, format: date-time }
