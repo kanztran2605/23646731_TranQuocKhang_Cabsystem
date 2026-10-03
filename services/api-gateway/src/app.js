@@ -24,9 +24,9 @@ const authRoutes =
     './routes/auth.routes'
   );
 
-const usersRoutes =
+const customerRoutes =
   require(
-    './routes/users.routes'
+    './routes/customer.routes'
   );
 
 const {
@@ -129,7 +129,7 @@ app.use(
 
 app.use(
   '/api/v1/users',
-  usersRoutes,
+  customerRoutes,
 );
 
 app.use(
