@@ -75,6 +75,16 @@ const env = Object.freeze({
     1000,
   ),
 
+  BOOKING_IDEMPOTENCY_TTL_SECONDS: positiveInteger(
+    'BOOKING_IDEMPOTENCY_TTL_SECONDS',
+    86400,
+  ),
+
+  BOOKING_IDEMPOTENCY_PROCESSING_TTL_SECONDS: positiveInteger(
+    'BOOKING_IDEMPOTENCY_PROCESSING_TTL_SECONDS',
+    30,
+  ),
+
   GRPC_HEALTH_TIMEOUT_MS: positiveInteger(
     'GRPC_HEALTH_TIMEOUT_MS',
     1500,

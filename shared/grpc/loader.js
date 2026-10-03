@@ -12,7 +12,7 @@ const LOADER_OPTIONS = Object.freeze({
   longs: String,
   enums: String,
   defaults: true,
-  oneofs: true,
+  oneofs: false,
   includeDirs: [PROTO_ROOT],
 });
 

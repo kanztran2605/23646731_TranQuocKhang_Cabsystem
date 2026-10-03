@@ -39,6 +39,11 @@ const vehicleRoutes =
     './routes/vehicle.routes'
   );
 
+const bookingRoutes =
+  require(
+    './routes/booking.routes'
+  );
+
 const {
   AppError,
 } = require(
@@ -123,35 +128,81 @@ app.use(
   }),
 );
 
+/*
+ * Root health endpoints:
+ * /health
+ * /ready
+ * /health/services
+ */
 app.use(
   healthRoutes,
 );
 
+/*
+ * Rate limit for all
+ * external business APIs.
+ */
 app.use(
   '/api/v1',
   apiRateLimit,
 );
 
+/*
+ * Authentication APIs.
+ */
 app.use(
   '/api/v1/auth',
   authRoutes,
 );
 
+/*
+ * Customer/User Profile APIs.
+ */
 app.use(
   '/api/v1/users',
   customerRoutes,
 );
 
+/*
+ * Driver APIs.
+ */
 app.use(
   '/api/v1/drivers',
   driverRoutes,
 );
 
+/*
+ * Vehicle APIs.
+ *
+ * vehicle.routes.js contains:
+ * /vehicle-types
+ * /vehicles
+ * /vehicles/:vehicleId
+ */
 app.use(
   '/api/v1',
   vehicleRoutes,
 );
 
+/*
+ * Booking APIs.
+ *
+ * booking.routes.js contains:
+ * /bookings
+ * /bookings/:bookingId
+ * /customers/me/bookings
+ * /drivers/me/offers
+ * /driver-offers/:offerId/accept
+ * /driver-offers/:offerId/reject
+ */
+app.use(
+  '/api/v1',
+  bookingRoutes,
+);
+
+/*
+ * Must stay AFTER all routes.
+ */
 app.use(
   notFoundHandler,
 );
