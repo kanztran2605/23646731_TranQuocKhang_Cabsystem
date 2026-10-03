@@ -1,107 +1,67 @@
 openapi: 3.0.3
 info:
   title: CAB System API - Notification
-  version: 3.0.0
-  description: notification-service consume business events từ RabbitMQ, tạo Notification/Notification Delivery và gửi qua
-    Notification Provider. Lỗi gửi không rollback nghiệp vụ nguồn.
+  version: 4.0.0
+  description: Notification Service consume RabbitMQ events và lưu MongoDB. Không SMS/Email/Push provider thật.
 servers:
 - url: http://localhost:8080/api/v1
-  description: API Gateway - môi trường local/demo
+  description: API Gateway local/demo
 tags:
-- name: Thông báo
+- name: Notification
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  responses:
-    NotFound:
-      description: Không tìm thấy tài nguyên
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    BadRequest:
-      description: Yêu cầu không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Unauthorized:
-      description: Thiếu Access Token hoặc Access Token không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Forbidden:
-      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Conflict:
-      description: Xung đột trạng thái hoặc dữ liệu
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    TooManyRequests:
-      description: Vượt quá giới hạn request; Gateway trả HTTP 429
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ServerError:
-      description: Lỗi máy chủ nội bộ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   schemas:
     Notification:
       type: object
       required:
-      - notificationId
-      - sourceEventId
-      - recipientUserId
-      - notificationType
-      - notificationStatus
-      - message
-      - createdAt
+      - nid
+      - eid
+      - uid
+      - type
+      - ref
+      - msg
+      - s
       properties:
-        notificationId:
+        nid:
           type: string
-        sourceEventId:
+          example: 66f...
+        eid:
           type: string
-        recipientUserId:
-          type: string
-        notificationType:
+          format: uuid
+        uid:
+          type: integer
+          format: int64
+          example: 1
+        type:
           type: string
           example: PAYMENT_COMPLETED
-        notificationStatus:
+        ref:
+          type: string
+          example: pid:1
+        msg:
+          type: string
+          example: Payment completed
+        s:
           type: string
           enum:
-          - PENDING
-          - PROCESSED
-          - FAILED
-        message:
-          type: string
-        deliveryStatus:
-          type: string
-          enum:
-          - PENDING
           - SENT
-          - DELIVERED
-          - FAILED
-          nullable: true
-        readAt:
+          example: SENT
+        c_at:
           type: string
           format: date-time
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
+    NotificationPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
     Error:
       type: object
       required:
@@ -113,78 +73,38 @@ components:
           example: INVALID_REQUEST
         message:
           type: string
-          example: Request data is invalid
-        timestamp:
+          example: Request không hợp lệ
+        at:
           type: string
           format: date-time
-    PageNotification:
-      type: object
-      required:
-      - page
-      - limit
-      - total
-      - items
-      properties:
-        page:
-          type: integer
-        limit:
-          type: integer
-        total:
-          type: integer
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Notification'
 paths:
   /notifications:
     get:
       tags:
-      - Thông báo
-      summary: Xem thông báo
-      operationId: getNotifications
+      - Notification
+      summary: Notification của User hiện tại
+      operationId: listNotifications
       security:
       - bearerAuth: []
-      responses:
-        '200':
-          description: Thông báo
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PageNotification'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
       parameters:
-      - name: page
-        in: query
-        schema:
-          type: integer
-          minimum: 1
-          default: 1
       - name: limit
         in: query
         schema:
           type: integer
           minimum: 1
-          maximum: 100
-          default: 20
-  /notifications/{notificationId}/read:
-    patch:
-      tags:
-      - Thông báo
-      summary: Đánh dấu thông báo đã đọc
-      operationId: markNotificationRead
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: notificationId
-        in: path
-        required: true
-        schema:
-          type: string
+          maximum: 20
+          default: 5
+          example: 5
       responses:
-        '204':
-          description: Đánh dấu thông báo đã đọc thành công
-        '404':
-          $ref: '#/components/responses/NotFound'
+        '200':
+          description: Danh sách Notification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPage'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

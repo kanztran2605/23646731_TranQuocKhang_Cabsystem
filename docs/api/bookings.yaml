@@ -1,334 +1,200 @@
 openapi: 3.0.3
 info:
   title: CAB System API - Booking Management
-  version: 3.0.0
-  description: 'Public REST contract qua API Gateway cho Booking Aggregate, Driver Offer và Driver Assignment. Booking Status
-    chính thức: CREATED -> SEARCHING -> ASSIGNED hoặc SEARCHING -> NO_DRIVER_FOUND. Driver Matching chạy nội bộ trong booking-service.'
+  version: 4.0.0
+  description: 'Booking/Matching/Offer cho Demo MVP. Sau khi Booking persist: publish booking.created để Payment Service tạo
+    Payment PENDING, sau đó matching và tạo một Offer.'
 servers:
 - url: http://localhost:8080/api/v1
-  description: API Gateway - môi trường local/demo
+  description: API Gateway local/demo
 tags:
-- name: Bookings
-  description: Booking, driver offer và lịch sử Booking
+- name: Booking
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  responses:
-    BadRequest:
-      description: Yêu cầu không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Unauthorized:
-      description: Thiếu Access Token hoặc Access Token không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Forbidden:
-      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    NotFound:
-      description: Không tìm thấy tài nguyên
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Conflict:
-      description: Xung đột trạng thái hoặc dữ liệu
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    TooManyRequests:
-      description: Vượt quá giới hạn request; Gateway trả HTTP 429
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ServerError:
-      description: Lỗi máy chủ nội bộ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   parameters:
-    BookingId:
-      name: bookingId
+    Bid:
+      name: bid
       in: path
       required: true
       schema:
-        type: string
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      required: true
-      description: Khóa chống tạo Booking trùng khi retry
-      schema:
-        type: string
-        minLength: 8
-        maxLength: 255
-      example: BOOK-CUS001-001
-    OfferId:
-      name: offerId
+        type: integer
+        format: int64
+        example: 6
+    Oid:
+      name: oid
       in: path
       required: true
       schema:
-        type: string
+        type: integer
+        format: int64
+        example: 1
   schemas:
     Location:
       type: object
       required:
-      - latitude
-      - longitude
+      - lat
+      - lng
       properties:
-        latitude:
+        lat:
           type: number
           format: double
-          minimum: -90
-          maximum: 90
-          example: 10.8231
-        longitude:
+          example: 10.76
+        lng:
           type: number
           format: double
-          minimum: -180
-          maximum: 180
-          example: 106.6297
-        address:
-          type: string
-          example: Ho Chi Minh City
+          example: 106.68
     CreateBookingRequest:
       type: object
       required:
-      - pickup
-      - destination
-      - vehicleTypeId
+      - p
+      - d
+      - vt
       properties:
-        pickup:
+        p:
           $ref: '#/components/schemas/Location'
-        destination:
+        d:
           $ref: '#/components/schemas/Location'
-        vehicleTypeId:
+        vt:
           type: string
-          example: CAR_4_SEATS
-    AssignedDriver:
-      type: object
-      properties:
-        driverId:
-          type: string
-        fullName:
-          type: string
-        rating:
-          type: number
-          format: double
-        vehicle:
-          type: object
-          properties:
-            vehicleTypeId:
-              type: string
-            brand:
-              type: string
-            model:
-              type: string
-            licensePlate:
-              type: string
+          example: CAR
     Booking:
       type: object
       required:
-      - bookingId
-      - customerId
-      - status
-      - pickup
-      - destination
-      - vehicleTypeId
+      - bid
+      - cid
+      - p
+      - d
+      - vt
+      - s
       properties:
-        bookingId:
-          type: string
-          example: BKG001
-        customerId:
-          type: string
-          example: CUS001
-        pickup:
+        bid:
+          type: integer
+          format: int64
+          example: 6
+        cid:
+          type: integer
+          format: int64
+          example: 1
+        p:
           $ref: '#/components/schemas/Location'
-        destination:
+        d:
           $ref: '#/components/schemas/Location'
-        vehicleTypeId:
+        vt:
           type: string
-        status:
+          example: CAR
+        s:
           type: string
           enum:
-          - CREATED
           - SEARCHING
           - ASSIGNED
           - NO_DRIVER_FOUND
-          description: ASSIGNED và NO_DRIVER_FOUND là terminal states của Booking trong MVP; Trip lifecycle được quản lý riêng
-            bởi trip-service.
-        assignedDriver:
-          allOf:
-          - $ref: '#/components/schemas/AssignedDriver'
+          example: SEARCHING
+        oid:
+          type: integer
+          format: int64
           nullable: true
-        createdAt:
-          type: string
-          format: date-time
-        matchingStartedAt:
-          type: string
-          format: date-time
+          example: 1
+        did:
+          type: integer
+          format: int64
           nullable: true
-        assignedAt:
-          type: string
-          format: date-time
-          nullable: true
-    DriverOffer:
+          example: 1
+    Offer:
       type: object
       required:
-      - offerId
-      - bookingId
-      - driverId
-      - status
-      - expiresAt
-      - createdAt
+      - oid
+      - bid
+      - did
+      - s
       properties:
-        offerId:
-          type: string
-          example: OFF001
-        bookingId:
-          type: string
-          example: BKG001
-        driverId:
-          type: string
-          example: DRV001
-        vehicleId:
-          type: string
-          example: VEH001
-        pickup:
-          $ref: '#/components/schemas/Location'
-        destination:
-          $ref: '#/components/schemas/Location'
-        vehicleTypeId:
-          type: string
-          example: CAR_4_SEATS
-        status:
+        oid:
+          type: integer
+          format: int64
+          example: 1
+        bid:
+          type: integer
+          format: int64
+          example: 6
+        did:
+          type: integer
+          format: int64
+          example: 1
+        vid:
+          type: integer
+          format: int64
+          example: 1
+        s:
           type: string
           enum:
-          - PENDING
+          - OPEN
           - ACCEPTED
-          - REJECTED
-          - EXPIRED
-        expiresAt:
-          type: string
-          format: date-time
-        respondedAt:
-          type: string
-          format: date-time
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-    PageBooking:
+          example: OPEN
+    BookingPage:
       type: object
       required:
       - page
       - limit
-      - total
       - items
       properties:
         page:
           type: integer
-          minimum: 1
           example: 1
         limit:
           type: integer
-          minimum: 1
-          example: 5
-        total:
-          type: integer
-          example: 5
+          example: 2
         items:
           type: array
           items:
             $ref: '#/components/schemas/Booking'
+    AcceptResponse:
+      type: object
+      required:
+      - oid
+      - bid
+      - s
+      properties:
+        oid:
+          type: integer
+          example: 1
+        bid:
+          type: integer
+          example: 6
+        s:
+          type: string
+          example: ACCEPTED
+        tripPending:
+          type: boolean
+          example: true
     Error:
       type: object
       required:
       - code
       - message
-      - timestamp
       properties:
         code:
           type: string
           example: INVALID_REQUEST
         message:
           type: string
-          example: Request data is invalid
-        timestamp:
+          example: Request không hợp lệ
+        at:
           type: string
           format: date-time
-    DriverAssignment:
-      type: object
-      required:
-      - assignmentId
-      - bookingId
-      - offerId
-      - driverId
-      - vehicleId
-      - assignedAt
-      properties:
-        assignmentId:
-          type: string
-          example: ASN001
-        bookingId:
-          type: string
-        offerId:
-          type: string
-        driverId:
-          type: string
-        vehicleId:
-          type: string
-        assignedAt:
-          type: string
-          format: date-time
-    AcceptOfferResponse:
-      type: object
-      required:
-      - bookingId
-      - status
-      - assignment
-      properties:
-        bookingId:
-          type: string
-        status:
-          type: string
-          enum:
-          - ASSIGNED
-        assignment:
-          $ref: '#/components/schemas/DriverAssignment'
-      description: Không trả tripId bắt buộc vì Trip được trip-service tạo bất đồng bộ sau driver.accepted.
 paths:
   /bookings:
     post:
       tags:
-      - Bookings
-      summary: Customer tạo Booking và tự động khởi động quá trình tìm Driver
+      - Booking
+      summary: Customer tạo Booking
       operationId: createBooking
       security:
       - bearerAuth: []
-      x-srs-trace:
-      - FR02.01-FR02.06
-      - FR03.01-FR03.06
-      - UC06
-      - UC07
-      - AC06.*
-      description: Booking được persist ở CREATED, sau đó booking-service nội bộ khởi động Driver Matching và chuyển sang
-        SEARCHING. booking.created chỉ publish sau persist thành công. Client không gọi endpoint matching riêng.
-      parameters:
-      - $ref: '#/components/parameters/IdempotencyKey'
+      x-roles:
+      - CUSTOMER
       requestBody:
         required: true
         content:
@@ -337,154 +203,183 @@ paths:
               $ref: '#/components/schemas/CreateBookingRequest'
       responses:
         '201':
-          description: Booking đã được tạo; thông thường response ở trạng thái SEARCHING sau khi matching được khởi động.
+          description: Booking được persist; booking.created được publish; matching tạo Offer nếu có Driver
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Booking'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Request không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          $ref: '#/components/responses/Forbidden'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-  /bookings/{bookingId}:
+          description: Chỉ CUSTOMER
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-internal-flow:
+      - 'booking-service -> customer-service gRPC: validate Customer'
+      - Persist Booking
+      - Publish booking.created -> payment-service
+      - 'booking-service -> driver-service gRPC: find nearest eligible Driver'
+      - Create one Offer
+      - Publish offer.created -> notification-service
+  /bookings/{bid}:
     get:
       tags:
-      - Bookings
+      - Booking
       summary: Xem Booking
       operationId: getBooking
       security:
       - bearerAuth: []
       parameters:
-      - $ref: '#/components/parameters/BookingId'
+      - $ref: '#/components/parameters/Bid'
       responses:
         '200':
-          description: Thông tin Booking; khi đã có Driver sẽ chứa assignedDriver
+          description: Booking
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Booking'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: Không có quyền
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Không tìm thấy Booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /customers/me/bookings:
     get:
       tags:
-      - Bookings
-      summary: Lịch sử Booking của Customer hiện tại
-      operationId: getMyBookings
+      - Booking
+      summary: Booking của Customer hiện tại + paging
+      operationId: listMyBookings
       security:
       - bearerAuth: []
-      x-srs-trace:
-      - FR08.01
-      - FR08.06
-      - UC14
-      - AC14.01-AC14.05
+      x-roles:
+      - CUSTOMER
       parameters:
       - name: page
         in: query
         schema:
           type: integer
-          minimum: 1
           default: 1
+          example: 1
       - name: limit
         in: query
         schema:
           type: integer
-          minimum: 1
-          maximum: 100
-          default: 5
+          default: 2
+          example: 2
       responses:
         '200':
-          description: Danh sách Booking của Customer theo phân trang
+          description: Danh sách Booking
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PageBooking'
+                $ref: '#/components/schemas/BookingPage'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: Chỉ CUSTOMER
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /drivers/me/offers:
     get:
       tags:
-      - Bookings
-      summary: Driver xem các offer đang chờ phản hồi
-      operationId: getMyDriverOffers
+      - Booking
+      summary: Driver xem Offer của mình
+      operationId: listMyOffers
       security:
       - bearerAuth: []
+      x-roles:
+      - DRIVER
       responses:
         '200':
-          description: Danh sách offer chưa hết hạn
+          description: Danh sách Offer
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/DriverOffer'
+                  $ref: '#/components/schemas/Offer'
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-  /driver-offers/{offerId}/accept:
-    post:
-      tags:
-      - Bookings
-      summary: Driver chấp nhận Driver Offer
-      operationId: acceptDriverOffer
-      security:
-      - bearerAuth: []
-      parameters:
-      - $ref: '#/components/parameters/OfferId'
-      responses:
-        '200':
-          description: Driver Assignment được xác nhận; booking-service publish driver.accepted. Trip được tạo bất đồng bộ
-            bởi trip-service.
+          description: JWT không hợp lệ
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AcceptOfferResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/Error'
         '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-      x-ddd-trace:
-      - UC08
-      - Booking Aggregate
-      - Driver Assignment
-  /driver-offers/{offerId}/reject:
+          description: Chỉ DRIVER
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /offers/{oid}/accept:
     post:
       tags:
-      - Bookings
-      summary: Driver từ chối Driver Offer
-      operationId: rejectDriverOffer
+      - Booking
+      summary: Driver Accept Offer
+      operationId: acceptOffer
       security:
       - bearerAuth: []
+      x-roles:
+      - DRIVER
       parameters:
-      - $ref: '#/components/parameters/OfferId'
+      - $ref: '#/components/parameters/Oid'
       responses:
-        '204':
-          description: Offer chuyển REJECTED; booking-service tiếp tục matching nếu còn ứng viên.
+        '200':
+          description: Offer ACCEPTED; driver.accepted được publish
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+          description: Không phải Driver nhận Offer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '409':
-          $ref: '#/components/responses/Conflict'
-      x-ddd-trace:
-      - UC08
-      - Driver Offer
+          description: Offer không OPEN hoặc Driver không AVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-internal-flow:
+      - Validate Offer OPEN and owned by Driver
+      - 'booking-service -> driver-service gRPC: AVAILABLE -> BUSY'
+      - Persist Offer ACCEPTED + DriverAssignment
+      - Publish driver.accepted -> trip-service

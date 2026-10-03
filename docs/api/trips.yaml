@@ -1,467 +1,364 @@
 openapi: 3.0.3
 info:
   title: CAB System API - Trip Management
-  version: 3.0.0
-  description: 'Public REST contract qua API Gateway cho Trip Aggregate. trip-service là service duy nhất sở hữu và thay đổi
-    Trip; Trip được tạo bất đồng bộ khi consume driver.accepted. State Machine: ASSIGNED -> ARRIVED -> PICKED_UP -> IN_PROGRESS
-    -> COMPLETED; CANCELED là terminal state.'
+  version: 4.0.0
+  description: 'Trip được tạo async từ driver.accepted. State machine: ASSIGNED -> ARRIVED -> IN_PROGRESS -> COMPLETED; có
+    location update và cancel.'
 servers:
 - url: http://localhost:8080/api/v1
-  description: API Gateway - môi trường local/demo
+  description: API Gateway local/demo
 tags:
-- name: Trips
-  description: Trip lifecycle, tracking, cancellation và vận hành Trip
+- name: Trip
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  responses:
-    BadRequest:
-      description: Yêu cầu không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Unauthorized:
-      description: Thiếu Access Token hoặc Access Token không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Forbidden:
-      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    NotFound:
-      description: Không tìm thấy tài nguyên
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Conflict:
-      description: Xung đột trạng thái hoặc dữ liệu
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    TooManyRequests:
-      description: Vượt quá giới hạn request; Gateway trả HTTP 429
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ServerError:
-      description: Lỗi máy chủ nội bộ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   parameters:
-    TripId:
-      name: tripId
+    Tid:
+      name: tid
       in: path
       required: true
       schema:
-        type: string
-    BookingId:
-      name: bookingId
+        type: integer
+        format: int64
+        example: 1
+    Bid:
+      name: bid
       in: path
       required: true
       schema:
-        type: string
+        type: integer
+        format: int64
+        example: 6
   schemas:
     Trip:
       type: object
       required:
-      - tripId
-      - bookingId
-      - customerId
-      - driverId
-      - vehicleId
-      - vehicleTypeId
-      - status
+      - tid
+      - bid
+      - cid
+      - did
+      - s
+      - paid
       properties:
-        tripId:
-          type: string
-          example: TRIP001
-        bookingId:
-          type: string
-          example: BKG001
-        customerId:
-          type: string
-          example: CUS001
-        driverId:
-          type: string
-          example: DRV001
-        status:
+        tid:
+          type: integer
+          format: int64
+          example: 1
+        bid:
+          type: integer
+          format: int64
+          example: 6
+        cid:
+          type: integer
+          format: int64
+          example: 1
+        did:
+          type: integer
+          format: int64
+          example: 1
+        s:
           type: string
           enum:
           - ASSIGNED
           - ARRIVED
-          - PICKED_UP
           - IN_PROGRESS
           - COMPLETED
           - CANCELED
-        distanceKm:
-          type: number
-          format: double
-        cancelReason:
-          type: string
-          nullable: true
-        canceledAt:
-          type: string
-          format: date-time
-          nullable: true
-        completedAt:
-          type: string
-          format: date-time
-          nullable: true
-        vehicleId:
-          type: string
-          example: VEH001
-        vehicleTypeId:
-          type: string
-          example: CAR_4_SEATS
-        tripDistance:
-          type: number
-          format: double
-          minimum: 0
-          nullable: true
-          description: Khoảng cách dùng cho Fare Calculation; phải có khi Trip COMPLETED.
-        estimatedArrivalAt:
-          type: string
-          format: date-time
-          nullable: true
-        assignedAt:
-          type: string
-          format: date-time
-          nullable: true
-        arrivedAt:
-          type: string
-          format: date-time
-          nullable: true
-        pickedUpAt:
-          type: string
-          format: date-time
-          nullable: true
-        startedAt:
-          type: string
-          format: date-time
-          nullable: true
-        abnormalFlag:
+          example: ASSIGNED
+        paid:
           type: boolean
-          description: Dấu hiệu phục vụ UC17; không phải Trip Status.
-          default: false
-        abnormalReason:
+          example: false
+        r:
           type: string
           nullable: true
-    TripStatusRequest:
+          example: x
+    StatusRequest:
       type: object
       required:
-      - status
+      - s
       properties:
-        status:
+        s:
           type: string
           enum:
           - ARRIVED
-          - PICKED_UP
           - IN_PROGRESS
           - COMPLETED
-    CancelTripRequest:
+          example: ARRIVED
+    LocationRequest:
       type: object
       required:
-      - reason
+      - lat
+      - lng
       properties:
-        reason:
+        lat:
+          type: number
+          format: double
+          example: 10.761
+        lng:
+          type: number
+          format: double
+          example: 106.681
+    CancelRequest:
+      type: object
+      required:
+      - r
+      properties:
+        r:
           type: string
-          minLength: 3
-          maxLength: 500
-          example: Customer changed plan
+          minLength: 1
+          maxLength: 100
+          example: x
     Error:
       type: object
       required:
       - code
       - message
-      - timestamp
       properties:
         code:
           type: string
           example: INVALID_REQUEST
         message:
           type: string
-          example: Request data is invalid
-        timestamp:
+          example: Request không hợp lệ
+        at:
           type: string
           format: date-time
-    TripStatusHistoryItem:
-      type: object
-      required:
-      - historyId
-      - tripId
-      - toStatus
-      - changedAt
-      properties:
-        historyId:
-          type: string
-        tripId:
-          type: string
-        fromStatus:
-          type: string
-          nullable: true
-        toStatus:
-          type: string
-        changedByUserId:
-          type: string
-          nullable: true
-        reason:
-          type: string
-          nullable: true
-        changedAt:
-          type: string
-          format: date-time
-    ResolveAbnormalTripRequest:
-      type: object
-      required:
-      - resolution
-      - note
-      properties:
-        resolution:
-          type: string
-          example: RESOLVED
-        note:
-          type: string
-          maxLength: 1000
 paths:
-  /trips/{tripId}:
+  /trips/by-booking/{bid}:
     get:
       tags:
-      - Trips
-      summary: Xem thông tin Trip
-      operationId: getTrip
-      security:
-      - bearerAuth: []
-      parameters:
-      - $ref: '#/components/parameters/TripId'
-      responses:
-        '200':
-          description: Thông tin Trip
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Trip'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /trips/{tripId}/status:
-    patch:
-      tags:
-      - Trips
-      summary: Driver cập nhật trạng thái Trip theo State Machine
-      operationId: updateTripStatus
-      security:
-      - bearerAuth: []
-      x-srs-trace:
-      - FR04.01-FR04.04
-      - FR04.12
-      - UC09
-      - AC09.01-AC09.08
-      description: 'Trình tự hợp lệ: ASSIGNED -> ARRIVED -> PICKED_UP -> IN_PROGRESS -> COMPLETED. Chuyển trạng thái không
-        hợp lệ trả 409.'
-      parameters:
-      - $ref: '#/components/parameters/TripId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TripStatusRequest'
-      responses:
-        '200':
-          description: Trạng thái Trip đã cập nhật
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Trip'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-  /trips/{tripId}/cancel:
-    post:
-      tags:
-      - Trips
-      summary: Customer hủy Trip
-      operationId: cancelTrip
-      security:
-      - bearerAuth: []
-      x-srs-trace:
-      - FR04.08-FR04.11
-      - UC25
-      - AC25.01-AC25.07
-      parameters:
-      - $ref: '#/components/parameters/TripId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CancelTripRequest'
-      responses:
-        '200':
-          description: Trip chuyển sang CANCELED và phát trip.canceled
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Trip'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-  /trips/{tripId}/history:
-    get:
-      tags:
-      - Trips
-      summary: Xem Trip Status History
-      operationId: getTripStatusHistory
-      security:
-      - bearerAuth: []
-      parameters:
-      - $ref: '#/components/parameters/TripId'
-      responses:
-        '200':
-          description: Lịch sử trạng thái Trip
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TripStatusHistoryItem'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /trips/by-booking/{bookingId}:
-    get:
-      tags:
-      - Trips
-      summary: Tra cứu Trip theo Booking
+      - Trip
+      summary: Lấy Trip theo Booking sau driver.accepted
       operationId: getTripByBooking
       security:
       - bearerAuth: []
       parameters:
-      - $ref: '#/components/parameters/BookingId'
+      - $ref: '#/components/parameters/Bid'
       responses:
         '200':
-          description: Trip của Booking
+          description: Trip
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Trip'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
-  /trips/active:
-    get:
-      tags:
-      - Trips
-      summary: Operation Staff giám sát các Trip đang hoạt động
-      operationId: getActiveTrips
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: Danh sách Trip active
+          description: Trip chưa được tạo / không tồn tại
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Trip'
+                $ref: '#/components/schemas/Error'
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-      x-srs-trace:
-      - UC16
-  /trips/abnormal:
-    get:
-      tags:
-      - Trips
-      summary: Operation Staff tra cứu Trip bất thường
-      operationId: getAbnormalTrips
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: Danh sách Trip có abnormalFlag = true hoặc điều kiện vận hành tương đương
+          description: JWT không hợp lệ
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Trip'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-      x-srs-trace:
-      - UC17
-  /trips/{tripId}/abnormal-resolution:
-    post:
+                $ref: '#/components/schemas/Error'
+  /trips/{tid}:
+    get:
       tags:
-      - Trips
-      summary: Operation Staff xử lý Trip bất thường
-      operationId: resolveAbnormalTrip
+      - Trip
+      summary: Xem Trip
+      operationId: getTrip
       security:
       - bearerAuth: []
       parameters:
-      - $ref: '#/components/parameters/TripId'
+      - $ref: '#/components/parameters/Tid'
+      responses:
+        '200':
+          description: Trip
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '404':
+          description: Không tìm thấy Trip
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Không có quyền
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /trips/{tid}/status:
+    patch:
+      tags:
+      - Trip
+      summary: Driver cập nhật trạng thái Trip
+      operationId: updateTripStatus
+      security:
+      - bearerAuth: []
+      x-roles:
+      - DRIVER
+      x-assigned-driver-only: true
+      parameters:
+      - $ref: '#/components/parameters/Tid'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ResolveAbnormalTripRequest'
+              $ref: '#/components/schemas/StatusRequest'
       responses:
         '200':
-          description: Thông tin Trip sau xử lý
+          description: Trip sau cập nhật
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Trip'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: State transition sai thứ tự
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+          description: Không phải Driver được gán
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '409':
-          $ref: '#/components/responses/Conflict'
-      x-srs-trace:
-      - UC17
+          description: Trip terminal state / conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-internal-flow:
+      - Persist valid state transition + status history
+      - Publish trip.status.changed
+      - 'If COMPLETED: publish trip.completed'
+  /trips/{tid}/location:
+    patch:
+      tags:
+      - Trip
+      summary: Cập nhật vị trí Trip khi IN_PROGRESS
+      operationId: updateTripLocation
+      security:
+      - bearerAuth: []
+      x-roles:
+      - DRIVER
+      x-assigned-driver-only: true
+      parameters:
+      - $ref: '#/components/parameters/Tid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationRequest'
+      responses:
+        '200':
+          description: Location đã ghi nhận
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tid:
+                    type: integer
+                    example: 1
+                  lat:
+                    type: number
+                    example: 10.761
+                  lng:
+                    type: number
+                    example: 106.681
+        '400':
+          description: lat/lng không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Không phải Driver được gán
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Trip chưa IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-internal-flow:
+      - Require Trip IN_PROGRESS
+      - Persist TripLocation
+      - Trip -> Driver gRPC only when Driver/location validation is needed
+  /trips/{tid}/cancel:
+    post:
+      tags:
+      - Trip
+      summary: Customer hủy Trip
+      operationId: cancelTrip
+      security:
+      - bearerAuth: []
+      x-roles:
+      - CUSTOMER
+      x-owner-only: true
+      parameters:
+      - $ref: '#/components/parameters/Tid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequest'
+      responses:
+        '200':
+          description: Trip CANCELED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          description: Thiếu reason
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Customer không sở hữu Trip
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Trip không thể hủy ở state hiện tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-internal-flow:
+      - Persist CANCELED + reason
+      - Publish trip.canceled -> driver-service + notification-service

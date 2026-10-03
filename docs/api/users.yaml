@@ -1,238 +1,51 @@
 openapi: 3.0.3
 info:
-  title: CAB System API - User & Customer Profile
-  version: 3.0.0
-  description: Public REST contract qua API Gateway cho hồ sơ hiện tại và Customer Management. Customer Profile thuộc customer-service;
-    phone/email/accountStatus thuộc auth-service. Gateway có thể compose response nhưng không chuyển ownership dữ liệu.
+  title: CAB System API - Customer Management
+  version: 4.0.0
+  description: Customer Profile public contract qua Gateway. Customer data không chứa password/JWT.
 servers:
 - url: http://localhost:8080/api/v1
-  description: API Gateway - môi trường local/demo
+  description: API Gateway local/demo
 tags:
-- name: Người dùng
-  description: Quản lý hồ sơ người dùng và tra cứu thông tin Customer
+- name: Customer
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  responses:
-    BadRequest:
-      description: Yêu cầu không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Unauthorized:
-      description: Thiếu Access Token hoặc Access Token không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Forbidden:
-      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    NotFound:
-      description: Không tìm thấy tài nguyên người dùng hoặc Customer
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Conflict:
-      description: Xung đột trạng thái hoặc dữ liệu
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    TooManyRequests:
-      description: Vượt quá giới hạn request; API Gateway trả HTTP 429
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ServerError:
-      description: Lỗi máy chủ nội bộ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+  parameters:
+    Cid:
+      name: cid
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        example: 1
   schemas:
-    UserResponse:
-      type: object
-      description: 'Thông tin Identity cơ bản của User. Phone và Email thuộc Identity & Access Context.
-
-        '
-      required:
-      - userId
-      - role
-      - accountStatus
-      properties:
-        userId:
-          type: string
-          description: Mã định danh User
-          example: U001
-        phone:
-          type: string
-          description: Số điện thoại thuộc Identity & Access Context
-          example: 0901234567
-        email:
-          type: string
-          format: email
-          description: Email thuộc Identity & Access Context
-          example: nguyenvana@example.com
-        role:
-          type: string
-          description: Vai trò chính của User trong phạm vi MVP
-          enum: &id001
-          - CUSTOMER
-          - DRIVER
-          - OPERATION_STAFF
-          - MANAGEMENT
-          - SYSTEM_ADMINISTRATOR
-          example: CUSTOMER
-        accountStatus:
-          type: string
-          example: ACTIVE
-          description: Account Status thuộc Identity & Access; chỉ xuất hiện khi Gateway compose response.
-    MyProfileResponse:
-      type: object
-      description: Gateway-composed profile. Với CUSTOMER, profile fields thuộc customer-service; với DRIVER, Gateway có thể
-        điều phối sang driver-service. Identity data luôn thuộc auth-service.
-      required:
-      - userId
-      - fullName
-      - role
-      - accountStatus
-      properties:
-        userId:
-          type: string
-          example: U001
-        customerId:
-          type: string
-          nullable: true
-          description: Mã Customer nếu User hiện tại có Role CUSTOMER
-          example: C001
-        fullName:
-          type: string
-          example: Nguyen Van A
-        phone:
-          type: string
-          description: Dữ liệu Identity do auth-service sở hữu
-          example: 0901234567
-        email:
-          type: string
-          format: email
-          description: Dữ liệu Identity do auth-service sở hữu
-          example: nguyenvana@example.com
-        address:
-          type: string
-          nullable: true
-          example: 12 Nguyen Van Bao, Go Vap, HCMC
-        dateOfBirth:
-          type: string
-          format: date
-          nullable: true
-          example: '2004-05-20'
-        role:
-          type: string
-          enum: *id001
-          example: CUSTOMER
-        accountStatus:
-          type: string
-          example: ACTIVE
-          description: Account Status thuộc Identity & Access; chỉ xuất hiện khi Gateway compose response.
-        driverId:
-          type: string
-          nullable: true
-          description: Có khi role = DRIVER
-          example: DRV001
-    CustomerResponse:
-      type: object
-      description: Customer Profile thuộc customer-service. userId là logical reference; phone/email/accountStatus (nếu trả)
-        là Identity data do auth-service sở hữu và được Gateway compose khi có quyền.
-      required:
-      - customerId
-      - userId
-      - fullName
-      properties:
-        customerId:
-          type: string
-          description: Mã định danh Customer
-          example: C001
-        userId:
-          type: string
-          description: Mã User liên kết với Customer
-          example: U001
-        fullName:
-          type: string
-          example: Nguyen Van A
-        phone:
-          type: string
-          description: Số điện thoại thuộc Identity & Access Context
-          example: 0901234567
-        email:
-          type: string
-          format: email
-          description: Email thuộc Identity & Access Context
-          example: nguyenvana@example.com
-        address:
-          type: string
-          nullable: true
-          example: 12 Nguyen Van Bao, Go Vap, HCMC
-        dateOfBirth:
-          type: string
-          format: date
-          nullable: true
-          example: '2004-05-20'
-        accountStatus:
-          type: string
-          example: ACTIVE
-          description: Account Status thuộc Identity & Access; chỉ xuất hiện khi Gateway compose response.
-    UpdateProfileRequest:
-      type: object
-      description: Dữ liệu profile được phép cập nhật. Phone/email không nằm trong request vì thuộc Identity & Access. Gateway
-        route đến customer-service hoặc driver-service theo Role.
-      properties:
-        fullName:
-          type: string
-          minLength: 1
-          maxLength: 100
-          example: Nguyen Van A
-        address:
-          type: string
-          maxLength: 255
-          example: 12 Nguyen Van Bao, Go Vap, HCMC
-        dateOfBirth:
-          type: string
-          format: date
-          example: '2004-05-20'
-    CustomerListResponse:
+    Customer:
       type: object
       required:
-      - page
-      - pageSize
-      - total
-      - items
+      - cid
+      - uid
+      - name
       properties:
-        page:
+        cid:
           type: integer
-          minimum: 1
+          format: int64
           example: 1
-        pageSize:
+        uid:
           type: integer
-          minimum: 1
-          example: 20
-        total:
-          type: integer
-          minimum: 0
-          example: 48
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/CustomerResponse'
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: C
+        addr:
+          type: string
+          nullable: true
+          example: HCMC
     Error:
       type: object
       required:
@@ -244,160 +57,47 @@ components:
           example: INVALID_REQUEST
         message:
           type: string
-          example: Request data is invalid
-        timestamp:
+          example: Request không hợp lệ
+        at:
           type: string
           format: date-time
 paths:
-  /users/me:
+  /customers/{cid}:
     get:
       tags:
-      - Người dùng
-      summary: Xem hồ sơ người dùng hiện tại
-      description: 'Cho phép User đã xác thực xem hồ sơ của chính mình. Response có thể tổng hợp Identity data từ auth-service
-        và Profile data từ service sở hữu hồ sơ tương ứng.
-
-        '
-      operationId: getMyProfile
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: Hồ sơ người dùng hiện tại
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MyProfileResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-      x-srs-trace:
-      - FR01.11
-      - UC03
-      - AC03.01-AC03.03
-    put:
-      tags:
-      - Người dùng
-      summary: Cập nhật hồ sơ người dùng hiện tại
-      description: Cập nhật phần profile thuộc service sở hữu tương ứng theo Role. Không cập nhật phone/email/password tại
-        endpoint này.
-      operationId: updateMyProfile
-      security:
-      - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateProfileRequest'
-      responses:
-        '200':
-          description: Cập nhật hồ sơ thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MyProfileResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-      x-srs-trace:
-      - FR01.05
-      - UC03
-  /users/customers:
-    get:
-      tags:
-      - Người dùng
-      summary: Tra cứu danh sách Customer
-      description: 'Cho phép Operation Staff hoặc User có quyền phù hợp tra cứu danh sách Customer trong CAB System.
-
-        '
-      operationId: getCustomers
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: keyword
-        in: query
-        description: Từ khóa tìm kiếm Customer
-        required: false
-        schema:
-          type: string
-        example: Nguyen Van A
-      - name: page
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-          default: 1
-      - name: pageSize
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-          maximum: 100
-          default: 20
-      responses:
-        '200':
-          description: Danh sách Customer
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustomerListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /users/customers/{customerId}:
-    get:
-      tags:
-      - Người dùng
-      summary: Xem thông tin Customer theo ID
-      description: 'Cho phép Operation Staff hoặc User có quyền phù hợp xem thông tin chi tiết của một Customer bằng customerId.
-        customerId là định danh của CUSTOMER_PROFILE, không phải userId.
-
-        '
+      - Customer
+      summary: Lấy Customer theo ID
       operationId: getCustomerById
       security:
       - bearerAuth: []
+      x-roles:
+      - CUSTOMER
+      - ADMIN
+      x-owner-or-admin: true
       parameters:
-      - name: customerId
-        in: path
-        required: true
-        description: Mã định danh Customer
-        schema:
-          type: string
-        example: C001
+      - $ref: '#/components/parameters/Cid'
       responses:
         '200':
-          description: Thông tin Customer
+          description: Customer Profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomerResponse'
+                $ref: '#/components/schemas/Customer'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: Không có quyền xem Customer này
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-      x-srs-trace:
-      - FR01.11
-      - UC03
-      - AC03.01-AC03.03
+          description: Không tìm thấy Customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

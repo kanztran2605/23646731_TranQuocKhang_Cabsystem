@@ -1,84 +1,19 @@
 openapi: 3.0.3
 info:
-  title: CAB System API - Authorization
-  version: 3.0.0
-  description: Role/Permission thuộc Identity & Access; System Administrator/Operation Staff có quyền phù hợp mới được quản
-    lý phân quyền.
+  title: CAB System API - Authorization Policy
+  version: 4.0.0
+  description: Tài liệu policy RBAC của API Gateway cho Demo MVP. Đây không phải Authorization Service riêng và không tạo
+    API quản trị Role/Permission.
 servers:
 - url: http://localhost:8080/api/v1
-  description: API Gateway - môi trường local/demo
-tags:
-- name: Phân quyền
+  description: API Gateway local/demo
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  responses:
-    Forbidden:
-      description: Người dùng không có quyền thực hiện thao tác
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    BadRequest:
-      description: Yêu cầu không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Unauthorized:
-      description: Thiếu Access Token hoặc Access Token không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    NotFound:
-      description: Không tìm thấy tài nguyên
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Conflict:
-      description: Xung đột trạng thái hoặc dữ liệu
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    TooManyRequests:
-      description: Vượt quá giới hạn request; Gateway trả HTTP 429
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ServerError:
-      description: Lỗi máy chủ nội bộ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   schemas:
-    Role:
-      type: object
-      properties:
-        roleId:
-          type: string
-        name:
-          type: string
-        permissions:
-          type: array
-          items:
-            type: string
-    PermissionsRequest:
-      type: object
-      required:
-      - permissions
-      properties:
-        permissions:
-          type: array
-          items:
-            type: string
     Error:
       type: object
       required:
@@ -90,60 +25,54 @@ components:
           example: INVALID_REQUEST
         message:
           type: string
-          example: Request data is invalid
-        timestamp:
+          example: Request không hợp lệ
+        at:
           type: string
           format: date-time
-paths:
-  /roles:
-    get:
-      tags:
-      - Phân quyền
-      summary: Xem danh sách vai trò
-      operationId: listRoles
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: Role list
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Role'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-  /roles/{roleId}/permissions:
-    put:
-      tags:
-      - Phân quyền
-      summary: Cập nhật quyền của vai trò
-      operationId: updateRolePermissions
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: roleId
-        in: path
-        required: true
-        schema:
-          type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PermissionsRequest'
-      responses:
-        '200':
-          description: Permissions updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Role'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+paths: {}
+x-rbac-rules:
+- route: GET /drivers/{did}
+  allow:
+  - ADMIN
+  demo: '#12 ADMIN -> 200; #28 CUSTOMER -> 403'
+- route: GET /drivers/nearby
+  allow:
+  - ADMIN
+- route: PATCH /drivers/{did}/approval
+  allow:
+  - ADMIN
+- route: PATCH /drivers/me/availability
+  allow:
+  - DRIVER
+- route: PUT /drivers/me/location
+  allow:
+  - DRIVER
+- route: POST /bookings
+  allow:
+  - CUSTOMER
+- route: GET /customers/me/bookings
+  allow:
+  - CUSTOMER
+- route: POST /offers/{oid}/accept
+  allow:
+  - DRIVER
+- route: PATCH /trips/{tid}/status
+  allow:
+  - DRIVER
+  rule: Driver phải là Driver được gán
+- route: PATCH /trips/{tid}/location
+  allow:
+  - DRIVER
+  rule: Driver phải là Driver được gán
+- route: POST /trips/{tid}/cancel
+  allow:
+  - CUSTOMER
+  rule: Customer phải sở hữu Trip
+- route: POST /payments/{pid}/pay
+  allow:
+  - CUSTOMER
+  rule: Customer phải sở hữu Payment
+- route: POST /trips/{tid}/reviews
+  allow:
+  - CUSTOMER
+  rule: Customer phải sở hữu Trip

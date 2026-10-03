@@ -1,422 +1,141 @@
 openapi: 3.0.3
 info:
   title: CAB System API - Authentication
-  version: 3.0.0
-  description: 'Public REST contract qua API Gateway cho Identity & Access: Customer registration, login/logout, Refresh Token,
-    OTP và Driver onboarding. Dữ liệu profile/vehicle được Gateway điều phối đến service sở hữu tương ứng; auth-service chỉ
-    sở hữu Identity & Access.'
+  version: 4.0.0
+  description: 'Public REST contract qua API Gateway cho Identity & Access trong Demo MVP. Chỉ giữ Register Customer, Login
+    và JWT.
+
+    Không Refresh Token/Logout flow phức tạp. Driver OTP/onboarding thuộc Driver API.'
 servers:
 - url: http://localhost:8080/api/v1
-  description: API Gateway - môi trường local/demo
+  description: API Gateway local/demo
 tags:
 - name: Authentication
-  description: Đăng ký, đăng nhập, OTP và Driver onboarding
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-  responses:
-    BadRequest:
-      description: Yêu cầu không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Unauthorized:
-      description: Thiếu Access Token hoặc Access Token không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Forbidden:
-      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    NotFound:
-      description: Không tìm thấy tài nguyên
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Conflict:
-      description: Xung đột trạng thái hoặc dữ liệu
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    TooManyRequests:
-      description: Vượt quá giới hạn request; Gateway trả HTTP 429
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ServerError:
-      description: Lỗi máy chủ nội bộ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   schemas:
-    RegisterCustomerRequest:
+    RegisterRequest:
       type: object
       required:
-      - password
-      - fullName
-      - phone
       - email
+      - pw
+      - name
       properties:
-        password:
-          type: string
-          format: password
-          minLength: 8
-          example: Password123!
-        fullName:
-          type: string
-          example: Nguyen Van A
-        phone:
-          type: string
-          example: 0901234567
         email:
           type: string
           format: email
-          example: customer@example.com
+          example: x@x.co
+        pw:
+          type: string
+          minLength: 3
+          example: '123'
+        name:
+          type: string
+          maxLength: 100
+          example: X
+    RegisterResponse:
+      type: object
+      required:
+      - uid
+      - cid
+      properties:
+        uid:
+          type: integer
+          format: int64
+          example: 4
+        cid:
+          type: integer
+          format: int64
+          example: 4
     LoginRequest:
       type: object
       required:
-      - identifier
-      - password
+      - email
+      - pw
       properties:
-        identifier:
-          type: string
-          description: Email hoặc số điện thoại của User
-          example: customer@example.com
-        password:
-          type: string
-          format: password
-          example: Password123!
-    UserResponse:
-      type: object
-      required:
-      - userId
-      - role
-      - accountStatus
-      properties:
-        userId:
-          type: string
-          example: U001
-        phone:
-          type: string
-          example: 0901234567
         email:
           type: string
           format: email
-          example: customer@example.com
+          example: c@c.co
+        pw:
+          type: string
+          example: '123'
+    LoginResponse:
+      type: object
+      required:
+      - token
+      - uid
+      - role
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOi...
+        uid:
+          type: integer
+          format: int64
+          example: 1
         role:
           type: string
           enum:
           - CUSTOMER
           - DRIVER
-          - OPERATION_STAFF
-          - MANAGEMENT
-          - SYSTEM_ADMINISTRATOR
+          - ADMIN
           example: CUSTOMER
-        accountStatus:
-          type: string
-          enum:
-          - ACTIVE
-          - DISABLED
-          example: ACTIVE
-      description: Identity data do auth-service sở hữu. fullName/address/dateOfBirth không thuộc auth-service.
-    LoginResponse:
-      type: object
-      required:
-      - accessToken
-      - refreshToken
-      - tokenType
-      - expiresIn
-      - refreshExpiresIn
-      - user
-      properties:
-        accessToken:
-          type: string
-          example: eyJhbGciOiJIUzI1NiIs...
-        refreshToken:
-          type: string
-          description: Opaque Refresh Token; server chỉ lưu token hash.
-          example: rt_01H...
-        tokenType:
-          type: string
-          example: Bearer
-        expiresIn:
-          type: integer
-          example: 3600
-        refreshExpiresIn:
-          type: integer
-          example: 2592000
-        user:
-          $ref: '#/components/schemas/UserResponse'
-    OtpRequest:
-      type: object
-      required:
-      - phone
-      properties:
-        phone:
-          type: string
-          example: 0900000002
-    OtpRequestResponse:
-      type: object
-      required:
-      - verificationId
-      - expiresIn
-      - message
-      properties:
-        verificationId:
-          type: string
-          example: OTP-VRF-001
-        expiresIn:
-          type: integer
-          description: Thời gian hiệu lực tính bằng giây
-          example: 300
-        message:
-          type: string
-          example: OTP has been sent
-        devOtp:
-          type: string
-          nullable: true
-          example: '123456'
-          description: Chỉ dùng cho local/demo khi sử dụng Mock OTP Provider. Không trả trường này trong production.
-          x-development-only: true
-    OtpVerifyRequest:
-      type: object
-      required:
-      - verificationId
-      - otp
-      properties:
-        verificationId:
-          type: string
-          example: OTP-VRF-001
-        otp:
-          type: string
-          example: '123456'
-    OtpVerifyResponse:
-      type: object
-      required:
-      - verificationToken
-      - verified
-      properties:
-        verificationToken:
-          type: string
-          example: OTP-TOKEN-001
-        verified:
-          type: boolean
-          example: true
-    VehicleRegistration:
-      type: object
-      required:
-      - vehicleTypeId
-      - licensePlate
-      properties:
-        vehicleTypeId:
-          type: string
-          example: CAR_4_SEATS
-        brand:
-          type: string
-          example: Toyota
-        model:
-          type: string
-          example: Vios
-        licensePlate:
-          type: string
-          example: 51A-123.45
-    RegisterDriverRequest:
-      type: object
-      required:
-      - verificationToken
-      - password
-      - fullName
-      - phone
-      - email
-      - driverLicense
-      - vehicle
-      properties:
-        verificationToken:
-          type: string
-          description: Token nhận được sau khi OTP được xác thực
-          example: OTP-TOKEN-001
-        password:
-          type: string
-          format: password
-          minLength: 8
-          example: Password123!
-        fullName:
-          type: string
-          example: Tran Van Driver
-        phone:
-          type: string
-          example: 0900000002
-        email:
-          type: string
-          format: email
-          example: driver@example.com
-        driverLicense:
-          type: string
-          example: DL-123456
-        vehicle:
-          $ref: '#/components/schemas/VehicleRegistration'
-    DriverRegistrationResponse:
-      type: object
-      required:
-      - driverId
-      - userId
-      - approvalStatus
-      properties:
-        driverId:
-          type: string
-          example: DRV001
-        userId:
-          type: string
-          example: U002
-        approvalStatus:
-          type: string
-          enum:
-          - PENDING_APPROVAL
-          example: PENDING_APPROVAL
-        message:
-          type: string
-          example: Driver profile created and pending approval
     Error:
       type: object
       required:
       - code
       - message
-      - timestamp
       properties:
         code:
           type: string
           example: INVALID_REQUEST
         message:
           type: string
-          example: Request data is invalid
-        timestamp:
+          example: Request không hợp lệ
+        at:
           type: string
           format: date-time
-    CustomerRegistrationResponse:
-      type: object
-      required:
-      - userId
-      - customerId
-      - role
-      - accountStatus
-      properties:
-        userId:
-          type: string
-          example: U001
-        customerId:
-          type: string
-          example: C001
-        role:
-          type: string
-          enum:
-          - CUSTOMER
-          example: CUSTOMER
-        accountStatus:
-          type: string
-          enum:
-          - ACTIVE
-          example: ACTIVE
-      description: Composite response của Gateway sau khi Identity User và Customer Profile đã được tạo ở đúng service ownership.
-    RefreshTokenRequest:
-      type: object
-      required:
-      - refreshToken
-      properties:
-        refreshToken:
-          type: string
-          example: rt_01H...
-    RefreshTokenResponse:
-      type: object
-      required:
-      - accessToken
-      - refreshToken
-      - tokenType
-      - expiresIn
-      - refreshExpiresIn
-      - user
-      properties:
-        accessToken:
-          type: string
-          example: eyJhbGciOiJIUzI1NiIs...
-        refreshToken:
-          type: string
-          description: Opaque Refresh Token; server chỉ lưu token hash.
-          example: rt_01H...
-        tokenType:
-          type: string
-          example: Bearer
-        expiresIn:
-          type: integer
-          example: 3600
-        refreshExpiresIn:
-          type: integer
-          example: 2592000
-        user:
-          $ref: '#/components/schemas/UserResponse'
-    LogoutRequest:
-      type: object
-      required:
-      - refreshToken
-      properties:
-        refreshToken:
-          type: string
-          description: Refresh Token của session cần revoke.
 paths:
-  /auth/customers/register:
+  /register:
     post:
       tags:
       - Authentication
       summary: Đăng ký Customer
       operationId: registerCustomer
-      security: []
-      x-srs-trace:
-      - FR01.01
-      - UC01
-      - AC01.01-AC01.04
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegisterCustomerRequest'
+              $ref: '#/components/schemas/RegisterRequest'
       responses:
         '201':
-          description: Customer được tạo thành công
+          description: Tạo Account + Customer Profile thành công
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomerRegistrationResponse'
+                $ref: '#/components/schemas/RegisterResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Thiếu/sai dữ liệu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-  /auth/login:
+          description: Email đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-gateway-orchestration:
+      - 'Gateway -> auth-service gRPC: create CUSTOMER account'
+      - 'Gateway -> customer-service gRPC: create Customer Profile'
+  /login:
     post:
       tags:
       - Authentication
-      summary: Đăng nhập và nhận Access Token
+      summary: Đăng nhập và nhận JWT
       operationId: login
-      security: []
-      x-srs-trace:
-      - FR01.03
-      - FR01.10
-      - UC02
-      - AC02.01-AC02.04
-      - AC-G01
       requestBody:
         required: true
         content:
@@ -431,144 +150,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Request không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Sai credential / SQLi không bypass
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '429':
-          $ref: '#/components/responses/TooManyRequests'
-  /auth/logout:
-    post:
-      tags:
-      - Authentication
-      summary: Đăng xuất
-      operationId: logout
-      security:
-      - bearerAuth: []
-      responses:
-        '204':
-          description: Đăng xuất thành công
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LogoutRequest'
-      description: Revoke Refresh Token/session hiện tại. Refresh Token đã revoke không được dùng để cấp Access Token mới.
-  /auth/drivers/otp/request:
-    post:
-      tags:
-      - Authentication
-      summary: Yêu cầu OTP đăng ký Driver
-      operationId: requestDriverOtp
-      security: []
-      x-srs-trace:
-      - FR01.07
-      - UC22
-      - AC22.01
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OtpRequest'
-      responses:
-        '200':
-          description: OTP đã được tạo/gửi
+          description: Vượt rate limit tại Gateway
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OtpRequestResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-  /auth/drivers/otp/verify:
-    post:
-      tags:
-      - Authentication
-      summary: Xác thực OTP của Driver
-      operationId: verifyDriverOtp
-      security: []
-      x-srs-trace:
-      - FR01.08
-      - UC22
-      - AC22.02-AC22.03
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OtpVerifyRequest'
-      responses:
-        '200':
-          description: OTP hợp lệ
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OtpVerifyResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
-  /auth/drivers/register:
-    post:
-      tags:
-      - Authentication
-      summary: Hoàn tất đăng ký Driver sau khi OTP hợp lệ
-      operationId: registerDriver
-      security: []
-      x-srs-trace:
-      - FR01.02
-      - FR01.09
-      - UC22
-      - AC22.04-AC22.05
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterDriverRequest'
-      responses:
-        '201':
-          description: Hồ sơ Driver được tạo ở trạng thái PENDING_APPROVAL
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DriverRegistrationResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
-  /auth/refresh:
-    post:
-      tags:
-      - Authentication
-      summary: Cấp Access Token mới bằng Refresh Token
-      operationId: refreshAccessToken
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RefreshTokenRequest'
-      responses:
-        '200':
-          description: Token pair mới được cấp
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RefreshTokenResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-      x-ddd-trace:
-      - Refresh Token Aggregate
-      - UC02
+                $ref: '#/components/schemas/Error'

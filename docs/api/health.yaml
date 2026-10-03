@@ -1,120 +1,94 @@
 openapi: 3.0.3
 info:
   title: CAB System Gateway Health API
-  version: 3.0.0
-  description: Gateway liveness/readiness và tổng hợp trạng thái đúng 10 microservice của kiến trúc DDD FINAL.
+  version: 4.0.0
+  description: 'Health endpoints tại API Gateway phục vụ rubric #6.'
 servers:
-- url: http://localhost:8080
-  description: API Gateway - môi trường local/demo
+- url: http://localhost:8080/api/v1
+  description: API Gateway local/demo
 tags:
 - name: Health
-  description: Liveness, readiness và service health
 components:
   schemas:
-    SimpleHealth:
+    Health:
       type: object
       required:
-      - status
+      - s
       properties:
-        status:
+        s:
           type: string
-          enum:
-          - healthy
-          - ready
-          - not-ready
-          example: healthy
+          example: UP
     ServiceHealth:
       type: object
       required:
       - name
-      - status
+      - s
       properties:
         name:
           type: string
-          example: auth-service
-          enum:
-          - auth-service
-          - customer-service
-          - driver-service
-          - booking-service
-          - trip-service
-          - payment-service
-          - notification-service
-          - review-service
-          - report-service
-          - audit-service
-        status:
+          example: booking-service
+        s:
           type: string
           enum:
-          - healthy
-          - unhealthy
-          example: healthy
-        detail:
-          type: string
-          nullable: true
-    ServiceHealthResponse:
+          - UP
+          - DOWN
+          example: UP
+    ServicesHealth:
       type: object
       required:
-      - status
+      - s
       - services
       properties:
-        status:
+        s:
           type: string
-          enum:
-          - healthy
-          - degraded
-          example: healthy
+          example: UP
         services:
           type: array
           items:
             $ref: '#/components/schemas/ServiceHealth'
-          description: Kỳ vọng 10 service trong DDD FINAL.
 paths:
   /health:
     get:
       tags:
       - Health
       summary: Gateway liveness
-      operationId: getHealth
-      security: []
+      operationId: health
       responses:
         '200':
-          description: Gateway đang hoạt động
+          description: Gateway sống
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SimpleHealth'
+                $ref: '#/components/schemas/Health'
   /ready:
     get:
       tags:
       - Health
       summary: Gateway readiness
-      operationId: getReady
-      security: []
+      operationId: ready
       responses:
         '200':
-          description: Gateway sẵn sàng phục vụ
+          description: Gateway + dependency tối thiểu ready
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SimpleHealth'
+                $ref: '#/components/schemas/Health'
         '503':
-          description: Gateway hoặc dependency quan trọng chưa sẵn sàng
+          description: Chưa ready
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SimpleHealth'
+                $ref: '#/components/schemas/Health'
   /health/services:
     get:
       tags:
       - Health
-      summary: Trạng thái các service quan trọng
-      operationId: getServiceHealth
-      security: []
+      summary: Health của đúng 8 business services
+      operationId: serviceHealth
       responses:
         '200':
-          description: Trạng thái các service
+          description: Tổng hợp 8 service
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ServiceHealthResponse'
+                $ref: '#/components/schemas/ServicesHealth'

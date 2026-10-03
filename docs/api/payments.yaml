@@ -1,456 +1,285 @@
 openapi: 3.0.3
 info:
-  title: CAB System API - Payments
-  version: 3.0.0
-  description: Public REST contract qua API Gateway cho Payment Aggregate. Fare được tính trước từ Trip COMPLETED; Payment
-    hỗ trợ CASH/ELECTRONIC, Provider Callback, Idempotency và Payment Transaction.
+  title: CAB System API - Payment
+  version: 4.0.0
+  description: 'Payment được tạo tự động khi payment-service consume booking.created: PENDING, amt=50000, eligible=false,
+    tid=null.
+
+    trip.completed chỉ gắn tid + eligible=true. Customer pay Payment đã tồn tại; callback mock hoàn tất Payment.'
 servers:
 - url: http://localhost:8080/api/v1
-  description: API Gateway - môi trường local/demo
+  description: API Gateway local/demo
 tags:
-- name: Payments
-  description: Payment, callback và idempotency
+- name: Payment
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-    providerSignature:
-      type: apiKey
-      in: header
-      name: X-Provider-Signature
-      description: Chữ ký callback của Payment Provider. Demo có thể dùng mock signature.
-  responses:
-    BadRequest:
-      description: Yêu cầu không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Unauthorized:
-      description: Thiếu Access Token hoặc Access Token không hợp lệ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Forbidden:
-      description: Người dùng đã xác thực nhưng không có quyền thực hiện thao tác
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    NotFound:
-      description: Không tìm thấy tài nguyên
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Conflict:
-      description: Xung đột trạng thái hoặc dữ liệu
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    TooManyRequests:
-      description: Vượt quá giới hạn request; Gateway trả HTTP 429
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ServerError:
-      description: Lỗi máy chủ nội bộ
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   parameters:
-    TripId:
-      name: tripId
+    Pid:
+      name: pid
       in: path
       required: true
       schema:
-        type: string
-    PaymentId:
-      name: paymentId
+        type: integer
+        format: int64
+        example: 1
+    Bid:
+      name: bid
       in: path
       required: true
       schema:
-        type: string
-    IdempotencyKey:
+        type: integer
+        format: int64
+        example: 6
+    IdemKey:
       name: Idempotency-Key
       in: header
       required: true
-      description: Bắt buộc cho create payment; cùng key + cùng request phải trả lại kết quả cũ, không tạo payment mới/double
-        charge.
       schema:
         type: string
-        minLength: 8
-        maxLength: 255
-      example: PAY-CUS001-TRIP001
+        example: P1
   schemas:
-    CreatePaymentRequest:
-      type: object
-      required:
-      - method
-      properties:
-        method:
-          type: string
-          enum:
-          - CASH
-          - ELECTRONIC
-          example: ELECTRONIC
     Payment:
       type: object
       required:
-      - paymentId
-      - fareId
-      - tripId
-      - customerId
-      - amount
-      - currency
-      - paymentMethod
-      - status
+      - pid
+      - bid
+      - cid
+      - amt
+      - eligible
+      - s
       properties:
-        paymentId:
-          type: string
-          example: PAY001
-        tripId:
-          type: string
-          example: TRIP001
-        amount:
+        pid:
+          type: integer
+          format: int64
+          example: 1
+        bid:
+          type: integer
+          format: int64
+          example: 6
+        tid:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1
+        cid:
+          type: integer
+          format: int64
+          example: 1
+        amt:
           type: number
           format: double
           example: 50000
-        status:
+        eligible:
+          type: boolean
+          example: false
+        s:
           type: string
           enum:
           - PENDING
           - COMPLETED
-          - FAILED
-        providerReference:
+          example: PENDING
+        key:
           type: string
           nullable: true
-          example: MOCK123
-        createdAt:
-          type: string
-          format: date-time
-        failureReason:
-          type: string
-          nullable: true
-          example: PROVIDER_DECLINED
-        paidAt:
-          type: string
-          format: date-time
-          nullable: true
-        fareId:
-          type: string
-          example: FARE001
-        customerId:
-          type: string
-          example: C001
-        currency:
-          type: string
-          example: VND
-        paymentMethod:
-          type: string
-          enum:
-          - CASH
-          - ELECTRONIC
-    PaymentCallbackRequest:
+          example: P1
+    CallbackRequest:
       type: object
       required:
-      - paymentId
-      - status
-      - providerReference
+      - s
       properties:
-        paymentId:
-          type: string
-          example: PAY001
-        status:
+        s:
           type: string
           enum:
           - COMPLETED
-          - FAILED
-        providerReference:
-          type: string
-          example: MOCK123
-        failureReason:
-          type: string
-          nullable: true
-          description: Lý do thất bại khi status = FAILED
-          example: PROVIDER_DECLINED
-    ReplayResponse:
-      type: object
-      properties:
-        replayed:
-          type: boolean
-          example: true
-        payment:
-          $ref: '#/components/schemas/Payment'
+          example: COMPLETED
     Error:
       type: object
       required:
       - code
       - message
-      - timestamp
       properties:
         code:
           type: string
           example: INVALID_REQUEST
         message:
           type: string
-          example: Request data is invalid
-        timestamp:
-          type: string
-          format: date-time
-    PaymentTransaction:
-      type: object
-      required:
-      - transactionId
-      - paymentId
-      - status
-      - amount
-      - currency
-      - processedAt
-      properties:
-        transactionId:
-          type: string
-        paymentId:
-          type: string
-        providerReference:
-          type: string
-          nullable: true
-        status:
-          type: string
-          enum:
-          - PENDING
-          - COMPLETED
-          - FAILED
-        amount:
-          type: number
-          format: double
-        currency:
-          type: string
-          example: VND
-        failureReason:
-          type: string
-          nullable: true
-        processedAt:
+          example: Request không hợp lệ
+        at:
           type: string
           format: date-time
 paths:
-  /trips/{tripId}/payments:
-    post:
-      tags:
-      - Payments
-      summary: Chọn/khởi tạo Payment cho Fare của Trip
-      operationId: createPayment
-      security:
-      - bearerAuth: []
-      x-srs-trace:
-      - FR06.04-FR06.10
-      - FR06.12-FR06.13
-      - UC12
-      - AC12.01-AC12.08
-      - AC12.10-AC12.11
-      - AC-G10
-      parameters:
-      - $ref: '#/components/parameters/TripId'
-      - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePaymentRequest'
-      responses:
-        '201':
-          description: Payment mới được tạo
-          headers:
-            Idempotency-Replayed:
-              schema:
-                type: boolean
-              description: false khi tạo mới
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Payment'
-        '200':
-          description: 'Request replay: trả lại Payment đã xử lý trước đó'
-          headers:
-            Idempotency-Replayed:
-              schema:
-                type: boolean
-                example: true
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Payment'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-      description: Chỉ hợp lệ khi Trip đã COMPLETED và Fare hợp lệ đã được payment-service tạo. Idempotency-Key bắt buộc để
-        chống duplicate/double charge.
-  /payments/{paymentId}:
+  /payments/by-booking/{bid}:
     get:
       tags:
-      - Payments
+      - Payment
+      summary: Lấy Payment đã tự tạo theo Booking
+      operationId: getPaymentByBooking
+      security:
+      - bearerAuth: []
+      x-roles:
+      - CUSTOMER
+      - ADMIN
+      parameters:
+      - $ref: '#/components/parameters/Bid'
+      responses:
+        '200':
+          description: Payment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: Payment chưa được consume/tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Không có quyền
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /payments/{pid}:
+    get:
+      tags:
+      - Payment
       summary: Xem Payment
       operationId: getPayment
       security:
       - bearerAuth: []
       parameters:
-      - $ref: '#/components/parameters/PaymentId'
+      - $ref: '#/components/parameters/Pid'
       responses:
         '200':
-          description: Thông tin Payment
+          description: Payment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: Không tìm thấy Payment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Không có quyền
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /payments/{pid}/pay:
+    post:
+      tags:
+      - Payment
+      summary: Thanh toán Payment đã tồn tại (idempotent)
+      operationId: payExistingPayment
+      security:
+      - bearerAuth: []
+      x-roles:
+      - CUSTOMER
+      x-owner-only: true
+      parameters:
+      - $ref: '#/components/parameters/Pid'
+      - $ref: '#/components/parameters/IdemKey'
+      responses:
+        '200':
+          description: Payment hiện tại; replay cùng key trả cùng pid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Payment'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: JWT không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /payments/provider/callback:
+          description: Không sở hữu Payment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Payment chưa eligible hoặc key conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-internal-flow:
+      - Load existing Payment by pid
+      - Require PENDING + eligible=true
+      - Record/check Idempotency-Key; replay returns same pid
+  /payments/{pid}/callback:
     post:
       tags:
-      - Payments
-      summary: Nhận callback từ Payment Provider
-      operationId: paymentProviderCallback
+      - Payment
+      summary: Mock callback nội bộ cho demo
+      operationId: paymentCallback
       security:
-      - providerSignature: []
-      x-srs-trace:
-      - FR06.07
-      - FR06.11
-      - UC12
-      - AC12.04
-      - AC12.09
+      - bearerAuth: []
+      x-demo-only: true
+      x-roles:
+      - CUSTOMER
+      - ADMIN
+      parameters:
+      - $ref: '#/components/parameters/Pid'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PaymentCallbackRequest'
+              $ref: '#/components/schemas/CallbackRequest'
       responses:
         '200':
-          description: Callback hợp lệ đã được xử lý
+          description: Payment COMPLETED; payment.completed được publish
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Payment'
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /payments/{paymentId}/retry:
-    post:
-      tags:
-      - Payments
-      summary: Retry một Payment FAILED theo chính sách
-      operationId: retryPayment
-      security:
-      - bearerAuth: []
-      parameters:
-      - $ref: '#/components/parameters/PaymentId'
-      - $ref: '#/components/parameters/IdempotencyKey'
-      responses:
-        '200':
-          description: Retry đã được khởi tạo/hoặc kết quả cũ được trả lại
+          description: Callback không hợp lệ
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Payment'
+                $ref: '#/components/schemas/Error'
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /payment-transactions:
-    get:
-      tags:
-      - Payments
-      summary: Operation Staff tra cứu Payment Transaction
-      operationId: getPaymentTransactions
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: status
-        in: query
-        schema:
-          type: string
-          enum:
-          - PENDING
-          - COMPLETED
-          - FAILED
-      - name: from
-        in: query
-        schema:
-          type: string
-          format: date-time
-      - name: to
-        in: query
-        schema:
-          type: string
-          format: date-time
-      - name: page
-        in: query
-        schema:
-          type: integer
-          minimum: 1
-          default: 1
-      - name: limit
-        in: query
-        schema:
-          type: integer
-          minimum: 1
-          maximum: 100
-          default: 20
-      responses:
-        '200':
-          description: Danh sách transaction
+          description: JWT không hợp lệ
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PaymentTransaction'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/Error'
         '403':
-          $ref: '#/components/responses/Forbidden'
-      x-srs-trace:
-      - UC18
+          description: Không có quyền
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: eligible=false hoặc state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-internal-flow:
+      - Require PENDING + eligible=true
+      - Set COMPLETED
+      - Publish payment.completed -> trip-service + notification-service
