@@ -37,7 +37,7 @@ Không sử dụng hệ thống bên ngoài thật. OTP, Location, Payment callb
 |---|---|---|
 | BP01 | Phân công Driver thủ công | Booking tự tìm Driver phù hợp/gần nhất |
 | BP02 | Customer khó theo dõi trạng thái | Booking/Trip có trạng thái rõ ràng |
-| BP03 | Payment chưa được quản lý tập trung | Payment Service + callback mock |
+| BP03 | Payment lifecycle cần gắn trực tiếp với Booking | Booking tạo `booking.created` → Payment Service khởi tạo Payment PENDING + callback mock |
 | BP04 | Hệ thống demo trước đây quá nhiều bước | Request, seed, trạng thái và flow được rút gọn |
 | BP05 | Demo phụ thuộc provider ngoài dễ lỗi | Dùng mock/local deterministic |
 | BP06 | Cần chứng minh đúng MSA | Gateway + Redis, gRPC, RabbitMQ, DB riêng/service |
@@ -54,7 +54,7 @@ Hệ thống cần:
 - Tạo Offer và cho Driver nhận chuyến.
 - Quản lý Trip theo state machine ngắn, có cập nhật vị trí khi đang di chuyển.
 - Hủy Trip có lý do và thông báo.
-- Thanh toán online bằng callback mock, chống replay bằng idempotency.
+- Tự động khởi tạo một Payment `PENDING` ngay sau khi Booking được tạo; thanh toán online dùng callback mock và chống replay bằng idempotency.
 - Đánh giá chuyến đã hoàn thành.
 - Thể hiện Gateway, Redis, gRPC, RabbitMQ, Docker Compose và DB ownership.
 - Đảm bảo đủ 30 tiêu chí chấm và demo nhanh.
@@ -85,7 +85,7 @@ Hệ thống cần:
 | BG02 | Hỗ trợ đặt xe trực tuyến |
 | BG03 | Theo dõi và cập nhật Trip đúng trình tự |
 | BG04 | Quản lý Driver, duyệt hồ sơ và trạng thái nhận chuyến |
-| BG05 | Thanh toán online mock ổn định và idempotent |
+| BG05 | Payment được khởi tạo ngay khi Booking được tạo; thanh toán mock ổn định và idempotent |
 | BG06 | Gửi/lưu Notification nội bộ qua RabbitMQ |
 | BG07 | Cho phép Customer đánh giá Trip hoàn thành |
 | BG08 | Kiểm soát xác thực, phân quyền và các security smoke test |
@@ -103,7 +103,7 @@ Hệ thống cần:
 3. Driver + Vehicle + Approval + Availability + Location
 4. Booking + Nearby Matching + Offer
 5. Trip + State Machine + Cancel + Location Update
-6. Payment mock + Callback + Idempotency
+6. Payment tự khởi tạo từ Booking + Callback mock + Idempotency
 7. Notification nội bộ
 8. Review
 9. API Gateway + Redis
@@ -125,7 +125,7 @@ Runtime chính gồm **8 business services + API Gateway**:
 | driver-service | Driver, Vehicle, approval, availability, location, nearby | PostgreSQL `driver_db` |
 | booking-service | Booking, Offer, matching, assignment data | PostgreSQL `booking_db` |
 | trip-service | Trip, state machine, status/location history, cancel, payment-status projection | PostgreSQL `trip_db` |
-| payment-service | Payment, callback mock, idempotency | PostgreSQL `payment_db` |
+| payment-service | Khởi tạo Payment từ `booking.created`, eligibility từ `trip.completed`, callback mock, idempotency | PostgreSQL `payment_db` |
 | notification-service | Consume event và lưu notification | MongoDB `notification_db` |
 | review-service | Review gắn với Trip | PostgreSQL `review_db` |
 
@@ -258,6 +258,7 @@ flowchart LR
     N[Notification Service]
     MQ[(RabbitMQ\nExchange: cab.events)]
 
+    B -. booking.created .-> MQ
     B -. offer.created .-> MQ
     B -. driver.accepted .-> MQ
     D -. driver.approval.changed .-> MQ
@@ -266,9 +267,9 @@ flowchart LR
     T -. trip.completed .-> MQ
     P -. payment.completed .-> MQ
 
+    MQ -. booking.created / trip.completed .-> P
     MQ -. driver.accepted .-> T
     MQ -. trip.canceled / trip.completed .-> D
-    MQ -. trip.completed .-> P
     MQ -. offer.created / driver.approval.changed / trip.* / payment.completed .-> N
     MQ -. payment.completed .-> T
 ```
@@ -313,6 +314,7 @@ Tên domain/proto/code nội bộ vẫn dùng tên rõ nghĩa; alias ngắn ch�
 - Map/GPS Provider thật.
 - SMS/Email/Push Provider thật.
 - Pricing Engine, surge price, promotion.
+- Refund/void/payment settlement production; Payment PENDING khởi tạo sớm không đồng nghĩa đã charge tiền.
 - Report/BI nâng cao.
 - Audit Service riêng.
 - CRM/HR/Payroll/Fleet Maintenance.
@@ -329,10 +331,10 @@ Tên domain/proto/code nội bộ vẫn dùng tên rõ nghĩa; alias ngắn ch�
 | BR01 | Quản lý tài khoản | Customer/Driver/Admin đăng nhập; Customer đăng ký; JWT + role |
 | BR02 | Quản lý Customer | Xem hồ sơ Customer theo token/quyền |
 | BR03 | Quản lý Driver | Driver profile, vehicle, OTP mock, approval, Online/Offline, location |
-| BR04 | Booking & Matching | Customer tạo Booking, tìm Driver gần nhất phù hợp và tạo Offer |
+| BR04 | Booking & Matching | Customer tạo Booking, publish `booking.created`, tìm Driver gần nhất phù hợp và tạo Offer |
 | BR05 | Trip | Driver nhận chuyến, Trip được tạo và cập nhật đúng state machine |
 | BR06 | Cancel | Customer hủy Trip hợp lệ, có lý do và notification |
-| BR07 | Payment | Online mock callback, `COMPLETED`, idempotency/replay |
+| BR07 | Payment | Tự động tạo Payment `PENDING` khi Booking được tạo; `trip.completed` mở eligibility; callback mock, `COMPLETED`, idempotency/replay |
 | BR08 | Notification | Nhận business event qua RabbitMQ và lưu notification nội bộ |
 | BR09 | Review | Customer đánh giá Trip đã hoàn thành |
 | BR10 | Security | Encryption, SQLi, XSS, JWT tampering, RBAC, rate limit |
@@ -367,12 +369,15 @@ Tên domain/proto/code nội bộ vẫn dùng tên rõ nghĩa; alias ngắn ch�
 
 1. Customer đã đăng nhập tạo Booking với pickup/destination.
 2. Booking Service xác thực Customer cần thiết qua liên kết gRPC với Customer Service.
-3. Booking Service gọi Driver Service qua gRPC để lấy Driver phù hợp/gần nhất.
-4. Chỉ Driver `APPROVED + AVAILABLE` và phù hợp loại xe mới được chọn.
-5. Booking Service tạo **một Offer** cho Driver được chọn.
-6. Booking Service publish `offer.created` qua RabbitMQ.
-7. Booking trả trạng thái đang tìm/đã gửi Offer cho Customer.
-8. Nếu không có Driver phù hợp, Booking trả `NO_DRIVER_FOUND`.
+3. Booking Service lưu Booking thành công.
+4. Ngay sau khi Booking tồn tại, Booking Service publish `booking.created` qua RabbitMQ.
+5. Payment Service consume `booking.created` và khởi tạo **một Payment duy nhất** cho Booking với `amount=50000`, `status=PENDING`, `eligible=false`.
+6. Booking Service gọi Driver Service qua gRPC để lấy Driver phù hợp/gần nhất.
+7. Chỉ Driver `APPROVED + AVAILABLE` và phù hợp loại xe mới được chọn.
+8. Booking Service tạo **một Offer** cho Driver được chọn.
+9. Booking Service publish `offer.created` qua RabbitMQ.
+10. Booking trả trạng thái đang tìm/đã gửi Offer cho Customer.
+11. Nếu không có Driver phù hợp, Booking trả `NO_DRIVER_FOUND`; Payment đã khởi tạo vẫn ở `PENDING` và không thể `COMPLETED` khi chưa có `trip.completed`.
 
 > MVP không triển khai loop từ chối/timeout/retry matching tự động. Phiếu chấm chỉ cần tạo Booking → tìm Driver → gửi Offer.
 
@@ -420,18 +425,19 @@ Trip Service sử dụng liên kết gRPC với Driver Service khi cần dữ li
 
 ## 6.7. BP07 – Payment
 
-1. Trip hoàn thành.
-2. Trip Service publish `trip.completed`.
-3. Payment Service consume `trip.completed` để ghi nhận Trip đủ điều kiện thanh toán.
-4. Demo amount cố định `50000`.
-5. Customer tạo Payment với `Idempotency-Key`.
-6. Payment ở trạng thái `PENDING`.
-7. Callback mock cập nhật `COMPLETED`.
+1. Payment đã được khởi tạo tự động ở trạng thái `PENDING` ngay khi Booking được tạo từ event `booking.created`.
+2. Trip hoàn thành và Trip Service publish `trip.completed`.
+3. Payment Service consume `trip.completed`, tìm Payment hiện có theo `bookingId`, gắn `tripId` và chuyển `eligible=true`.
+4. Demo amount giữ cố định `50000`; `trip.completed` **không tạo Payment mới**.
+5. Customer/System gửi yêu cầu thanh toán cho Payment đã tồn tại với `Idempotency-Key`, demo `P1`.
+6. Payment Service kiểm tra Payment đang `PENDING`, đã `eligible=true` và ghi nhận idempotency key cho payment request.
+7. Callback mock hợp lệ cập nhật Payment `COMPLETED`.
 8. Payment Service publish `payment.completed`.
 9. Trip Service consume để ghi nhận chuyến đã thanh toán.
 10. Notification Service consume để lưu kết quả Payment.
+11. Replay cùng `Idempotency-Key` trả đúng Payment hiện có/cùng `pid`, không insert Payment mới và không double charge.
 
-Không có Pricing Engine và không gọi Payment Provider thật.
+`PENDING` chỉ biểu thị Payment đã được khởi tạo nhưng chưa hoàn tất thanh toán; không có Pricing Engine và không gọi Payment Provider thật.
 
 ## 6.8. BP08 – Review
 
@@ -449,6 +455,8 @@ flowchart TD
     A[Customer Register / Login]
     B[Create Booking]
     C[Booking gRPC Customer validation]
+    BC[Publish booking.created]
+    PY[Payment consume -> PENDING amt=50000 eligible=false]
     D[Booking gRPC Driver nearby/matching]
     E{Có Driver phù hợp?}
     F[Create Offer]
@@ -461,16 +469,16 @@ flowchart TD
     M[Update lat/lng]
     N[COMPLETED]
     O[Publish trip.completed]
-    P[Payment eligible / amount=50000]
-    Q[Create Payment PENDING]
-    R[Mock Callback]
+    P[Existing Payment -> eligible=true + attach tid]
+    R[Pay existing Payment key=P1]
+    CB[Mock Callback]
     S[Payment COMPLETED]
     U[Publish payment.completed]
     V[Review Trip]
     X[NO_DRIVER_FOUND]
 
-    A --> B --> C --> D --> E
-    E -->|Có| F --> G --> H --> I --> J --> K --> L --> M --> N --> O --> P --> Q --> R --> S --> U --> V
+    A --> B --> C --> BC --> PY --> D --> E
+    E -->|Có| F --> G --> H --> I --> J --> K --> L --> M --> N --> O --> P --> R --> CB --> S --> U --> V
     E -->|Không| X
 ```
 
@@ -538,15 +546,20 @@ sequenceDiagram
     participant CU as Customer Service
     participant D as Driver Service
     participant MQ as RabbitMQ
+    participant P as Payment Service
     participant N as Notification Service
 
     C->>G: POST Booking
     G->>B: gRPC CreateBooking
     B->>CU: gRPC ValidateCustomer
     CU-->>B: valid
+    B->>B: Save Booking
+    B->>MQ: booking.created
+    MQ-->>P: consume booking.created
+    P->>P: Create one Payment PENDING, amt=50000, eligible=false
     B->>D: gRPC FindNearbyDrivers
     D-->>B: nearest eligible Driver
-    B->>B: Save Booking + Offer
+    B->>B: Save Offer
     B->>MQ: offer.created
     MQ-->>N: consume offer.created
     N->>N: Save notification
@@ -669,38 +682,44 @@ sequenceDiagram
     G-->>C: success
 ```
 
-## 6.18. Sequence – Payment + Replay Protection
+## 6.18. Sequence – Payment Lifecycle + Replay Protection
 
 ```mermaid
 sequenceDiagram
     actor C as Customer
     participant G as API Gateway
+    participant B as Booking Service
     participant P as Payment Service
     participant MQ as RabbitMQ
     participant T as Trip Service
     participant N as Notification Service
 
-    MQ-->>P: trip.completed
-    P->>P: mark tid payment-eligible
+    B->>MQ: booking.created
+    MQ-->>P: consume booking.created
+    P->>P: Create Payment PENDING, amt=50000, eligible=false
 
-    C->>G: Create Payment, key=P1
-    G->>P: gRPC CreatePayment
-    P->>P: Save PENDING, amt=50000
-    P-->>G: pid + PENDING
+    T->>MQ: trip.completed (bid + tid)
+    MQ-->>P: consume trip.completed
+    P->>P: attach tid + eligible=true
+
+    C->>G: Pay existing pid/bid, key=P1
+    G->>P: gRPC PayExistingPayment
+    P->>P: find existing Payment + record/check key
+    P-->>G: same pid + PENDING
     G-->>C: response
 
     C->>G: Mock callback
     G->>P: gRPC PaymentCallback
-    P->>P: COMPLETED
+    P->>P: validate eligible -> COMPLETED
     P->>MQ: payment.completed
     MQ-->>T: mark Trip paid
     MQ-->>N: save notification
 
-    C->>G: Replay same Create Payment, key=P1
-    G->>P: gRPC CreatePayment
+    C->>G: Replay same payment request, key=P1
+    G->>P: gRPC PayExistingPayment
     P->>P: detect existing key
     P-->>G: return existing Payment
-    G-->>C: same pid, no double charge
+    G-->>C: same pid, no duplicate / no double charge
 ```
 
 ## 6.19. Sequence – Review
@@ -765,13 +784,14 @@ sequenceDiagram
 | FR04.01 | Customer có thể tạo Booking với pickup/destination/vehicle type tối thiểu |
 | FR04.02 | Booking phải có ID duy nhất |
 | FR04.03 | Booking Service có thể xác thực Customer qua gRPC với Customer Service |
-| FR04.04 | Booking Service lấy Driver phù hợp/gần nhất qua gRPC với Driver Service |
-| FR04.05 | Chỉ Driver `APPROVED + AVAILABLE` và phù hợp loại xe được chọn |
-| FR04.06 | Booking Service tạo một Offer cho Driver được chọn |
-| FR04.07 | Sau khi tạo Offer phải publish `offer.created` |
-| FR04.08 | Nếu không có Driver phù hợp phải trả `NO_DRIVER_FOUND` |
-| FR04.09 | Danh sách Booking của Customer hỗ trợ `page` và `limit` |
-| FR04.10 | Seed phải có ít nhất 5 Booking cho smoke paging |
+| FR04.04 | Sau khi Booking được lưu thành công phải publish `booking.created` để Payment Service khởi tạo Payment |
+| FR04.05 | Booking Service lấy Driver phù hợp/gần nhất qua gRPC với Driver Service |
+| FR04.06 | Chỉ Driver `APPROVED + AVAILABLE` và phù hợp loại xe được chọn |
+| FR04.07 | Booking Service tạo một Offer cho Driver được chọn |
+| FR04.08 | Sau khi tạo Offer phải publish `offer.created` |
+| FR04.09 | Nếu không có Driver phù hợp phải trả `NO_DRIVER_FOUND` |
+| FR04.10 | Danh sách Booking của Customer hỗ trợ `page` và `limit` |
+| FR04.11 | Seed phải có ít nhất 5 Booking cho smoke paging |
 
 ## 7.5. BR05 – Driver Accept & Trip
 
@@ -801,15 +821,16 @@ sequenceDiagram
 
 | ID | Functional Requirement |
 |---|---|
-| FR07.01 | Payment Service nhận `trip.completed` để biết Trip đủ điều kiện payment |
-| FR07.02 | Demo amount mặc định là `50000` |
-| FR07.03 | Tạo Payment online mock ở `PENDING` |
-| FR07.04 | Callback mock hợp lệ cập nhật Payment `COMPLETED` |
-| FR07.05 | Payment `COMPLETED` phải publish `payment.completed` |
-| FR07.06 | Trip Service consume `payment.completed` để ghi nhận đã thanh toán |
-| FR07.07 | Payment request phải hỗ trợ `Idempotency-Key` |
-| FR07.08 | Replay cùng key không tạo Payment mới và trả kết quả cũ |
-| FR07.09 | Không lưu dữ liệu thẻ/tài khoản thanh toán nhạy cảm |
+| FR07.01 | Payment Service consume `booking.created` và tự động khởi tạo đúng một Payment cho Booking |
+| FR07.02 | Payment được tạo ngay ở `PENDING`, `amount=50000`, `eligible=false`; `bookingId` là logical reference bắt buộc |
+| FR07.03 | Cùng một `bookingId` không được tạo Payment thứ hai; consumer `booking.created` phải idempotent |
+| FR07.04 | Payment Service consume `trip.completed`, tìm Payment hiện có theo `bookingId`, gắn `tripId` và chuyển `eligible=true` |
+| FR07.05 | Payment request của Customer/System thao tác trên Payment đã tồn tại và phải hỗ trợ `Idempotency-Key` |
+| FR07.06 | Callback mock chỉ được chuyển Payment `COMPLETED` khi Payment đang `PENDING` và `eligible=true` |
+| FR07.07 | Payment `COMPLETED` phải publish `payment.completed` |
+| FR07.08 | Trip Service consume `payment.completed` để ghi nhận đã thanh toán |
+| FR07.09 | Replay cùng `Idempotency-Key` trả Payment cũ/cùng `pid`, không tạo Payment mới và không double charge |
+| FR07.10 | Không lưu dữ liệu thẻ/tài khoản thanh toán nhạy cảm |
 
 ## 7.8. BR08 – Notification
 
@@ -870,11 +891,14 @@ sequenceDiagram
 | BRL07 | Trip phải tuân thủ `ASSIGNED → ARRIVED → IN_PROGRESS → COMPLETED` |
 | BRL08 | Trong smoke #17 phải có ít nhất một lần cập nhật `lat/lng` sau `IN_PROGRESS` trước `COMPLETED` |
 | BRL09 | Hủy Trip phải có reason |
-| BRL10 | Demo payment amount mặc định `50000` |
-| BRL11 | Payment cùng `Idempotency-Key` không được double charge/tạo transaction mới |
-| BRL12 | Review chỉ dành cho Trip `COMPLETED` và tối đa một review/Trip/Customer |
-| BRL13 | Không service nào được đọc/ghi trực tiếp DB của service khác |
-| BRL14 | Không tích hợp external provider thật |
+| BRL10 | Mỗi Booking được khởi tạo đúng một Payment `PENDING` ngay sau `booking.created` |
+| BRL11 | Demo payment amount mặc định `50000`; Payment ban đầu có `eligible=false` |
+| BRL12 | `trip.completed` chỉ làm Payment hiện có `eligible=true`/gắn `tripId`, không tạo Payment mới |
+| BRL13 | Callback không được chuyển Payment `COMPLETED` khi `eligible=false` |
+| BRL14 | Payment cùng `Idempotency-Key` không được double charge/tạo Payment mới |
+| BRL15 | Review chỉ dành cho Trip `COMPLETED` và tối đa một review/Trip/Customer |
+| BRL16 | Không service nào được đọc/ghi trực tiếp DB của service khác |
+| BRL17 | Không tích hợp external provider thật |
 
 ## 8.2. Business Exceptions
 
@@ -885,10 +909,12 @@ sequenceDiagram
 | BE03 | Chuyển Trip sai thứ tự | Trả validation/business error, giữ state cũ |
 | BE04 | Customer hủy Trip không thuộc mình | 403 |
 | BE05 | Callback Payment không hợp lệ/thất bại | Không chuyển `COMPLETED` |
-| BE06 | Replay Payment cùng key | Trả Payment cũ, không tạo mới |
-| BE07 | JWT bị sửa | 401 |
-| BE08 | Sai role | 403 |
-| BE09 | Vượt rate limit | 429 |
+| BE06 | Callback trước khi Payment `eligible=true` | Từ chối callback; giữ `PENDING` |
+| BE07 | Replay Payment cùng key | Trả Payment cũ/cùng `pid`, không tạo mới |
+| BE08 | `booking.created` bị delivery lại | Payment Service bỏ qua/return existing theo `bookingId`; không tạo Payment thứ hai |
+| BE09 | JWT bị sửa | 401 |
+| BE10 | Sai role | 403 |
+| BE11 | Vượt rate limit | 429 |
 
 ---
 
@@ -919,7 +945,7 @@ sequenceDiagram
 - Driver 1–N Trip theo thời gian.
 - Trip 1–N TripStatusHistory.
 - Trip 1–N TripLocation.
-- Trip 1–N Payment attempts; `IdempotencyKey` UNIQUE theo rule.
+- Booking 1–1 Payment trong MVP; Payment được khởi tạo ngay sau `booking.created`. Payment có thể gắn `tripId` sau khi `trip.completed`.
 - Trip 1–0..1 Review của Customer.
 - User/Trip có thể có nhiều Notification document.
 
@@ -942,7 +968,7 @@ erDiagram
     DRIVER ||--o{ TRIP : performs
     TRIP ||--o{ TRIP_STATUS_HISTORY : records
     TRIP ||--o{ TRIP_LOCATION : records
-    TRIP ||--o{ PAYMENT : has
+    BOOKING ||--|| PAYMENT : initializes
     TRIP ||--o| REVIEW : receives
     CUSTOMER ||--o{ REVIEW : writes
     DRIVER ||--o{ REVIEW : receives
@@ -1029,10 +1055,15 @@ erDiagram
 
     PAYMENT {
       bigint pid PK
-      bigint tid logical_ref
+      bigint bid UK_logical_ref
+      bigint tid nullable_logical_ref
+      bigint cid logical_ref
       decimal amount
+      boolean eligible
       string status
-      string idempotency_key UK
+      string idempotency_key nullable_UK
+      datetime created_at
+      datetime paid_at nullable
     }
 
     REVIEW {
@@ -1092,7 +1123,8 @@ Không lưu Booking, Trip, Payment hay domain state chính trong Redis.
 ## 9.5. Key Data Constraints
 
 - `User.Email` UNIQUE.
-- `Payment.IdempotencyKey` UNIQUE theo phạm vi transaction thiết kế.
+- `Payment.BookingId` UNIQUE để bảo đảm một Booking chỉ khởi tạo một Payment.
+- `Payment.IdempotencyKey` nullable nhưng UNIQUE khi đã được gán cho payment request.
 - Một Booking tối đa một Trip.
 - Một Offer chỉ Accept một lần.
 - Một Customer tối đa một Review cho một Trip.
@@ -1188,16 +1220,19 @@ RabbitMQ dùng cho event không cần caller chờ kết quả ngay.
 
 | Event | Publisher | Consumer(s) | Mục đích |
 |---|---|---|---|
+| `booking.created` | booking-service | payment-service | Khởi tạo đúng một Payment `PENDING`, `amount=50000`, `eligible=false` cho Booking |
 | `offer.created` | booking-service | notification-service | Lưu thông báo Offer cho Driver |
 | `driver.accepted` | booking-service | trip-service | Tạo Trip sau khi Offer được Accept |
 | `driver.approval.changed` | driver-service | notification-service | Thông báo kết quả duyệt Driver |
 | `trip.status.changed` | trip-service | notification-service | Lưu notification trạng thái Trip |
 | `trip.canceled` | trip-service | driver-service, notification-service | Trả Driver về AVAILABLE và thông báo |
-| `trip.completed` | trip-service | driver-service, payment-service | Trả Driver AVAILABLE và đánh dấu Trip đủ điều kiện payment |
+| `trip.completed` | trip-service | driver-service, payment-service | Trả Driver AVAILABLE; Payment Service gắn `tripId` và mở `eligible=true` cho Payment đã tồn tại theo `bookingId` |
 | `payment.completed` | payment-service | trip-service, notification-service | Ghi nhận Trip đã thanh toán và thông báo Customer |
 
 **Publisher:** Booking, Driver, Trip, Payment.  
 **Consumer:** Trip, Driver, Payment, Notification.
+
+`booking.created` tối thiểu phải có `bookingId`, `customerId`, `createdAt`. `trip.completed` tối thiểu phải có `tripId`, `bookingId`, `customerId`, `driverId`, `completedAt` để Payment Service tìm đúng Payment đã khởi tạo.
 
 Auth, Customer và Review không cần RabbitMQ trong phạm vi demo hiện tại.
 
@@ -1310,10 +1345,11 @@ flowchart LR
 | Booking tìm Driver | gRPC Booking→Driver | cần danh sách Driver ngay |
 | Trip lấy Driver/location data | gRPC Trip→Driver | synchronous validation/query |
 | Review kiểm tra Trip | gRPC Review→Trip | cần xác nhận completed/ownership |
+| Booking vừa được tạo → khởi tạo Payment | RabbitMQ | `booking.created`; Payment tạo một record PENDING mà Booking không cần chờ |
 | Booking báo Offer | RabbitMQ | notification side effect |
 | Driver Accept tạo Trip | RabbitMQ | event `driver.accepted` |
 | Trip status notification | RabbitMQ | async side effect |
-| Trip completed kích hoạt payment | RabbitMQ | downstream event |
+| Trip completed mở eligibility cho Payment đã có | RabbitMQ | `trip.completed`; không tạo Payment mới |
 | Payment completed cập nhật Trip/Notification | RabbitMQ | async projection/notification |
 
 # 11. Use Cases
@@ -1405,11 +1441,11 @@ flowchart LR
 | UC04 Get Driver | Driver | RBAC |
 | UC05 Nearby Drivers | Driver | — |
 | UC06 List Bookings | Booking | — |
-| UC07 Create Booking | Booking | gRPC Customer, gRPC Driver, `offer.created` |
+| UC07 Create Booking | Booking | `booking.created` → Payment; gRPC Customer, gRPC Driver, `offer.created` |
 | UC08 Accept Offer | Booking | `driver.accepted` → Trip |
 | UC09 Update Trip | Trip | gRPC Driver, trip events |
 | UC10 Cancel Trip | Trip | `trip.canceled` |
-| UC11 Online Payment | Payment | trip/payment events |
+| UC11 Online Payment | Payment | Payment đã tồn tại từ `booking.created`; `trip.completed` eligibility; `payment.completed` |
 | UC12 Review Trip | Review | gRPC Trip |
 | UC13 Register Driver | Driver | OTP mock |
 | UC14 Approve Driver | Driver | `driver.approval.changed` |
@@ -1467,16 +1503,16 @@ Không cho phép bỏ qua state bắt buộc.
 
 ### UC11 – Online Payment Mock
 
-**Precondition:** Payment Service đã nhận `trip.completed` cho `tid`.  
+**Precondition:** Payment `PENDING` đã được tạo từ `booking.created`; Payment Service đã nhận `trip.completed` tương ứng nên `eligible=true`.  
 **Main flow:**
 
-1. Tạo Payment amount `50000`, key `P1`.
-2. Payment → `PENDING`.
+1. Customer/System gửi yêu cầu thanh toán cho Payment hiện có (`pid` hoặc `bid`) với key `P1`.
+2. Payment Service tìm Payment hiện có, xác nhận `PENDING + eligible=true` và ghi nhận/kiểm tra `Idempotency-Key`.
 3. Gọi callback mock.
 4. Payment → `COMPLETED`.
 5. Publish `payment.completed`.
 6. Trip ghi nhận paid; Notification lưu kết quả.
-7. Gửi lại cùng key → trả Payment cũ, không tạo mới.
+7. Gửi lại cùng key → trả đúng Payment cũ/cùng `pid`, không insert Payment mới và không double charge.
 
 ### UC12 – Review Trip
 
@@ -1638,18 +1674,20 @@ Không cho phép bỏ qua state bắt buộc.
 |---|---|
 | Primary Actor | Customer |
 | Preconditions | Customer hợp lệ; có Driver phù hợp cho smoke success |
-| Postconditions | Booking + Offer được tạo, event phát |
+| Postconditions | Booking + Offer được tạo; `booking.created` làm Payment Service khởi tạo Payment `PENDING` |
 | Rubric | #15 |
 
 **Main Flow**
 
 1. Customer gửi pickup/destination/vehicle type ngắn.
-2. Booking Service lưu Booking.
-3. Booking→Customer gRPC kiểm tra Customer khi cần.
-4. Booking→Driver gRPC tìm Driver gần nhất phù hợp.
-5. Booking lưu một DriverOffer.
-6. Publish `offer.created`.
-7. Trả `bid`, trạng thái đang tìm/offer sent.
+2. Booking→Customer gRPC kiểm tra Customer khi cần.
+3. Booking Service lưu Booking.
+4. Publish `booking.created`.
+5. Payment Service consume và tạo đúng một Payment `PENDING`, `amount=50000`, `eligible=false` cho `bid`.
+6. Booking→Driver gRPC tìm Driver gần nhất phù hợp.
+7. Booking lưu một DriverOffer.
+8. Publish `offer.created`.
+9. Trả `bid`, trạng thái đang tìm/offer sent.
 
 **Exception**
 
@@ -1721,15 +1759,15 @@ Không cho phép bỏ qua state bắt buộc.
 | Thuộc tính | Nội dung |
 |---|---|
 | Primary Actor | Customer/System |
-| Preconditions | Trip completed và Payment Service đã nhận eligibility event |
-| Postconditions | Payment COMPLETED; replay an toàn |
+| Preconditions | Payment PENDING đã được tạo từ Booking; Trip completed và Payment đã `eligible=true` |
+| Postconditions | Payment hiện có → COMPLETED; replay an toàn, không tạo Payment thứ hai |
 | Rubric | #19, #30 |
 
 **Main Flow**
 
-1. Customer tạo Payment `amt=50000`, key `P1`.
-2. Payment Service kiểm tra key chưa có.
-3. Tạo `PENDING`.
+1. Customer/System gửi request thanh toán cho Payment đã tồn tại (`pid` hoặc `bid`) với key `P1`.
+2. Payment Service tìm Payment theo `pid/bid`, kiểm tra `status=PENDING` và `eligible=true`.
+3. Payment Service ghi nhận/kiểm tra `Idempotency-Key`; không insert Payment mới.
 4. Callback mock nội bộ cập nhật `COMPLETED`.
 5. Publish `payment.completed`.
 6. Trip Service ghi nhận paid.
@@ -1737,9 +1775,9 @@ Không cho phép bỏ qua state bắt buộc.
 
 **Replay Flow**
 
-1. Gửi lại request với `P1`.
-2. Payment Service tìm Payment cũ.
-3. Không insert transaction mới.
+1. Gửi lại cùng payment request với `P1`.
+2. Payment Service phát hiện key đã gắn với Payment hiện có.
+3. Không insert Payment/transaction mới và không double charge.
 4. Trả kết quả Payment cũ/cùng `pid`.
 
 ### UC12 – Review Trip
@@ -1824,13 +1862,13 @@ Không cho phép bỏ qua state bắt buộc.
 | AC04 | Admin token lấy Driver theo ID thành công |
 | AC05 | Nearby radius 1 km trả đúng tập Driver, hỗ trợ page/limit, seed ≥5 Driver nhiều trạng thái |
 | AC06 | Customer bookings hỗ trợ page/limit, seed ≥5 Booking |
-| AC07 | Create Booking tạo Booking, tìm Driver qua gRPC và tạo Offer |
+| AC07 | Create Booking tạo Booking, publish `booking.created`, Payment Service tạo Payment `PENDING`, sau đó matching Driver và tạo Offer |
 | AC08 | Driver Accept làm Offer accepted và Trip được tạo qua `driver.accepted` event |
 | AC09 | Trip chỉ đi `ASSIGNED→ARRIVED→IN_PROGRESS→COMPLETED` |
 | AC10 | Smoke Trip có cập nhật `lat/lng` sau IN_PROGRESS trước COMPLETED |
 | AC11 | Cancel hợp lệ → `CANCELED`, lưu reason, có notification |
-| AC12 | Payment callback mock → `COMPLETED`; Trip ghi nhận paid |
-| AC13 | Replay Payment cùng key không tạo Payment mới |
+| AC12 | Booking vừa tạo → Payment `PENDING`; sau `trip.completed`, callback mock → `COMPLETED`; Trip ghi nhận paid |
+| AC13 | Replay cùng payment request/key trả cùng Payment, không tạo Payment mới/double charge |
 | AC14 | Review Trip completed được lưu đúng liên kết |
 | AC15 | Driver OTP `123` → hồ sơ `PENDING_APPROVAL` |
 | AC16 | Admin Approve/Reject cập nhật trạng thái và có notification |
@@ -1922,11 +1960,12 @@ Như vậy quyền truy cập được chứng minh rõ mà không cần tạo t
 
 ### Nhóm Payment / Review / Notification
 
-- **AC-PY01:** `trip.completed` làm Payment Service biết Trip đủ điều kiện.
-- **AC-PY02:** Payment tạo PENDING với amount 50000.
-- **AC-PY03:** Callback mock chuyển COMPLETED.
-- **AC-PY04:** Replay cùng key trả Payment cũ.
-- **AC-PY05:** `payment.completed` cập nhật Trip paid.
+- **AC-PY01:** `booking.created` làm Payment Service tạo đúng một Payment `PENDING`, amount 50000, `eligible=false`.
+- **AC-PY02:** Payment có `bookingId` duy nhất; delivery lại `booking.created` không tạo record thứ hai.
+- **AC-PY03:** `trip.completed` gắn `tripId` và chuyển Payment hiện có sang `eligible=true`, không tạo Payment mới.
+- **AC-PY04:** Callback mock chỉ khi eligible và chuyển Payment `COMPLETED`.
+- **AC-PY05:** Replay cùng key trả Payment cũ/cùng `pid`, không insert mới và không double charge.
+- **AC-PY06:** `payment.completed` cập nhật Trip paid.
 - **AC-N01:** Notification Service consume event và lưu MongoDB.
 - **AC-R01:** Review chỉ tạo khi Trip completed và ownership đúng.
 - **AC-R02:** Một Customer không review cùng Trip nhiều lần.
@@ -1979,11 +2018,11 @@ Như vậy quyền truy cập được chứng minh rõ mà không cần tạo t
 | 12 | Get Driver by ID | UC04, AC04 | **Admin token** → 200 |
 | 13 | Nearby Driver | UC05, AC05 | radius=1km, page/limit, seed ≥5 Driver |
 | 14 | Customer Bookings | UC06, AC06 | seed ≥5 Booking, page/limit |
-| 15 | Đặt xe | UC07, AC07 | Booking → gRPC Driver matching → Offer + event |
+| 15 | Đặt xe | UC07, AC07 | Booking → `booking.created` → Payment PENDING; gRPC Driver matching → Offer + event |
 | 16 | Driver nhận chuyến | UC08, AC08 | Accept → `driver.accepted` → Trip `ASSIGNED` |
 | 17 | Trip status + location | UC09, AC09–AC10 | `ARRIVED → IN_PROGRESS → lat/lng → COMPLETED` |
 | 18 | Hủy chuyến | UC10, AC11 | `{"r":"x"}` → CANCELED + event/notification |
-| 19 | Payment online | UC11, AC12 | amt=50000 → callback mock → COMPLETED + Trip paid |
+| 19 | Payment online | UC11, AC12 | Payment PENDING đã có từ Booking → trip.completed eligibility → callback mock → COMPLETED + Trip paid |
 | 20 | Review | UC12, AC14 | `star=5`, `c="ok"` |
 | 21 | Register Driver | UC13, AC15 | OTP `123` → `PENDING_APPROVAL` |
 | 22 | Duyệt Driver | UC14, AC16 | Admin Approve/Reject |
@@ -1994,7 +2033,7 @@ Như vậy quyền truy cập được chứng minh rõ mà không cần tạo t
 | 27 | JWT tampering | NFR09, AC-S04 | sửa token → 401 |
 | 28 | Unauthorized API | NFR10, AC-S05 | **Customer token** + cùng Driver endpoint #12 → 403 |
 | 29 | Rate limit | ARC02, NFR11, AC-S06 | Redis-backed threshold demo → 429 |
-| 30 | Replay/idempotency | FR07.07–FR07.08, AC-S07 | key `P1` gửi 2 lần → cùng Payment, không double charge |
+| 30 | Replay/idempotency | FR07.05, FR07.09, AC-S07 | cùng payment request + key `P1` gửi 2 lần → cùng `pid`, không tạo Payment mới/double charge |
 
 ---
 
@@ -2057,7 +2096,9 @@ flowchart TD
 9. Không external provider thật.
 10. Matching demo chỉ cần Driver phù hợp/gần nhất + một Offer; không timeout/retry orchestration phức tạp.
 11. Không Pricing Engine; amount demo `50000`.
-12. Trip smoke #17 bắt buộc có location update.
-13. Rubric #12 dùng Admin token; #28 dùng Customer token trên cùng Driver endpoint.
-14. Mọi bước thiết kế/code tiếp theo phải truy được về SRS này và 30-item rubric.
-15. Definition of Done cho một mục thực hành: **đúng kết quả + deterministic + mục tiêu thao tác ≤30 giây từ đầu**.
+12. **Payment được khởi tạo ngay khi Booking được tạo** qua `booking.created`: một Booking đúng một Payment `PENDING`, `eligible=false`.
+13. `trip.completed` chỉ gắn Trip/mở `eligible=true` cho Payment đã có; không tạo Payment mới.
+14. Trip smoke #17 bắt buộc có location update.
+15. Rubric #12 dùng Admin token; #28 dùng Customer token trên cùng Driver endpoint.
+16. Mọi bước thiết kế/code tiếp theo phải truy được về SRS này và 30-item rubric.
+17. Definition of Done cho một mục thực hành: **đúng kết quả + deterministic + mục tiêu thao tác ≤30 giây từ đầu**.
