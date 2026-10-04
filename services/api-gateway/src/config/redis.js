@@ -1,117 +1,57 @@
 'use strict';
 
-const {
-  createClient,
-} = require('redis');
-
+const { createClient } = require('redis');
 const env = require('./env');
-
-const {
-  createLogger,
-} = require('../../../../shared/logging/logger');
-
-const logger =
-  createLogger(env.SERVICE_NAME);
-
-let client = null;
-let connectPromise = null;
+const { createLogger } = require('../../../../shared/logging/logger');
+const logger = createLogger(env.SERVICE_NAME);
+let client;
+let connectPromise;
 
 function getRedisClient() {
-  if (client) {
-    return client;
+  if (!client) {
+    client = createClient({
+      socket: {
+        host: env.REDIS_HOST, port: env.REDIS_PORT, connectTimeout: 1500,
+        reconnectStrategy: (retries) => Math.min(retries * 100, 3000),
+      },
+      password: env.REDIS_PASSWORD,
+      disableOfflineQueue: true,
+    });
+    client.on('error', () => logger.warn('Redis connection unavailable'));
+    client.on('ready', () => logger.info('Redis ready'));
   }
-
-  client = createClient({
-    socket: {
-      host: env.REDIS_HOST,
-      port: env.REDIS_PORT,
-
-      reconnectStrategy(retries) {
-        return Math.min(
-          retries * 100,
-          3000,
-        );
-      },
-    },
-
-    password: env.REDIS_PASSWORD,
-  });
-
-  client.on('error', (error) => {
-    logger.error(
-      'Redis client error',
-      { error },
-    );
-  });
-
-  client.on('reconnecting', () => {
-    logger.warn(
-      'Redis reconnecting',
-    );
-  });
-
-  client.on('ready', () => {
-    logger.info(
-      'Redis ready',
-      {
-        host: env.REDIS_HOST,
-        port: env.REDIS_PORT,
-      },
-    );
-  });
-
   return client;
 }
 
-async function connectRedis() {
-  const redis =
-    getRedisClient();
-
-  if (redis.isReady) {
-    return redis;
-  }
-
-  if (!connectPromise) {
-    connectPromise =
-      redis
-        .connect()
-        .then(() => redis)
-        .finally(() => {
-          connectPromise = null;
-        });
-  }
-
+function connectRedis() {
+  const redis = getRedisClient();
+  if (redis.isReady) return Promise.resolve(redis);
+  if (connectPromise) return connectPromise;
+  if (redis.isOpen) return Promise.resolve(redis);
+  connectPromise = redis.connect().then(() => redis).finally(() => { connectPromise = null; });
   return connectPromise;
 }
 
 async function pingRedis() {
-  const redis =
-    await connectRedis();
-
-  const result =
-    await redis.ping();
-
-  return result === 'PONG';
+  const redis = getRedisClient();
+  if (!redis.isReady) return false;
+  let timer;
+  try {
+    return await Promise.race([
+      redis.ping().then((reply) => reply === 'PONG'),
+      new Promise((resolve) => { timer = setTimeout(() => resolve(false), 1500); }),
+    ]);
+  } catch (_error) {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function closeRedis() {
-  if (!client) {
-    return;
-  }
-
-  try {
-    if (client.isOpen) {
-      await client.quit();
-    }
-  } finally {
-    client = null;
-    connectPromise = null;
-  }
+  if (client?.isOpen) await client.disconnect();
+  client = undefined;
+  connectPromise = undefined;
 }
 
-module.exports = {
-  getRedisClient,
-  connectRedis,
-  pingRedis,
-  closeRedis,
-};
+module.exports = { getRedisClient, connectRedis, pingRedis, closeRedis };

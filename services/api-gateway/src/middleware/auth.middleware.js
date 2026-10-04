@@ -1,128 +1,29 @@
 'use strict';
 
-const jwt =
-  require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
+const env = require('../config/env');
+const { AppError } = require('../../../../shared/errors/app-error');
 
-const env =
-  require('../config/env');
-
-const {
-  AppError,
-} = require(
-  '../../../../shared/errors/app-error'
-);
-
-function authenticate(
-  req,
-  _res,
-  next,
-) {
-  const authorization =
-    req.get(
-      'authorization',
-    );
-
-  if (
-    !authorization?.startsWith(
-      'Bearer ',
-    )
-  ) {
-    next(
-      AppError.unauthorized(
-        'Missing access token',
-        'UNAUTHORIZED',
-      ),
-    );
-
-    return;
-  }
-
-  const token =
-    authorization
-      .slice(
-        'Bearer '.length,
-      )
-      .trim();
-
-  if (!token) {
-    next(
-      AppError.unauthorized(
-        'Missing access token',
-        'UNAUTHORIZED',
-      ),
-    );
-
-    return;
-  }
-
+function authenticate(req, _res, next) {
+  const match = /^Bearer\s+(\S+)$/i.exec(req.get('authorization') || '');
+  if (!match) return next(AppError.unauthorized('Missing access token'));
   try {
-    const payload =
-      jwt.verify(
-        token,
-        env.JWT_SECRET,
-        {
-          algorithms: [
-            'HS256',
-          ],
-        },
-      );
-
-    if (
-      !payload ||
-      typeof payload !==
-        'object' ||
-      typeof payload.sub !==
-        'string' ||
-      typeof payload.role !==
-        'string'
-    ) {
-      throw new Error(
-        'JWT payload is missing required claims',
-      );
+    const payload = jwt.verify(match[1], env.JWT_SECRET, { algorithms: ['HS256'] });
+    // Verification alone accepts tokens without exp; CAB access tokens require it.
+    if (!payload || typeof payload !== 'object' || typeof payload.sub !== 'string' || !payload.sub.trim() ||
+        !['CUSTOMER', 'DRIVER', 'ADMIN'].includes(payload.role) || !Number.isFinite(payload.exp)) {
+      throw new Error('Invalid access token claims');
     }
-
     req.auth = {
-      userId:
-        payload.sub,
-
-      role:
-        payload.role,
-
-      customerId:
-        typeof payload.customerId ===
-        'string'
-          ? payload.customerId
-          : undefined,
-
-      driverId:
-        typeof payload.driverId ===
-        'string'
-          ? payload.driverId
-          : undefined,
-
-      permissions:
-        Array.isArray(
-          payload.permissions,
-        )
-          ? payload.permissions.filter(
-              (permission) =>
-                typeof permission ===
-                'string',
-            )
-          : [],
+      userId: payload.sub,
+      role: payload.role,
+      ...(typeof payload.customerId === 'string' ? { customerId: payload.customerId } : {}),
+      ...(typeof payload.driverId === 'string' ? { driverId: payload.driverId } : {}),
     };
-
     next();
   } catch (_error) {
-    next(
-      AppError.unauthorized(
-        'Invalid or tampered access token',
-        'UNAUTHORIZED',
-      ),
-    );
+    next(AppError.unauthorized('Invalid or expired access token'));
   }
 }
 
-module.exports = {
-  authenticate,
-};
+module.exports = { authenticate };

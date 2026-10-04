@@ -1,0 +1,8 @@
+{
+  "info": {
+    "name": "CAB System",
+    "description": "Intentional starter collection. Canonical requests are documented in docs/api; scripts/smoke-local-full.py verifies the complete Gateway flow and 30-item rubric. Import CAB-Local.postman_environment.json for the local base URL; do not save real tokens in Git.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": []
+}

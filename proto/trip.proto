@@ -95,4 +95,6 @@ message CompletedTripValidation {
   string driver_id = 4;
   bool completed = 5;
   string status = 6;
+  string customer_user_id = 7; // logical owner identity for Review validation
+  string driver_user_id = 8;
 }

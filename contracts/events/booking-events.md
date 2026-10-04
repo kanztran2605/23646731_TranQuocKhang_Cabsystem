@@ -11,6 +11,7 @@ Payload:
 
 ```json
 {
+  "customerUserId": "13",
   "bookingId": "6",
   "customerId": "1",
   "createdAt": "2026-10-04T01:00:00.000Z"
@@ -31,6 +32,7 @@ Payload:
 
 ```json
 {
+  "recipientUserIds": ["14"],
   "offerId": "1",
   "bookingId": "6",
   "driverId": "1",
@@ -48,6 +50,8 @@ Payload:
 
 ```json
 {
+  "customerUserId": "13",
+  "driverUserId": "14",
   "bookingId": "6",
   "customerId": "1",
   "driverId": "1",

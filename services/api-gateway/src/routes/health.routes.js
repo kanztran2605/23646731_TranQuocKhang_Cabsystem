@@ -1,148 +1,46 @@
 'use strict';
 
-const express =
-  require('express');
+const express = require('express');
+const env = require('../config/env');
+const { SERVICE_DEFINITIONS } = require('../config/grpc');
+const { asyncHandler } = require('./transport');
 
-const {
-  pingRedis,
-} = require(
-  '../config/redis'
-);
+async function bounded(check, timeoutMs, fallback) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(check),
+      new Promise((resolve) => { timer = setTimeout(() => resolve(fallback), timeoutMs); }),
+    ]);
+  } catch (_error) {
+    return fallback;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-const {
-  SERVICE_DEFINITIONS,
-  checkServiceHealth,
-} = require(
-  '../clients/grpc-clients'
-);
-
-const router =
-  express.Router();
-
-router.get(
-  '/health',
-
-  (_req, res) => {
-    res.status(200).json({
-      service:
-        'api-gateway',
-
-      status:
-        'healthy',
-
-      timestamp:
-        new Date()
-          .toISOString(),
-    });
-  },
-);
-
-router.get(
-  '/ready',
-
-  async (_req, res) => {
-    try {
-      const redisReady =
-        await pingRedis();
-
-      if (!redisReady) {
-        throw new Error(
-          'Redis did not return PONG',
-        );
-      }
-
-      res
-        .status(200)
-        .json({
-          service:
-            'api-gateway',
-
-          status:
-            'ready',
-
-          dependencies: {
-            redis:
-              'ready',
-          },
-
-          timestamp:
-            new Date()
-              .toISOString(),
-        });
-    } catch (_error) {
-      res
-        .status(503)
-        .json({
-          service:
-            'api-gateway',
-
-          status:
-            'not-ready',
-
-          dependencies: {
-            redis:
-              'unavailable',
-          },
-
-          timestamp:
-            new Date()
-              .toISOString(),
-        });
-    }
-  },
-);
-
-router.get(
-  '/health/services',
-
-  async (_req, res) => {
-    const serviceKeys =
-      Object.keys(
-        SERVICE_DEFINITIONS,
+module.exports = function healthRoutes({ pingRedis, checkServiceHealth }) {
+  const router = express.Router();
+  async function services(req) {
+    return Promise.all(Object.values(SERVICE_DEFINITIONS).map(async (service) => {
+      const result = await bounded(
+        () => checkServiceHealth(service.key, req.correlationId),
+        env.GRPC_HEALTH_TIMEOUT_MS, { s: 'DOWN' },
       );
-
-    const checks =
-      await Promise.all(
-        serviceKeys.map(
-          (serviceKey) =>
-            checkServiceHealth(
-              serviceKey,
-            ),
-        ),
-      );
-
-    const services =
-      Object.fromEntries(
-        checks.map(
-          (check) => [
-            check.name,
-            check.status,
-          ],
-        ),
-      );
-
-    const allHealthy =
-      checks.every(
-        (check) =>
-          check.status ===
-          'healthy',
-      );
-
-    res
-      .status(200)
-      .json({
-        status:
-          allHealthy
-            ? 'healthy'
-            : 'degraded',
-
-        services,
-
-        timestamp:
-          new Date()
-            .toISOString(),
-      });
-  },
-);
-
-module.exports = router;
+      return { name: service.name, s: result?.s === 'UP' ? 'UP' : 'DOWN' };
+    }));
+  }
+  router.get('/health', (_req, res) => res.json({ s: 'UP' }));
+  router.get('/ready', asyncHandler(async (req, res) => {
+    const [redisReady, checks] = await Promise.all([
+      bounded(pingRedis, env.GRPC_HEALTH_TIMEOUT_MS, false), services(req),
+    ]);
+    const ready = redisReady === true && checks.every((check) => check.s === 'UP');
+    res.status(ready ? 200 : 503).json({ s: ready ? 'UP' : 'DOWN' });
+  }));
+  router.get('/health/services', asyncHandler(async (req, res) => {
+    const checks = await services(req);
+    res.json({ s: checks.every((check) => check.s === 'UP') ? 'UP' : 'DOWN', services: checks });
+  }));
+  return router;
+};

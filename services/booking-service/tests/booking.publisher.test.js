@@ -9,6 +9,8 @@ const publisherModuleId =
   );
 
 let captured = null;
+const published = [];
+const trips = [];
 
 require.cache[publisherModuleId] = {
   id: publisherModuleId,
@@ -17,6 +19,10 @@ require.cache[publisherModuleId] = {
   exports: {
     publishEvent(input) {
       captured = input;
+      published.push(input);
+      if (input.eventType === 'driver.accepted') {
+        trips.push({ bookingId: input.payload.bookingId });
+      }
       return Promise.resolve(input);
     },
   },
@@ -25,8 +31,7 @@ require.cache[publisherModuleId] = {
 const {
   stableEventId,
   publishBookingCreated,
-  publishDriverOfferCreated,
-  publishNoDriverFound,
+  publishOfferCreated,
   publishDriverAccepted,
 } = require('../src/events/booking.publisher');
 
@@ -45,7 +50,7 @@ test('booking.created follows the locked event contract', async () => {
   await publishBookingCreated({
     bookingId: '8',
     customerId: '2',
-    vehicleTypeId: '1',
+    customerUserId: '10',
     createdAt: '2026-10-03T08:00:00.000Z',
     correlationId: 'req-booking-8',
   });
@@ -55,51 +60,43 @@ test('booking.created follows the locked event contract', async () => {
   assert.deepEqual(captured.payload, {
     bookingId: '8',
     customerId: '2',
-    vehicleTypeId: '1',
+    customerUserId: '10',
     createdAt: '2026-10-03T08:00:00.000Z',
   });
 });
 
-test('driver.offer.created contains only the locked payload fields', async () => {
-  await publishDriverOfferCreated({
+test('offer.created contains only the locked payload fields', async () => {
+  await publishOfferCreated({
+    driverUserId: '12',
     offerId: '8',
     bookingId: '8',
     driverId: '7',
-    expiresAt: '2026-10-03T08:05:00.000Z',
     createdAt: '2026-10-03T08:00:00.000Z',
     correlationId: 'req-booking-8',
   });
 
+  assert.equal(captured.eventType, 'offer.created');
+  assert.equal(captured.eventId, stableEventId('offer.created:8'));
+  assert.equal(captured.producer, 'booking-service');
+  assert.equal(captured.occurredAt, '2026-10-03T08:00:00.000Z');
   assert.deepEqual(captured.payload, {
+    recipientUserIds: ['12'],
     offerId: '8',
     bookingId: '8',
     driverId: '7',
-    expiresAt: '2026-10-03T08:05:00.000Z',
     createdAt: '2026-10-03T08:00:00.000Z',
   });
-});
-
-test('booking.no_driver_found uses an official reason', async () => {
-  await publishNoDriverFound({
-    bookingId: '8',
-    customerId: '2',
-    reason: 'NO_SUITABLE_DRIVER',
-    occurredAt: '2026-10-03T08:10:00.000Z',
-    correlationId: 'req-booking-8',
-  });
-
-  assert.equal(captured.eventType, 'booking.no_driver_found');
-  assert.equal(captured.payload.reason, 'NO_SUITABLE_DRIVER');
 });
 
 test('driver.accepted has no tripId and carries all required logical references', async () => {
   await publishDriverAccepted({
+    driverUserId: '12',
     assignmentId: '3',
     bookingId: '8',
     customerId: '2',
+    customerUserId: '10',
     driverId: '7',
     vehicleId: '7',
-    vehicleTypeId: '1',
     acceptedAt: '2026-10-03T08:03:10.000Z',
     correlationId: 'req-booking-8',
   });
@@ -114,11 +111,24 @@ test('driver.accepted has no tripId and carries all required logical references'
     false,
   );
   assert.deepEqual(captured.payload, {
+    driverUserId: '12',
     bookingId: '8',
     customerId: '2',
+    customerUserId: '10',
     driverId: '7',
     vehicleId: '7',
-    vehicleTypeId: '1',
     acceptedAt: '2026-10-03T08:03:10.000Z',
   });
+});
+
+test('no eligible Driver persists NO_DRIVER_FOUND and emits only booking.created', async () => {
+  const { fixture, input } = require('./fixture');
+  const { createBookingService } = require('../src/services/booking.service');
+  const f = fixture(); f.state.candidates = [];
+  const service = createBookingService({ ...f, publish: { publishBookingCreated, publishOfferCreated, publishDriverAccepted } });
+  published.length = 0; trips.length = 0;
+  const result = await service.createBooking(input());
+  assert.equal(result.status, 'NO_DRIVER_FOUND');
+  assert.deepEqual(f.state.offers, []); assert.deepEqual(f.state.assignments, []); assert.deepEqual(trips, []);
+  assert.deepEqual(published.map(event => event.eventType), ['booking.created']);
 });

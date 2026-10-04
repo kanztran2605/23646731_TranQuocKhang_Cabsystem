@@ -55,7 +55,7 @@ components:
         email:
           type: string
           format: email
-          example: c@c.co
+          example: c@c.com
         pw:
           type: string
           example: '123'

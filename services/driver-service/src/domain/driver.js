@@ -1,73 +1,17 @@
 'use strict';
-
-const APPROVAL_STATUS = Object.freeze({
-  PENDING_APPROVAL: 'PENDING_APPROVAL',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
-});
-
-const AVAILABILITY_STATUS = Object.freeze({
-  OFFLINE: 'OFFLINE',
-  AVAILABLE: 'AVAILABLE',
-  BUSY: 'BUSY',
-});
-
-function toIsoDate(value) {
-  if (!value) {
-    return undefined;
-  }
-
-  return new Date(value)
-    .toISOString()
-    .slice(0, 10);
+const APPROVAL_STATUS = Object.freeze({ PENDING_APPROVAL: 'PENDING_APPROVAL', APPROVED: 'APPROVED', REJECTED: 'REJECTED' });
+const AVAILABILITY_STATUS = Object.freeze({ OFFLINE: 'OFFLINE', AVAILABLE: 'AVAILABLE', BUSY: 'BUSY' });
+function toDriver(row) {
+  return { driverId: String(row.did), userId: String(row.uid), name: row.name,
+    approvalStatus: row.ap, availabilityStatus: row.av,
+    ...(row.vid ? { vehicle: { vehicleId: String(row.vid), driverId: String(row.did), vehicleType: row.vt,
+      licensePlate: row.plate, ...(row.brand != null ? { brand: row.brand } : {}),
+      ...(row.model != null ? { model: row.model } : {}), status: row.vehicle_status } } : {}),
+    ...(row.lat != null ? { location: toLocation(row) } : {}),
+    ...(row.distance_km != null ? { distanceKm: Number(row.distance_km) } : {}) };
 }
-
-function toDriver(
-  row,
-  { driverLicense } = {},
-) {
-  return {
-    driverId: String(row.driver_id),
-    userId: String(row.user_id),
-    fullName: row.full_name,
-
-    ...(driverLicense
-      ? { driverLicense }
-      : {}),
-
-    approvalStatus:
-      row.approval_status,
-
-    availabilityStatus:
-      row.availability_status,
-
-    ...(row.address
-      ? { address: row.address }
-      : {}),
-
-    ...(row.date_of_birth
-      ? {
-          dateOfBirth:
-            toIsoDate(
-              row.date_of_birth,
-            ),
-        }
-      : {}),
-  };
+function toLocation(row) {
+  return { driverId: String(row.did), latitude: Number(row.lat), longitude: Number(row.lng),
+    recordedAt: new Date(row.rec_at).toISOString() };
 }
-
-function isEligibleForNewTrip(driver) {
-  return (
-    driver.approval_status ===
-      APPROVAL_STATUS.APPROVED &&
-    driver.availability_status ===
-      AVAILABILITY_STATUS.AVAILABLE
-  );
-}
-
-module.exports = {
-  APPROVAL_STATUS,
-  AVAILABILITY_STATUS,
-  toDriver,
-  isEligibleForNewTrip,
-};
+module.exports = { APPROVAL_STATUS, AVAILABILITY_STATUS, toDriver, toLocation };

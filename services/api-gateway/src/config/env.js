@@ -38,12 +38,7 @@ const env = Object.freeze({
   API_GATEWAY_HOST:
     process.env.API_GATEWAY_HOST || '0.0.0.0',
 
-  API_GATEWAY_PORT: positiveInteger(
-    'API_GATEWAY_PORT',
-    process.env.GATEWAY_PORT ||
-      process.env.PORT ||
-      8080,
-  ),
+  GATEWAY_PORT: positiveInteger('GATEWAY_PORT', 8080),
 
   CORS_ORIGINS: csv(
     'CORS_ORIGINS',
@@ -53,6 +48,8 @@ const env = Object.freeze({
   JWT_SECRET: requiredString(
     'JWT_SECRET',
   ),
+
+  JWT_ACCESS_TTL_SECONDS: positiveInteger('JWT_ACCESS_TTL_SECONDS', 3600),
 
   REDIS_HOST: requiredString(
     'REDIS_HOST',

@@ -2,7 +2,7 @@
   "name": "cab-payment-service",
   "version": "1.0.0",
   "private": true,
-  "description": "CAB System Fare and Payment Microservice",
+  "description": "CAB System Payment Service",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

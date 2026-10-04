@@ -1,31 +1,7 @@
 'use strict';
-
-const ROLES = Object.freeze({
-  CUSTOMER: 'CUSTOMER',
-  DRIVER: 'DRIVER',
-  OPERATION_STAFF: 'OPERATION_STAFF',
-  MANAGEMENT: 'MANAGEMENT',
-  SYSTEM_ADMINISTRATOR: 'SYSTEM_ADMINISTRATOR',
-});
-
-function normalizeEmail(email) {
-  return String(email || '')
-    .trim()
-    .toLowerCase();
+const ROLES = Object.freeze({ CUSTOMER: 'CUSTOMER', DRIVER: 'DRIVER', ADMIN: 'ADMIN' });
+function normalizeEmail(email) { return email.trim().toLowerCase(); }
+function toAccount(row) {
+  return { userId: String(row.uid), email: row.email, role: row.role, status: row.s, createdAt: new Date(row.c_at).toISOString() };
 }
-
-function toUserIdentity(row) {
-  return {
-    userId: String(row.user_id),
-    phone: row.phone || '',
-    email: row.email || '',
-    role: row.role_name,
-    accountStatus: row.status,
-  };
-}
-
-module.exports = {
-  ROLES,
-  normalizeEmail,
-  toUserIdentity,
-};
+module.exports = { ROLES, normalizeEmail, toAccount };

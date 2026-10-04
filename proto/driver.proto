@@ -15,6 +15,8 @@ service DriverService {
   rpc UpdateLocation(UpdateLocationRequest) returns (DriverLocation);
   rpc GetNearbyDrivers(GetNearbyDriversRequest) returns (DriverPage);
   rpc FindEligibleDrivers(FindEligibleDriversRequest) returns (EligibleDriverList);
+  // Internal Booking -> Driver assignment; never exposed as public REST.
+  rpc MarkBusyForAssignment(MarkBusyForAssignmentRequest) returns (Driver);
   rpc GetDriverLocation(GetDriverLocationRequest) returns (DriverLocation);
   rpc ListVehicleTypes(ListVehicleTypesRequest) returns (VehicleTypeList);
 }
@@ -95,6 +97,11 @@ message SetAvailabilityRequest {
   bool online = 2;
 }
 
+message MarkBusyForAssignmentRequest {
+  cab.common.v1.RequestContext context = 1;
+  string driver_id = 2;
+}
+
 message UpdateLocationRequest {
   cab.common.v1.RequestContext context = 1;
   double latitude = 2;
@@ -133,6 +140,7 @@ message EligibleDriver {
   double latitude = 4;
   double longitude = 5;
   double distance_km = 6;
+  string user_id = 7; // logical recipient identity for Booking events
 }
 
 message EligibleDriverList {

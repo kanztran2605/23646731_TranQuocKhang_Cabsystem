@@ -24,7 +24,7 @@ ENV NODE_ENV=production
 EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.API_GATEWAY_PORT||process.env.PORT||8080)+'/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.GATEWAY_PORT||8080)+'/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 USER node
 

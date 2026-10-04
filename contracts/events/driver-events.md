@@ -11,6 +11,7 @@ Payload:
 
 ```json
 {
+  "recipientUserIds": ["14"],
   "driverId": "5",
   "userId": "5",
   "approvalStatus": "APPROVED",

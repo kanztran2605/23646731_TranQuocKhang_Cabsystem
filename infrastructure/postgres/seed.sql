@@ -36,11 +36,11 @@ ON CONFLICT (did) DO NOTHING;
 
 INSERT INTO driver_profile (did, name, lic_enc, key_ver)
 VALUES
-  (1, 'Driver Demo 1', 'enc:v1:DL-DEMO-001', 1),
-  (2, 'Driver Demo 2', 'enc:v1:DL-DEMO-002', 1),
-  (3, 'Driver Demo 3', 'enc:v1:DL-DEMO-003', 1),
-  (4, 'Driver Demo 4', 'enc:v1:DL-DEMO-004', 1),
-  (5, 'Driver Demo 5', 'enc:v1:DL-DEMO-005', 1)
+  (1, 'Driver Demo 1', 'v1:XRRaVPgwqhKUyCRK:ov7ApsSibrNDa5U=:XEUVHRbCydqL9q3T1ea2Qg==', 1),
+  (2, 'Driver Demo 2', 'v1:9kSwJsV9YM+KmeF6:3Shr4YEQseGelPY=:FSk2GGjuUrXeO9zx/wDq1Q==', 1),
+  (3, 'Driver Demo 3', 'v1:gYFsI6ND7muF/vi7:8FeiKRQb457fAHU=:WVQ5/PzPF9GdICnf9+Yp+A==', 1),
+  (4, 'Driver Demo 4', 'v1:wbSpSgMexhTzzU3r:/DWfwQBE8sPdZF4=:MNbSKeN5fnXG27oW7USB5g==', 1),
+  (5, 'Driver Demo 5', 'v1:35kmFbMCRyFadSKx:b3T9jbTqd4DXphk=:89yprzpfuEwcJ7mR0UwYGg==', 1)
 ON CONFLICT (did) DO NOTHING;
 
 INSERT INTO driver_location (did, lat, lng)
@@ -86,13 +86,13 @@ ON CONFLICT (bid) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('booking','bid'), COALESCE((SELECT MAX(bid) FROM booking),1), true);
 
 \connect payment_db
-INSERT INTO payment (pid, bid, tid, cid, amt, eligible, s, ikey, paid_at)
+INSERT INTO payment (pid, bid, tid, cid, customer_uid, amt, eligible, s, ikey, paid_at)
 VALUES
-  (1, 1, NULL, 1, 50000, FALSE, 'PENDING', NULL, NULL),
-  (2, 2, NULL, 1, 50000, FALSE, 'PENDING', NULL, NULL),
-  (3, 3, NULL, 1, 50000, FALSE, 'PENDING', NULL, NULL),
-  (4, 4, NULL, 1, 50000, FALSE, 'PENDING', NULL, NULL),
-  (5, 5, NULL, 1, 50000, FALSE, 'PENDING', NULL, NULL)
+  (1, 1, NULL, 1, 1, 50000, FALSE, 'PENDING', NULL, NULL),
+  (2, 2, NULL, 1, 1, 50000, FALSE, 'PENDING', NULL, NULL),
+  (3, 3, NULL, 1, 1, 50000, FALSE, 'PENDING', NULL, NULL),
+  (4, 4, NULL, 1, 1, 50000, FALSE, 'PENDING', NULL, NULL),
+  (5, 5, NULL, 1, 1, 50000, FALSE, 'PENDING', NULL, NULL)
 ON CONFLICT (pid) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('payment','pid'), COALESCE((SELECT MAX(pid) FROM payment),1), true);
 

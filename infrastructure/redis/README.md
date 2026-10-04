@@ -2,17 +2,10 @@
 
 Redis belongs only to API Gateway infrastructure.
 
-## Current responsibilities
+It may hold rate-limit counters and short-lived cache or token revocation state.
 
-- Rate-limit state.
-- Optional short-lived token/cache/revocation state.
-- Not a domain database.
-- Must not store Booking, Driver, Trip, Payment, Review or Notification source-of-truth data.
+Redis must not hold domain source-of-truth data, including Booking, Driver, Trip,
+Payment, Review, or Notification data.
 
-## Demo
-
-Rate limit:
-
-3 requests / 10 seconds
-
-The request above the configured threshold returns HTTP 429.
+The demo rate limit is **3 requests / 10 seconds**. Requests above that limit
+receive HTTP 429.

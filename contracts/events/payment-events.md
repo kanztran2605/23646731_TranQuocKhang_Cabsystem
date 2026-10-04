@@ -11,6 +11,7 @@ Payload:
 
 ```json
 {
+  "recipientUserIds": ["13"],
   "paymentId": "1",
   "bookingId": "6",
   "tripId": "1",

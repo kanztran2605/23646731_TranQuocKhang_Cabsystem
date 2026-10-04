@@ -1,0 +1,69 @@
+# =========================================================
+# CAB System - Git Attributes
+# Normalize line endings across Windows / Linux / Docker
+# =========================================================
+
+# Auto-detect text files
+* text=auto
+
+# =========================================================
+# Source code / config: always use LF
+# =========================================================
+
+*.js        text eol=lf
+*.mjs       text eol=lf
+*.cjs       text eol=lf
+*.ts        text eol=lf
+*.json      text eol=lf
+
+*.md        text eol=lf
+*.txt       text eol=lf
+
+*.yaml      text eol=lf
+*.yml       text eol=lf
+
+*.proto     text eol=lf
+
+*.sql       text eol=lf
+
+*.sh        text eol=lf
+
+*.env       text eol=lf
+*.example   text eol=lf
+
+Dockerfile  text eol=lf
+*.dockerfile text eol=lf
+
+.gitignore  text eol=lf
+.dockerignore text eol=lf
+.gitattributes text eol=lf
+
+# =========================================================
+# Windows scripts
+# =========================================================
+
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# =========================================================
+# Binary files
+# =========================================================
+
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+
+*.pdf       binary
+*.doc       binary
+*.docx      binary
+*.xls       binary
+*.xlsx      binary
+*.ppt       binary
+*.pptx      binary
+
+*.zip       binary
+*.rar       binary
+*.7z        binary

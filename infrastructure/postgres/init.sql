@@ -141,6 +141,8 @@ CREATE TABLE trip (
   bid        BIGINT NOT NULL UNIQUE,
   cid        BIGINT NOT NULL,
   did        BIGINT NOT NULL,
+  customer_uid BIGINT NOT NULL,
+  driver_uid BIGINT NOT NULL,
   vid        BIGINT NOT NULL,
   s          VARCHAR(20) NOT NULL DEFAULT 'ASSIGNED'
              CHECK (s IN ('ASSIGNED','ARRIVED','IN_PROGRESS','COMPLETED','CANCELED')),
@@ -177,6 +179,7 @@ CREATE TABLE payment (
   bid        BIGINT NOT NULL UNIQUE,
   tid        BIGINT UNIQUE,
   cid        BIGINT NOT NULL,
+  customer_uid BIGINT NOT NULL,
   amt        DECIMAL(12,2) NOT NULL DEFAULT 50000 CHECK (amt >= 0),
   eligible   BOOLEAN NOT NULL DEFAULT FALSE,
   s          VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (s IN ('PENDING','COMPLETED')),

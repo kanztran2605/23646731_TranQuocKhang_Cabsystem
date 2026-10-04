@@ -61,9 +61,9 @@ Replay same key -> same pid, no new Payment / no double charge
 ## Demo credentials/data
 
 ```text
-Customer: c@c.co / 123
-Driver:   d@d.co / 123
-Admin:    a@a.co / 123
+Customer: c@c.com / 123
+Driver:   d@d.com / 123
+Admin:    a@a.com / 123
 OTP:      123
 Payment:  amt=50000
 Idempotency-Key: P1

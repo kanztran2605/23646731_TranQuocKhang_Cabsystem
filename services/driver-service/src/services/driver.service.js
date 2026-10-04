@@ -1,887 +1,121 @@
 'use strict';
-
-const {
-  AppError,
-} = require(
-  '../../../../shared/errors/app-error'
-);
-
-const {
-  withTransaction,
-} = require(
-  '../config/database'
-);
-
-const driverRepository =
-  require(
-    '../repositories/driver.repository'
-  );
-
-const vehicleRepository =
-  require(
-    '../repositories/vehicle.repository'
-  );
-
-const {
-  APPROVAL_STATUS,
-  AVAILABILITY_STATUS,
-  toDriver,
-} = require(
-  '../domain/driver'
-);
-
-const {
-  APPLICATION_STATUS,
-  isApprovalDecision,
-  toDriverApplicationSummary,
-} = require(
-  '../domain/driver-application'
-);
-
-const {
-  encryptDriverLicense,
-  decryptDriverLicense,
-} = require(
-  '../domain/driver-profile'
-);
-
-const {
-  VEHICLE_TYPE_STATUS,
-} = require(
-  '../domain/vehicle-type'
-);
-
-function requireActor(context) {
-  if (!context?.actorUserId) {
-    throw AppError.unauthorized();
-  }
+const repository = require('../repositories/driver.repository');
+const { publishEvent } = require('../../../../shared/rabbitmq/publisher');
+const { AppError } = require('../../../../shared/errors/app-error');
+const { id, text, actor, coordinates, paging } = require('../../../../shared/validation');
+const { toDriver, toLocation } = require('../domain/driver');
+const { encryptLicense } = require('../security/license');
+function vehicleType(value) {
+  const result = text(value,50);
+  if (/^\d+$/.test(result)) throw AppError.badRequest('Vehicle type must be a string category');
+  return result;
 }
-
-function requireDriverRole(context) {
-  requireActor(context);
-
-  if (context.actorRole !== 'DRIVER') {
-    throw AppError.forbidden(
-      'Only Driver can perform this action',
-      'FORBIDDEN',
-    );
-  }
+function radius(value = 1) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) throw AppError.badRequest('Invalid radius');
+  return value;
 }
-
-function requirePermission(
-  context,
-  permission,
-) {
-  requireActor(context);
-
-  const permissions =
-    Array.isArray(context.permissions)
-      ? context.permissions
-      : [];
-
-  if (!permissions.includes(permission)) {
-    throw AppError.forbidden(
-      'You do not have permission to perform this action',
-      'FORBIDDEN',
-    );
+function createDriverService(repo = repository, publish = publishEvent) {
+  function found(row) { if (!row) throw AppError.notFound('Driver does not exist'); return row; }
+  async function own(context) {
+    const userId = actor(context,['DRIVER']);
+    const row = found(await repo.findByUserId(userId));
+    if (context.actorDriverId && id(context.actorDriverId) !== String(row.did)) throw AppError.forbidden();
+    return row;
   }
-}
-
-function assertNumericId(
-  value,
-  fieldName,
-) {
-  if (!/^\d+$/.test(String(value || ''))) {
-    throw AppError.badRequest(
-      `${fieldName} is invalid`,
-      'INVALID_REQUEST',
-    );
-  }
-
-  return String(value);
-}
-
-function driverResponse(
-  row,
-  { includeSensitive = false } = {},
-) {
-  return toDriver(
-    row,
-    {
-      driverLicense:
-        includeSensitive
-          ? decryptDriverLicense(
-              row.driver_license_ciphertext,
-            )
-          : undefined,
+  return {
+    async requestOtp(request) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(request.email,100))) throw AppError.badRequest();
+      return { otp: process.env.OTP_MOCK_CODE || '123' };
     },
-  );
-}
-
-async function registerDriverProfile(
-  request,
-) {
-  const userId =
-    assertNumericId(
-      request.userId,
-      'userId',
-    );
-
-  const vehicleTypeId =
-    assertNumericId(
-      request.vehicle?.vehicleTypeId,
-      'vehicleTypeId',
-    );
-
-  const fullName =
-    String(
-      request.fullName || '',
-    ).trim();
-
-  const driverLicense =
-    String(
-      request.driverLicense || '',
-    ).trim();
-
-  const licensePlate =
-    String(
-      request.vehicle?.licensePlate || '',
-    ).trim();
-
-  if (
-    !fullName ||
-    !driverLicense ||
-    !licensePlate
-  ) {
-    throw AppError.badRequest(
-      'Driver profile and Vehicle data are required',
-      'INVALID_REQUEST',
-    );
-  }
-
-  const encrypted =
-    encryptDriverLicense(
-      driverLicense,
-    );
-
-  try {
-    return await withTransaction(
-      async (client) => {
-        const existing =
-          await driverRepository
-            .findByUserId(
-              userId,
-              client,
-            );
-
-        if (existing) {
-          throw AppError.conflict(
-            'Driver profile already exists',
-            'DRIVER_ALREADY_EXISTS',
-          );
-        }
-
-        const vehicleType =
-          await vehicleRepository
-            .findVehicleTypeById(
-              vehicleTypeId,
-              client,
-            );
-
-        if (
-          !vehicleType ||
-          vehicleType.status !==
-            VEHICLE_TYPE_STATUS.ACTIVE
-        ) {
-          throw AppError.badRequest(
-            'Vehicle type does not exist or is inactive',
-            'INVALID_VEHICLE_TYPE',
-          );
-        }
-
-        const driver =
-          await driverRepository
-            .createDriver(
-              {
-                userId,
-                approvalStatus:
-                  APPROVAL_STATUS
-                    .PENDING_APPROVAL,
-                availabilityStatus:
-                  AVAILABILITY_STATUS
-                    .OFFLINE,
-              },
-              client,
-            );
-
-        await driverRepository
-          .createProfile(
-            {
-              driverId:
-                driver.driver_id,
-              fullName,
-              driverLicenseCiphertext:
-                encrypted.ciphertext,
-              encryptionKeyVersion:
-                encrypted.keyVersion,
-            },
-            client,
-          );
-
-        const vehicle =
-          await vehicleRepository
-            .createVehicle(
-              {
-                driverId:
-                  driver.driver_id,
-                vehicleTypeId,
-                licensePlate,
-                brand:
-                  request.vehicle.brand ||
-                  null,
-                model:
-                  request.vehicle.model ||
-                  null,
-              },
-              client,
-            );
-
-        await driverRepository
-          .createApplication(
-            {
-              driverId:
-                driver.driver_id,
-              vehicleId:
-                vehicle.vehicle_id,
-              status:
-                APPLICATION_STATUS
-                  .PENDING_APPROVAL,
-            },
-            client,
-          );
-
-        return {
-          driverId:
-            String(
-              driver.driver_id,
-            ),
-          userId:
-            String(
-              driver.user_id,
-            ),
-          approvalStatus:
-            driver.approval_status,
-          message:
-            'Driver profile created and pending approval',
-        };
-      },
-    );
-  } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-
-    if (error.code === '23505') {
-      throw AppError.conflict(
-        'Driver or license plate already exists',
-        'DRIVER_REGISTRATION_CONFLICT',
-      );
-    }
-
-    throw error;
-  }
-}
-
-async function getMyDriverProfile(
-  request,
-) {
-  requireDriverRole(
-    request.context,
-  );
-
-  const row =
-    await driverRepository
-      .findByUserId(
-        request.context
-          .actorUserId,
-      );
-
-  if (!row) {
-    throw AppError.notFound(
-      'Driver does not exist',
-      'DRIVER_NOT_FOUND',
-    );
-  }
-
-  return driverResponse(row);
-}
-
-async function updateMyDriverProfile(
-  request,
-) {
-  requireDriverRole(
-    request.context,
-  );
-
-  requirePermission(
-    request.context,
-    'PROFILE_UPDATE_SELF',
-  );
-
-  const current =
-    await driverRepository
-      .findByUserId(
-        request.context
-          .actorUserId,
-      );
-
-  if (!current) {
-    throw AppError.notFound(
-      'Driver does not exist',
-      'DRIVER_NOT_FOUND',
-    );
-  }
-
-  const patch = {};
-
-  if (request.fullName) {
-    patch.fullName =
-      request.fullName.trim();
-  }
-
-  if (
-    Object.prototype.hasOwnProperty.call(
-      request,
-      'address',
-    )
-  ) {
-    patch.address =
-      request.address.trim();
-  }
-
-  if (request.dateOfBirth) {
-    patch.dateOfBirth =
-      request.dateOfBirth;
-  }
-
-  if (Object.keys(patch).length === 0) {
-    throw AppError.badRequest(
-      'At least one Driver profile field is required',
-      'INVALID_REQUEST',
-    );
-  }
-
-  const updated =
-    await driverRepository
-      .updateProfile(
-        current.driver_id,
-        patch,
-      );
-
-  return driverResponse(updated);
-}
-
-async function getDriverById(
-  request,
-) {
-  requireActor(
-    request.context,
-  );
-
-  const driverId =
-    assertNumericId(
-      request.driverId,
-      'driverId',
-    );
-
-  const row =
-    await driverRepository
-      .findByDriverId(
-        driverId,
-      );
-
-  if (!row) {
-    throw AppError.notFound(
-      'Driver does not exist',
-      'DRIVER_NOT_FOUND',
-    );
-  }
-
-  const vehicle =
-    await vehicleRepository
-      .findActiveByDriverId(
-        driverId,
-      );
-
-  return {
-    driverId:
-      String(row.driver_id),
-    fullName:
-      row.full_name,
-    availabilityStatus:
-      row.availability_status,
-    ...(vehicle
-      ? {
-          vehicle: {
-            vehicleTypeId:
-              String(
-                vehicle.vehicle_type_id,
-              ),
-            ...(vehicle.brand
-              ? { brand: vehicle.brand }
-              : {}),
-            ...(vehicle.model
-              ? { model: vehicle.model }
-              : {}),
-            licensePlate:
-              vehicle.license_plate,
-          },
-        }
-      : {}),
-  };
-}
-
-async function updateDriver(
-  request,
-) {
-  requirePermission(
-    request.context,
-    'DRIVER_MANAGE',
-  );
-
-  const driverId =
-    assertNumericId(
-      request.driverId,
-      'driverId',
-    );
-
-  const current =
-    await driverRepository
-      .findByDriverId(
-        driverId,
-      );
-
-  if (!current) {
-    throw AppError.notFound(
-      'Driver does not exist',
-      'DRIVER_NOT_FOUND',
-    );
-  }
-
-  const patch = {};
-
-  if (request.fullName) {
-    patch.fullName =
-      request.fullName.trim();
-  }
-
-  if (
-    Object.prototype.hasOwnProperty.call(
-      request,
-      'address',
-    )
-  ) {
-    patch.address =
-      request.address.trim();
-  }
-
-  if (request.dateOfBirth) {
-    patch.dateOfBirth =
-      request.dateOfBirth;
-  }
-
-  if (request.driverLicense) {
-    const encrypted =
-      encryptDriverLicense(
-        request.driverLicense,
-      );
-
-    patch.driverLicenseCiphertext =
-      encrypted.ciphertext;
-    patch.encryptionKeyVersion =
-      encrypted.keyVersion;
-  }
-
-  if (Object.keys(patch).length === 0) {
-    throw AppError.badRequest(
-      'At least one Driver profile field is required',
-      'INVALID_REQUEST',
-    );
-  }
-
-  const updated =
-    await driverRepository
-      .updateProfile(
-        driverId,
-        patch,
-      );
-
-  return driverResponse(
-    updated,
-    { includeSensitive: true },
-  );
-}
-
-async function listDrivers(
-  request,
-) {
-  requirePermission(
-    request.context,
-    'DRIVER_MANAGE',
-  );
-
-  const page =
-    Number(request.page || 1);
-  const limit =
-    Number(request.limit || 20);
-
-  if (
-    !Number.isInteger(page) ||
-    page < 1 ||
-    !Number.isInteger(limit) ||
-    limit < 1 ||
-    limit > 100
-  ) {
-    throw AppError.badRequest(
-      'Invalid pagination parameters',
-      'INVALID_REQUEST',
-    );
-  }
-
-  if (
-    request.vehicleTypeId
-  ) {
-    assertNumericId(
-      request.vehicleTypeId,
-      'vehicleTypeId',
-    );
-  }
-
-  const rows =
-    await driverRepository
-      .listDrivers({
-        approvalStatus:
-          request.approvalStatus ||
-          null,
-        availabilityStatus:
-          request.availabilityStatus ||
-          null,
-        vehicleTypeId:
-          request.vehicleTypeId ||
-          null,
-        page,
-        limit,
-      });
-
-  return {
-    items:
-      rows.map(
-        (row) =>
-          driverResponse(
-            row,
-            { includeSensitive: true },
-          ),
-      ),
-  };
-}
-
-async function updateMyAvailability(
-  request,
-) {
-  requireDriverRole(
-    request.context,
-  );
-
-  requirePermission(
-    request.context,
-    'DRIVER_AVAILABILITY_UPDATE_SELF',
-  );
-
-  const current =
-    await driverRepository
-      .findByUserId(
-        request.context
-          .actorUserId,
-      );
-
-  if (!current) {
-    throw AppError.notFound(
-      'Driver does not exist',
-      'DRIVER_NOT_FOUND',
-    );
-  }
-
-  const online =
-    Boolean(request.online);
-
-  if (
-    online &&
-    current.approval_status !==
-      APPROVAL_STATUS.APPROVED
-  ) {
-    throw AppError.conflict(
-      'Driver must be APPROVED before becoming AVAILABLE',
-      'DRIVER_NOT_APPROVED',
-    );
-  }
-
-  if (
-    current.availability_status ===
-      AVAILABILITY_STATUS.BUSY
-  ) {
-    throw AppError.conflict(
-      'BUSY Driver cannot change availability manually',
-      'DRIVER_BUSY',
-    );
-  }
-
-  const nextStatus =
-    online
-      ? AVAILABILITY_STATUS.AVAILABLE
-      : AVAILABILITY_STATUS.OFFLINE;
-
-  const updated =
-    await driverRepository
-      .setAvailabilityByUserId(
-        current.user_id,
-        nextStatus,
-      );
-
-  return driverResponse(updated);
-}
-
-async function getPendingDriverApplications(
-  request,
-) {
-  requirePermission(
-    request.context,
-    'DRIVER_APPROVE',
-  );
-
-  const page =
-    Number(request.page || 1);
-  const limit =
-    Number(request.limit || 20);
-
-  if (
-    !Number.isInteger(page) ||
-    page < 1 ||
-    !Number.isInteger(limit) ||
-    limit < 1 ||
-    limit > 100
-  ) {
-    throw AppError.badRequest(
-      'Invalid pagination parameters',
-      'INVALID_REQUEST',
-    );
-  }
-
-  const result =
-    await driverRepository
-      .listPendingApplications({
-        page,
-        limit,
-      });
-
-  return {
-    page,
-    limit,
-    total: result.total,
-    items:
-      result.rows.map(
-        toDriverApplicationSummary,
-      ),
-  };
-}
-
-async function approveOrRejectDriver(
-  request,
-) {
-  requirePermission(
-    request.context,
-    'DRIVER_APPROVE',
-  );
-
-  const driverId =
-    assertNumericId(
-      request.driverId,
-      'driverId',
-    );
-
-  const decision =
-    request.decision;
-
-  if (!isApprovalDecision(decision)) {
-    throw AppError.badRequest(
-      'decision must be APPROVED or REJECTED',
-      'INVALID_APPROVAL_DECISION',
-    );
-  }
-
-  const reason =
-    String(request.reason || '')
-      .trim();
-
-  if (
-    decision ===
-      APPLICATION_STATUS.REJECTED &&
-    !reason
-  ) {
-    throw AppError.badRequest(
-      'reason is required when rejecting a Driver',
-      'REJECTION_REASON_REQUIRED',
-    );
-  }
-
-  if (reason.length > 255) {
-    throw AppError.badRequest(
-      'reason must not exceed 255 characters',
-      'INVALID_REQUEST',
-    );
-  }
-
-  return withTransaction(
-    async (client) => {
-      const driver =
-        await driverRepository
-          .lockByDriverId(
-            driverId,
-            client,
-          );
-
-      if (!driver) {
-        throw AppError.notFound(
-          'Driver does not exist',
-          'DRIVER_NOT_FOUND',
-        );
-      }
-
-      if (
-        driver.approval_status !==
-        APPROVAL_STATUS
-          .PENDING_APPROVAL
-      ) {
-        throw AppError.conflict(
-          'Only PENDING_APPROVAL Driver can be reviewed',
-          'INVALID_APPROVAL_STATE',
-        );
-      }
-
-      const application =
-        await driverRepository
-          .lockPendingApplication(
-            driverId,
-            client,
-          );
-
-      if (!application) {
-        throw AppError.conflict(
-          'Pending Driver Application does not exist',
-          'PENDING_APPLICATION_NOT_FOUND',
-        );
-      }
-
-      await driverRepository
-        .setApprovalStatus(
-          driverId,
-          decision,
-          client,
-        );
-
-      const reviewed =
-        await driverRepository
-          .reviewApplication(
-            {
-              applicationId:
-                application.application_id,
-              decision,
-              reviewedByUserId:
-                request.context
-                  .actorUserId,
-              rejectionReason:
-                decision ===
-                APPLICATION_STATUS.REJECTED
-                  ? reason
-                  : null,
-            },
-            client,
-          );
-
-      return {
-        driverId,
-        approvalStatus:
-          decision,
-        updatedAt:
-          new Date(
-            reviewed.reviewed_at,
-          ).toISOString(),
-      };
+    async registerDriver(request) {
+      const userId = id(request.userId);
+      if (actor(request.context,['DRIVER']) !== userId) throw AppError.forbidden();
+      if (request.otp !== (process.env.OTP_MOCK_CODE || '123')) throw AppError.badRequest('Invalid OTP');
+      const license = text(request.driverLicense,100,true);
+      if (license !== undefined && Buffer.byteLength(license, 'utf8') > 156) throw AppError.badRequest('Driver license is too long');
+      const input = { userId,name: text(request.name,100),vehicleType: vehicleType(request.vehicleType),
+        licensePlate: text(request.licensePlate,20),brand: text(request.brand,50,true),model: text(request.model,50,true),
+        ...(license !== undefined ? { encryptedLicense: encryptLicense(license) } : {}) };
+      try { return toDriver(await repo.register(input)); }
+      catch (error) { if (error.code === '23505') throw AppError.conflict('Driver or plate already exists','ALREADY_EXISTS'); throw error; }
     },
-  );
+    async getDriver(request) {
+      actor(request.context,['ADMIN']);
+      return toDriver(found(await repo.findById(id(request.driverId))));
+    },
+    async getDriverByUserId(request) { return toDriver(found(await repo.findByUserId(id(request.userId)))); },
+    async listPendingDrivers(request) {
+      actor(request.context,['ADMIN']);
+      const page = paging(request.page || 1,request.limit || 5);
+      const result = await repo.pending(page);
+      return { page: page.page,limit: page.limit,total: result.total,items: result.rows.map(toDriver) };
+    },
+    async reviewDriverApproval(request) {
+      const reviewerUserId = actor(request.context,['ADMIN']);
+      const driverId = id(request.driverId);
+      if (!['APPROVED','REJECTED'].includes(request.approvalStatus)) throw AppError.badRequest();
+      found(await repo.findById(driverId));
+      const changed = await repo.approve({ driverId,approvalStatus: request.approvalStatus,reviewerUserId });
+      if (!changed) throw AppError.conflict('Driver is no longer pending approval');
+      await publish({ producer: 'driver-service',eventType: 'driver.approval.changed',
+        correlationId: request.context.correlationId,
+        payload: { driverId,userId: String(changed.driver.uid),recipientUserIds: [String(changed.driver.uid)],
+          approvalStatus: request.approvalStatus,changedAt: new Date(changed.changedAt).toISOString() } });
+      return toDriver(changed.driver);
+    },
+    async setAvailability(request) {
+      if (typeof request.online !== 'boolean') throw AppError.badRequest();
+      const row = await own(request.context);
+      const changed = await repo.availability({ driverId: String(row.did),online: request.online });
+      if (!changed) throw AppError.conflict('Driver must be approved and cannot change availability while busy');
+      return toDriver(changed);
+    },
+    async markBusyForAssignment(request) {
+      const userId = actor(request.context,['DRIVER']);
+      const driverId = id(request.driverId);
+      const row = found(await repo.findById(driverId));
+      if (String(row.uid) !== userId || (request.context.actorDriverId && id(request.context.actorDriverId) !== driverId)) throw AppError.forbidden();
+      const changed = await repo.markBusy(driverId);
+      if (!changed) throw AppError.conflict('Driver must be approved and available');
+      return toDriver(changed);
+    },
+    async updateLocation(request) {
+      coordinates(request.latitude,request.longitude);
+      const row = await own(request.context);
+      return toLocation(await repo.updateLocation({ driverId: String(row.did),latitude: request.latitude,longitude: request.longitude }));
+    },
+    async getDriverLocation(request) {
+      const driverId = id(request.driverId);
+      found(await repo.findById(driverId));
+      const row = await repo.location(driverId);
+      if (!row) throw AppError.notFound('Driver location does not exist');
+      return toLocation(row);
+    },
+    async getNearbyDrivers(request) {
+      actor(request.context,['ADMIN']);
+      coordinates(request.latitude,request.longitude);
+      const page = paging(request.page || 1,request.limit || 5);
+      const result = await repo.nearby({ ...page,latitude: request.latitude,longitude: request.longitude,radiusKm: radius(request.radiusKm || 1) });
+      return { page: page.page,limit: page.limit,total: result.total,items: result.rows.map(toDriver) };
+    },
+    async findEligibleDrivers(request) {
+      coordinates(request.pickupLatitude,request.pickupLongitude);
+      const limit = request.limit || Number(process.env.BOOKING_MATCH_CANDIDATE_LIMIT || 20);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 20) throw AppError.badRequest();
+      const rows = await repo.eligible({ pickupLatitude: request.pickupLatitude,pickupLongitude: request.pickupLongitude,
+        radiusKm: radius(request.radiusKm || 1),vehicleType: vehicleType(request.vehicleType),limit });
+      return { items: rows.map((row) => ({ driverId: String(row.did),userId: String(row.uid),vehicleId: String(row.vid),vehicleType: row.vt,
+        latitude: Number(row.lat),longitude: Number(row.lng),distanceKm: Number(row.distance_km) })) };
+    },
+    async listVehicleTypes(request) {
+      actor(request.context,['CUSTOMER','DRIVER','ADMIN']);
+      return { items: [{ vehicleType: 'CAR',name: 'Car' }] };
+    },
+    async releaseAfterTrip(driverId,terminalAt) {
+      id(driverId);
+      if (typeof terminalAt !== 'string' || !Number.isFinite(Date.parse(terminalAt))) throw AppError.badRequest('Invalid terminal timestamp');
+      await repo.releaseAfterTrip(driverId,terminalAt);
+    },
+  };
 }
-
-async function getDriverByUserId(
-  request,
-) {
-  const userId =
-    assertNumericId(
-      request.userId,
-      'userId',
-    );
-
-  const row =
-    await driverRepository
-      .findByUserId(userId);
-
-  if (!row) {
-    throw AppError.notFound(
-      'Driver does not exist',
-      'DRIVER_NOT_FOUND',
-    );
-  }
-
-  return driverResponse(row);
-}
-
-async function markBusyFromAssignment(
-  driverId,
-) {
-  assertNumericId(
-    driverId,
-    'driverId',
-  );
-
-  await driverRepository
-    .setBusyFromAssignment(
-      driverId,
-    );
-}
-
-async function releaseAfterTrip(
-  driverId,
-) {
-  assertNumericId(
-    driverId,
-    'driverId',
-  );
-
-  await driverRepository
-    .releaseBusyDriver(
-      driverId,
-    );
-}
-
-module.exports = {
-  registerDriverProfile,
-  getMyDriverProfile,
-  updateMyDriverProfile,
-  getDriverById,
-  updateDriver,
-  listDrivers,
-  updateMyAvailability,
-  getPendingDriverApplications,
-  approveOrRejectDriver,
-  getDriverByUserId,
-  markBusyFromAssignment,
-  releaseAfterTrip,
-};
+module.exports = { ...createDriverService(),createDriverService };

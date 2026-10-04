@@ -386,9 +386,9 @@ Tên domain/proto/code nội bộ vẫn dùng tên rõ nghĩa; alias ngắn ch�
 1. Driver xem Offer.
 2. Driver chọn Accept.
 3. Booking Service kiểm tra Offer còn hợp lệ và Driver còn đủ điều kiện.
-4. Booking Service ghi nhận Offer `ACCEPTED` và publish `driver.accepted`.
-5. Trip Service consume `driver.accepted` và tạo Trip trạng thái `ASSIGNED`.
-6. Driver chuyển `BUSY`.
+4. Booking gọi RPC nội bộ `DriverService.MarkBusyForAssignment(context, driver_id)` qua liên kết Booking → Driver. Driver tồn tại và `APPROVED + AVAILABLE` mới được chuyển nguyên tử sang `BUSY`; RPC trả Driver hiện tại, `NOT_FOUND` nếu không tồn tại, `FAILED_PRECONDITION` nếu không đủ điều kiện. Không có REST endpoint cho RPC này.
+5. Booking ghi nhận Offer `ACCEPTED`/DriverAssignment, rồi publish `driver.accepted`.
+6. Trip Service consume `driver.accepted` và tạo Trip trạng thái `ASSIGNED`. Driver không consume event này; chỉ consume `trip.completed`/`trip.canceled` để giải phóng `BUSY → AVAILABLE` khi phù hợp.
 7. Customer có thể xem Driver đã được gán cho chuyến.
 
 ## 6.5. BP05 – Thực hiện Trip
@@ -557,13 +557,13 @@ sequenceDiagram
     B->>MQ: booking.created
     MQ-->>P: consume booking.created
     P->>P: Create one Payment PENDING, amt=50000, eligible=false
-    B->>D: gRPC FindNearbyDrivers
+    B->>D: gRPC FindEligibleDrivers
     D-->>B: nearest eligible Driver
     B->>B: Save Offer
     B->>MQ: offer.created
     MQ-->>N: consume offer.created
     N->>N: Save notification
-    B-->>G: bid + SEARCHING/OFFERED
+    B-->>G: bid + SEARCHING + Offer reference
     G-->>C: Booking response
 ```
 
@@ -576,12 +576,17 @@ sequenceDiagram
     actor D as Driver
     participant G as API Gateway
     participant B as Booking Service
+    participant DS as Driver Service
     participant MQ as RabbitMQ
     participant T as Trip Service
 
     D->>G: Accept Offer
     G->>B: gRPC AcceptOffer
-    B->>B: Offer = ACCEPTED
+    B->>B: Validate OPEN Offer
+    B->>DS: MarkBusyForAssignment(context, driver_id)
+    DS->>DS: APPROVED + AVAILABLE -> BUSY
+    DS-->>B: Updated Driver
+    B->>B: Persist Offer ACCEPTED / DriverAssignment
     B->>MQ: driver.accepted
     MQ-->>T: consume driver.accepted
     T->>T: Create Trip ASSIGNED
@@ -603,12 +608,12 @@ sequenceDiagram
     participant N as Notification Service
 
     D->>G: s=ARRIVED
-    G->>T: gRPC UpdateTripState
+    G->>T: gRPC UpdateTripStatus
     T->>MQ: trip.status.changed
     MQ-->>N: consume
 
     D->>G: s=IN_PROGRESS
-    G->>T: gRPC UpdateTripState
+    G->>T: gRPC UpdateTripStatus
     T->>MQ: trip.status.changed
 
     D->>G: lat/lng
@@ -617,7 +622,7 @@ sequenceDiagram
     DS-->>T: OK
 
     D->>G: s=COMPLETED
-    G->>T: gRPC UpdateTripState
+    G->>T: gRPC UpdateTripStatus
     T->>MQ: trip.completed
     T->>MQ: trip.status.changed
     T-->>G: COMPLETED
@@ -840,6 +845,10 @@ sequenceDiagram
 | FR08.02 | Notification được lưu trong MongoDB |
 | FR08.03 | Notification không gọi SMS/Email/Push provider thật |
 | FR08.04 | Lỗi Notification không được rollback nghiệp vụ chính đã commit |
+
+Notification identity: all five consumed events require non-empty `recipientUserIds` (string User IDs). Offer/approval notify the Driver; normal Trip progress notifies the Customer; cancellation notifies both; Payment completion notifies the Customer. Persist one document per distinct uid with UNIQUE `(eid, uid)`, retaining the original event ID on replay. Never infer uid from cid/did or call another service for identity resolution.
+
+`booking.created` propagates `customerUserId`; `driver.accepted` and `trip.completed` propagate `customerUserId` and `driverUserId`. Trip stores logical `customer_uid`/`driver_uid`; Payment stores logical `customer_uid`. The existing Driver matching response carries `user_id`; Trip validation returns owner User references for Review. No new gRPC edge or event type is introduced.
 
 ## 7.9. BR09 – Review
 
@@ -1707,11 +1716,10 @@ Không cho phép bỏ qua state bắt buộc.
 
 1. Driver gửi Accept.
 2. Booking Service kiểm tra Offer.
-3. Offer → `ACCEPTED`.
-4. Publish `driver.accepted`.
-5. Trip Service consume event.
-6. Trip Service tạo Trip `ASSIGNED`.
-7. Driver chuyển BUSY theo event/state handling thiết kế.
+3. Booking gọi Driver `MarkBusyForAssignment`: `APPROVED + AVAILABLE → BUSY`.
+4. Booking lưu Offer `ACCEPTED` và DriverAssignment.
+5. Publish `driver.accepted`.
+6. Trip Service consume event và tạo Trip `ASSIGNED`.
 
 ### UC09 – Update Trip
 

@@ -1,7 +1,7 @@
 'use strict';
 
-const app =
-  require('./app');
+const { createApp } = require('./app');
+const app = createApp();
 
 const env =
   require('./config/env');
@@ -32,7 +32,7 @@ const logger =
 
 const server =
   app.listen(
-    env.API_GATEWAY_PORT,
+    env.GATEWAY_PORT,
     env.API_GATEWAY_HOST,
 
     () => {
@@ -43,7 +43,7 @@ const server =
             env.API_GATEWAY_HOST,
 
           port:
-            env.API_GATEWAY_PORT,
+            env.GATEWAY_PORT,
         },
       );
     },

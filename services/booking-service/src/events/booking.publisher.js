@@ -45,7 +45,7 @@ function stableEventId(seed) {
 function publishBookingCreated({
   bookingId,
   customerId,
-  vehicleTypeId,
+  customerUserId,
   createdAt,
   correlationId,
 }) {
@@ -72,31 +72,29 @@ function publishBookingCreated({
 
       customerId:
         String(customerId),
-
-      vehicleTypeId:
-        String(vehicleTypeId),
+      customerUserId: String(customerUserId),
 
       createdAt,
     },
   });
 }
 
-function publishDriverOfferCreated({
+function publishOfferCreated({
   offerId,
   bookingId,
   driverId,
-  expiresAt,
+  driverUserId,
   createdAt,
   correlationId,
 }) {
   return publishEvent({
     eventId:
       stableEventId(
-        `driver.offer.created:${offerId}`,
+        `offer.created:${offerId}`,
       ),
 
     eventType:
-      'driver.offer.created',
+      'offer.created',
 
     producer:
       PRODUCER,
@@ -115,46 +113,9 @@ function publishDriverOfferCreated({
 
       driverId:
         String(driverId),
+      recipientUserIds: [String(driverUserId)],
 
-      expiresAt,
       createdAt,
-    },
-  });
-}
-
-function publishNoDriverFound({
-  bookingId,
-  customerId,
-  reason,
-  occurredAt,
-  correlationId,
-}) {
-  return publishEvent({
-    eventId:
-      stableEventId(
-        `booking.no_driver_found:${bookingId}`,
-      ),
-
-    eventType:
-      'booking.no_driver_found',
-
-    producer:
-      PRODUCER,
-
-    correlationId,
-
-    occurredAt,
-
-    payload: {
-      bookingId:
-        String(bookingId),
-
-      customerId:
-        String(customerId),
-
-      reason,
-
-      occurredAt,
     },
   });
 }
@@ -165,7 +126,8 @@ function publishDriverAccepted({
   customerId,
   driverId,
   vehicleId,
-  vehicleTypeId,
+  customerUserId,
+  driverUserId,
   acceptedAt,
   correlationId,
 }) {
@@ -198,9 +160,8 @@ function publishDriverAccepted({
 
       vehicleId:
         String(vehicleId),
-
-      vehicleTypeId:
-        String(vehicleTypeId),
+      customerUserId: String(customerUserId),
+      driverUserId: String(driverUserId),
 
       acceptedAt,
     },
@@ -210,7 +171,6 @@ function publishDriverAccepted({
 module.exports = {
   stableEventId,
   publishBookingCreated,
-  publishDriverOfferCreated,
-  publishNoDriverFound,
+  publishOfferCreated,
   publishDriverAccepted,
 };

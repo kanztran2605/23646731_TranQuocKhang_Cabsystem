@@ -1,4 +1,4 @@
-git diff --check# CAB System — MVP / Demo Microservice Architecture
+# CAB System — MVP / Demo Microservice Architecture
 
 > Môn học: Lập Trình Hướng Dịch Vụ
 > Project goal: **demo đúng 30/30 rubric, deterministic, mỗi mục thao tác mục tiêu ≤ 30 giây**.
@@ -230,17 +230,15 @@ Public REST/demo aliases may be short (`uid`, `cid`, `did`, `bid`, `tid`, `pid`,
 
 ## 9. Local runtime
 
-Because the database model changed from the old 10-service design, reset old local volumes once before the first run of this baseline:
+For a fresh checkout, create the local configuration only if `.env` does not already exist. The example credentials and encryption key are for local development/demo only.
 
 ```bash
-docker compose down -v
-```
-
-```bash
-cp .env.example .env
+[ -f .env ] || cp .env.example .env
 docker compose up -d --build
 docker compose ps
 ```
+
+Existing volumes must be preserved. Initialization scripts run only on fresh volumes. For an older local cluster, inspect its current schema and existing superuser first; `scripts/repair-local-postgres.py` and `scripts/repair-local-mongodb.py` create private backups under `.backups/` before applying compatible local repairs. Supply the PostgreSQL runtime credentials through ENV and the inspected superuser through `--superuser`; use `--booking-only` or `--remaining-only` for the corresponding schema. Do not reset volumes to fix a missing role or schema.
 
 Gateway:
 
@@ -263,6 +261,8 @@ GET /api/v1/health/services
 ```
 
 Only Gateway exposes a business HTTP port to the host. Business services remain inside the Docker network.
+
+Run `npm ci` at the root and install each service's declared dependencies before local tests. `npm test` runs all nine service suites and shared tests. Real DB integration suites are explicit `tests/database.integration.js` files. `scripts/smoke-local-full.py` verifies the full stack and the 30-item rubric through the Gateway. Its default payment key is P1; preserved P1 records can be replayed, and a repeat full smoke uses `--idempotency-key` with a fresh key. Current results are recorded in `docs/test/FINAL_IMPLEMENTATION_VALIDATION.md`.
 
 ## 10. Definition of Done
 

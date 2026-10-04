@@ -1,531 +1,58 @@
 'use strict';
-
-const {
-  pool,
-} = require(
-  '../config/database'
-);
-
-function runner(client) {
-  return client || pool;
+const { pool, withTransaction } = require('../config/database');
+const projection = 'SELECT d.did,d.uid,d.ap,d.av,p.name,v.vid,v.vt,v.plate,v.brand,v.model,v.s AS vehicle_status,l.lat,l.lng,l.rec_at FROM driver d JOIN driver_profile p ON p.did=d.did LEFT JOIN LATERAL (SELECT * FROM vehicle WHERE did=d.did ORDER BY (s=\'ACTIVE\') DESC,vid LIMIT 1) v ON TRUE LEFT JOIN driver_location l ON l.did=d.did';
+async function findById(driverId, client = pool) { return (await client.query(projection + ' WHERE d.did=$1', [driverId])).rows[0]; }
+async function findByUserId(userId) { return (await pool.query(projection + ' WHERE d.uid=$1', [userId])).rows[0]; }
+async function register(input) {
+  return withTransaction(async (client) => {
+    const driver = (await client.query('INSERT INTO driver (uid) VALUES ($1) RETURNING did', [input.userId])).rows[0];
+    await client.query('INSERT INTO driver_profile (did,name,lic_enc,key_ver) VALUES ($1,$2,$3,1)', [driver.did,input.name,input.encryptedLicense ?? null]);
+    const vehicle = (await client.query('INSERT INTO vehicle (did,vt,plate,brand,model) VALUES ($1,$2,$3,$4,$5) RETURNING vid', [driver.did,input.vehicleType,input.licensePlate,input.brand ?? null,input.model ?? null])).rows[0];
+    await client.query('INSERT INTO driver_application (did,vid) VALUES ($1,$2)', [driver.did,vehicle.vid]);
+    return findById(driver.did, client);
+  });
 }
-
-async function findByUserId(
-  userId,
-  client,
-) {
-  const result =
-    await runner(client).query(
-      `SELECT
-         d.driver_id,
-         d.user_id,
-         d.approval_status,
-         d.availability_status,
-         d.created_at,
-         dp.full_name,
-         dp.address,
-         dp.date_of_birth,
-         dp.driver_license_ciphertext,
-         dp.encryption_key_version
-       FROM driver d
-       JOIN driver_profile dp
-         ON dp.driver_id = d.driver_id
-       WHERE d.user_id = $1::bigint
-       LIMIT 1`,
-      [userId],
-    );
-
-  return result.rows[0] || null;
+async function pending({ limit, offset }) {
+  const count = await pool.query("SELECT COUNT(*) FROM driver WHERE ap='PENDING_APPROVAL'");
+  const rows = await pool.query(projection + " WHERE d.ap='PENDING_APPROVAL' ORDER BY d.did LIMIT $1 OFFSET $2", [limit,offset]);
+  return { total: count.rows[0].count, rows: rows.rows };
 }
-
-async function findByDriverId(
-  driverId,
-  client,
-) {
-  const result =
-    await runner(client).query(
-      `SELECT
-         d.driver_id,
-         d.user_id,
-         d.approval_status,
-         d.availability_status,
-         d.created_at,
-         dp.full_name,
-         dp.address,
-         dp.date_of_birth,
-         dp.driver_license_ciphertext,
-         dp.encryption_key_version
-       FROM driver d
-       JOIN driver_profile dp
-         ON dp.driver_id = d.driver_id
-       WHERE d.driver_id = $1::bigint
-       LIMIT 1`,
-      [driverId],
-    );
-
-  return result.rows[0] || null;
+async function approve({ driverId, approvalStatus, reviewerUserId }) {
+  return withTransaction(async (client) => {
+    const changed = await client.query("UPDATE driver SET ap=$2,u_at=CURRENT_TIMESTAMP WHERE did=$1 AND ap='PENDING_APPROVAL' RETURNING did,u_at", [driverId,approvalStatus]);
+    if (!changed.rows[0]) return null;
+    await client.query("UPDATE driver_application SET s=$2,rev_uid=$3,rev_at=CURRENT_TIMESTAMP WHERE did=$1 AND s='PENDING_APPROVAL'", [driverId,approvalStatus,reviewerUserId]);
+    return { driver: await findById(driverId,client), changedAt: changed.rows[0].u_at };
+  });
 }
-
-async function lockByDriverId(
-  driverId,
-  client,
-) {
-  const result =
-    await runner(client).query(
-      `SELECT
-         driver_id,
-         user_id,
-         approval_status,
-         availability_status
-       FROM driver
-       WHERE driver_id = $1::bigint
-       FOR UPDATE`,
-      [driverId],
-    );
-
-  return result.rows[0] || null;
+async function availability({ driverId, online }) {
+  const changed = await pool.query("UPDATE driver SET av=$2,u_at=CURRENT_TIMESTAMP WHERE did=$1 AND av<>'BUSY' AND ($2='OFFLINE' OR ap='APPROVED') RETURNING did", [driverId, online ? 'AVAILABLE' : 'OFFLINE']);
+  return changed.rows[0] ? findById(driverId) : null;
 }
-
-async function createDriver(
-  {
-    userId,
-    approvalStatus,
-    availabilityStatus,
-  },
-  client,
-) {
-  const result =
-    await runner(client).query(
-      `INSERT INTO driver
-         (
-           user_id,
-           approval_status,
-           availability_status
-         )
-       VALUES
-         ($1::bigint, $2, $3)
-       RETURNING
-         driver_id,
-         user_id,
-         approval_status,
-         availability_status,
-         created_at`,
-      [
-        userId,
-        approvalStatus,
-        availabilityStatus,
-      ],
-    );
-
-  return result.rows[0];
+async function markBusy(driverId) {
+  const changed = await pool.query("UPDATE driver SET av='BUSY',u_at=CURRENT_TIMESTAMP WHERE did=$1 AND ap='APPROVED' AND av='AVAILABLE' RETURNING did", [driverId]);
+  return changed.rows[0] ? findById(driverId) : null;
 }
-
-async function createProfile(
-  {
-    driverId,
-    fullName,
-    driverLicenseCiphertext,
-    encryptionKeyVersion,
-  },
-  client,
-) {
-  await runner(client).query(
-    `INSERT INTO driver_profile
-       (
-         driver_id,
-         full_name,
-         driver_license_ciphertext,
-         encryption_key_version
-       )
-     VALUES
-       ($1::bigint, $2, $3, $4)`,
-    [
-      driverId,
-      fullName,
-      driverLicenseCiphertext,
-      encryptionKeyVersion,
-    ],
-  );
+async function updateLocation({ driverId, latitude, longitude }) {
+  return (await pool.query('INSERT INTO driver_location (did,lat,lng) VALUES ($1,$2,$3) ON CONFLICT (did) DO UPDATE SET lat=EXCLUDED.lat,lng=EXCLUDED.lng,rec_at=CURRENT_TIMESTAMP RETURNING did,lat,lng,rec_at', [driverId,latitude,longitude])).rows[0];
 }
-
-async function updateProfile(
-  driverId,
-  patch,
-  client,
-) {
-  const fields = [];
-  const values = [];
-
-  if (
-    Object.prototype.hasOwnProperty.call(
-      patch,
-      'fullName',
-    )
-  ) {
-    values.push(patch.fullName);
-    fields.push(
-      `full_name = $${values.length}`,
-    );
-  }
-
-  if (
-    Object.prototype.hasOwnProperty.call(
-      patch,
-      'address',
-    )
-  ) {
-    values.push(patch.address);
-    fields.push(
-      `address = $${values.length}`,
-    );
-  }
-
-  if (
-    Object.prototype.hasOwnProperty.call(
-      patch,
-      'dateOfBirth',
-    )
-  ) {
-    values.push(patch.dateOfBirth);
-    fields.push(
-      `date_of_birth = $${values.length}::date`,
-    );
-  }
-
-  if (
-    Object.prototype.hasOwnProperty.call(
-      patch,
-      'driverLicenseCiphertext',
-    )
-  ) {
-    values.push(
-      patch.driverLicenseCiphertext,
-    );
-    fields.push(
-      `driver_license_ciphertext = $${values.length}`,
-    );
-
-    values.push(
-      patch.encryptionKeyVersion,
-    );
-    fields.push(
-      `encryption_key_version = $${values.length}`,
-    );
-  }
-
-  if (fields.length === 0) {
-    return findByDriverId(
-      driverId,
-      client,
-    );
-  }
-
-  values.push(driverId);
-
-  await runner(client).query(
-    `UPDATE driver_profile
-     SET ${fields.join(', ')}
-     WHERE driver_id = $${values.length}::bigint`,
-    values,
-  );
-
-  return findByDriverId(
-    driverId,
-    client,
-  );
+async function location(driverId) { return (await pool.query('SELECT did,lat,lng,rec_at FROM driver_location WHERE did=$1', [driverId])).rows[0]; }
+const point = 'ST_SetSRID(ST_MakePoint(l.lng,l.lat),4326)::geography';
+const origin = 'ST_SetSRID(ST_MakePoint($2,$1),4326)::geography';
+async function nearby({ latitude, longitude, radiusKm, limit, offset }) {
+  const params = [latitude,longitude,radiusKm * 1000];
+  const condition = ' WHERE l.did IS NOT NULL AND ST_DWithin(' + point + ',' + origin + ',$3)';
+  const count = await pool.query('SELECT COUNT(*) FROM driver_location l' + condition, params);
+  const sql = projection.replace('SELECT d.did', 'SELECT ST_Distance(' + point + ',' + origin + ')/1000 AS distance_km,d.did');
+  const rows = await pool.query(sql + condition + ' ORDER BY distance_km,d.did LIMIT $4 OFFSET $5', [...params,limit,offset]);
+  return { rows: rows.rows, total: count.rows[0].count };
 }
-
-async function createApplication(
-  {
-    driverId,
-    vehicleId,
-    status,
-  },
-  client,
-) {
-  const result =
-    await runner(client).query(
-      `INSERT INTO driver_application
-         (
-           driver_id,
-           vehicle_id,
-           status
-         )
-       VALUES
-         ($1::bigint, $2::bigint, $3)
-       RETURNING
-         application_id,
-         driver_id,
-         vehicle_id,
-         status,
-         submitted_at`,
-      [
-        driverId,
-        vehicleId,
-        status,
-      ],
-    );
-
-  return result.rows[0];
+async function eligible({ pickupLatitude, pickupLongitude, radiusKm, vehicleType, limit }) {
+  const sql = 'SELECT d.did,d.uid,v.vid,v.vt,l.lat,l.lng,ST_Distance(' + point + ',' + origin + ')/1000 AS distance_km FROM driver d JOIN driver_location l ON l.did=d.did JOIN LATERAL (SELECT vid,vt FROM vehicle WHERE did=d.did AND s=\'ACTIVE\' AND vt=$4 ORDER BY vid LIMIT 1) v ON TRUE WHERE d.ap=\'APPROVED\' AND d.av=\'AVAILABLE\' AND ST_DWithin(' + point + ',' + origin + ',$3) ORDER BY distance_km,d.did LIMIT $5';
+  return (await pool.query(sql, [pickupLatitude,pickupLongitude,radiusKm * 1000,vehicleType,limit])).rows;
 }
-
-async function listDrivers({
-  approvalStatus,
-  availabilityStatus,
-  vehicleTypeId,
-  page,
-  limit,
-}) {
-  const where = [];
-  const values = [];
-
-  if (approvalStatus) {
-    values.push(approvalStatus);
-    where.push(
-      `d.approval_status = $${values.length}`,
-    );
-  }
-
-  if (availabilityStatus) {
-    values.push(availabilityStatus);
-    where.push(
-      `d.availability_status = $${values.length}`,
-    );
-  }
-
-  if (vehicleTypeId) {
-    values.push(vehicleTypeId);
-    where.push(
-      `EXISTS (
-         SELECT 1
-         FROM vehicle v
-         WHERE v.driver_id = d.driver_id
-           AND v.vehicle_type_id = $${values.length}::bigint
-       )`,
-    );
-  }
-
-  const whereSql =
-    where.length > 0
-      ? `WHERE ${where.join(' AND ')}`
-      : '';
-
-  values.push(limit);
-  const limitIndex = values.length;
-
-  values.push(
-    (page - 1) * limit,
-  );
-  const offsetIndex = values.length;
-
-  const result =
-    await pool.query(
-      `SELECT
-         d.driver_id,
-         d.user_id,
-         d.approval_status,
-         d.availability_status,
-         d.created_at,
-         dp.full_name,
-         dp.address,
-         dp.date_of_birth,
-         dp.driver_license_ciphertext,
-         dp.encryption_key_version
-       FROM driver d
-       JOIN driver_profile dp
-         ON dp.driver_id = d.driver_id
-       ${whereSql}
-       ORDER BY d.driver_id
-       LIMIT $${limitIndex}
-       OFFSET $${offsetIndex}`,
-      values,
-    );
-
-  return result.rows;
+async function releaseAfterTrip(driverId, terminalAt) {
+  // An old terminal event must not release a newer assignment.
+  await pool.query("UPDATE driver SET av='AVAILABLE',u_at=CURRENT_TIMESTAMP WHERE did=$1 AND ap='APPROVED' AND av='BUSY' AND u_at<=$2::timestamptz", [driverId,terminalAt]);
 }
-
-async function listPendingApplications({
-  page,
-  limit,
-}) {
-  const offset =
-    (page - 1) * limit;
-
-  const countResult =
-    await pool.query(
-      `SELECT COUNT(*)::bigint AS total
-       FROM driver_application
-       WHERE status = 'PENDING_APPROVAL'`,
-    );
-
-  const itemsResult =
-    await pool.query(
-      `SELECT
-         da.application_id,
-         da.driver_id,
-         da.vehicle_id,
-         da.status,
-         da.submitted_at,
-         dp.full_name
-       FROM driver_application da
-       JOIN driver_profile dp
-         ON dp.driver_id = da.driver_id
-       WHERE da.status = 'PENDING_APPROVAL'
-       ORDER BY
-         da.submitted_at,
-         da.application_id
-       LIMIT $1
-       OFFSET $2`,
-      [limit, offset],
-    );
-
-  return {
-    total:
-      Number(
-        countResult.rows[0].total,
-      ),
-    rows:
-      itemsResult.rows,
-  };
-}
-
-async function lockPendingApplication(
-  driverId,
-  client,
-) {
-  const result =
-    await runner(client).query(
-      `SELECT
-         application_id,
-         driver_id,
-         vehicle_id,
-         status,
-         submitted_at
-       FROM driver_application
-       WHERE driver_id = $1::bigint
-         AND status = 'PENDING_APPROVAL'
-       ORDER BY application_id DESC
-       LIMIT 1
-       FOR UPDATE`,
-      [driverId],
-    );
-
-  return result.rows[0] || null;
-}
-
-async function reviewApplication(
-  {
-    applicationId,
-    decision,
-    reviewedByUserId,
-    rejectionReason,
-  },
-  client,
-) {
-  const result =
-    await runner(client).query(
-      `UPDATE driver_application
-       SET
-         status = $1,
-         reviewed_by_user_id = $2::bigint,
-         rejection_reason = $3,
-         reviewed_at = CURRENT_TIMESTAMP
-       WHERE application_id = $4::bigint
-       RETURNING reviewed_at`,
-      [
-        decision,
-        reviewedByUserId,
-        rejectionReason,
-        applicationId,
-      ],
-    );
-
-  return result.rows[0];
-}
-
-async function setApprovalStatus(
-  driverId,
-  decision,
-  client,
-) {
-  await runner(client).query(
-    `UPDATE driver
-     SET
-       approval_status = $1,
-       availability_status = 'OFFLINE'
-     WHERE driver_id = $2::bigint`,
-    [decision, driverId],
-  );
-}
-
-async function setAvailabilityByUserId(
-  userId,
-  availabilityStatus,
-  client,
-) {
-  await runner(client).query(
-    `UPDATE driver
-     SET availability_status = $1
-     WHERE user_id = $2::bigint`,
-    [
-      availabilityStatus,
-      userId,
-    ],
-  );
-
-  return findByUserId(
-    userId,
-    client,
-  );
-}
-
-async function setBusyFromAssignment(
-  driverId,
-) {
-  const result =
-    await pool.query(
-      `UPDATE driver
-       SET availability_status = 'BUSY'
-       WHERE driver_id = $1::bigint
-         AND approval_status = 'APPROVED'
-       RETURNING driver_id`,
-      [driverId],
-    );
-
-  return result.rowCount > 0;
-}
-
-async function releaseBusyDriver(
-  driverId,
-) {
-  const result =
-    await pool.query(
-      `UPDATE driver
-       SET availability_status = 'AVAILABLE'
-       WHERE driver_id = $1::bigint
-         AND approval_status = 'APPROVED'
-         AND availability_status = 'BUSY'
-       RETURNING driver_id`,
-      [driverId],
-    );
-
-  return result.rowCount > 0;
-}
-
-module.exports = {
-  findByUserId,
-  findByDriverId,
-  lockByDriverId,
-  createDriver,
-  createProfile,
-  updateProfile,
-  createApplication,
-  listDrivers,
-  listPendingApplications,
-  lockPendingApplication,
-  reviewApplication,
-  setApprovalStatus,
-  setAvailabilityByUserId,
-  setBusyFromAssignment,
-  releaseBusyDriver,
-};
+module.exports = { findById,findByUserId,register,pending,approve,availability,markBusy,updateLocation,location,nearby,eligible,releaseAfterTrip };

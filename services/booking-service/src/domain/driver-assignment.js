@@ -1,41 +1,6 @@
 'use strict';
-
-function toDriverAssignment(
-  row,
-) {
-  return {
-    assignmentId:
-      String(
-        row.assignment_id,
-      ),
-
-    bookingId:
-      String(
-        row.booking_id,
-      ),
-
-    offerId:
-      String(
-        row.offer_id,
-      ),
-
-    driverId:
-      String(
-        row.driver_id,
-      ),
-
-    vehicleId:
-      String(
-        row.vehicle_id,
-      ),
-
-    assignedAt:
-      new Date(
-        row.assigned_at,
-      ).toISOString(),
-  };
+function toDriverAssignment(row) {
+  return { assignmentId: String(row.aid), bookingId: String(row.bid), offerId: String(row.oid),
+    driverId: String(row.did), vehicleId: String(row.vid), assignedAt: new Date(row.ass_at).toISOString() };
 }
-
-module.exports = {
-  toDriverAssignment,
-};
+module.exports = { toDriverAssignment };

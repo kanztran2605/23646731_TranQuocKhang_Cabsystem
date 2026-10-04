@@ -1,203 +1,39 @@
 'use strict';
-
-const test = require('node:test');
-const assert = require('node:assert/strict');
-
-process.env.BOOKING_MATCH_RADIUS_KM = '1';
-process.env.BOOKING_MATCH_CANDIDATE_LIMIT = '2';
-process.env.DRIVER_OFFER_TTL_SECONDS = '3600';
-process.env.BOOKING_MATCHING_TIMEOUT_SECONDS = '300';
-process.env.BOOKING_MATCHING_RETRY_SECONDS = '5';
-
-function installStub(moduleId, exports) {
-  require.cache[moduleId] = {
-    id: moduleId,
-    filename: moduleId,
-    loaded: true,
-    exports,
-  };
-}
-
-const repositoryId =
-  require.resolve(
-    '../src/repositories/booking.repository',
-  );
-const driverClientId =
-  require.resolve(
-    '../src/grpc/driver.client',
-  );
-const publisherId =
-  require.resolve(
-    '../src/events/booking.publisher',
-  );
-
-const state = {
-  offered: new Set(),
-  pages: [],
-  createdOffer: null,
-  noDriverEvent: null,
-  setStatusCalls: [],
-};
-
-const repository = {
-  async findPendingOfferForBooking() {
-    return null;
-  },
-  async expireOfferIfDue() {
-    return null;
-  },
-  async listOfferedDriverIds() {
-    return state.offered;
-  },
-  async createDriverOffer(input) {
-    state.createdOffer = input;
-    return {
-      offer_id: 99,
-      booking_id: input.bookingId,
-      driver_id: input.driverId,
-      vehicle_id: input.vehicleId,
-      status: 'PENDING',
-      created_at: new Date('2026-10-03T08:00:00.000Z'),
-      expires_at: input.expiresAt,
-    };
-  },
-  async setBookingStatus(bookingId, nextStatus, expectedStatus) {
-    state.setStatusCalls.push({ bookingId, nextStatus, expectedStatus });
-    return {
-      booking_id: bookingId,
-      customer_id: 2,
-      status: nextStatus,
-    };
-  },
-  async findBookingById() {
-    return null;
-  },
-  async listPendingOffersForRecovery() {
-    return [];
-  },
-  async listSearchingBookingsWithoutPendingOffer() {
-    return [];
-  },
-};
-
-const driverClient = {
-  async findEligibleDrivers({ page }) {
-    state.pages.push(page);
-
-    if (page === 1) {
-      return {
-        items: [
-          {
-            driverId: '1',
-            vehicleId: '1',
-            vehicleTypeId: '1',
-          },
-          {
-            driverId: '2',
-            vehicleId: '2',
-            vehicleTypeId: '1',
-          },
-        ],
-      };
-    }
-
-    return {
-      items: [
-        {
-          driverId: '7',
-          vehicleId: '7',
-          vehicleTypeId: '1',
-        },
-      ],
-    };
-  },
-};
-
-const publisher = {
-  async publishDriverOfferCreated() {},
-  async publishNoDriverFound(input) {
-    state.noDriverEvent = input;
-  },
-};
-
-installStub(repositoryId, repository);
-installStub(driverClientId, driverClient);
-installStub(publisherId, publisher);
-
-const matching =
-  require(
-    '../src/services/driver-matching.service'
-  );
-
-function booking(overrides = {}) {
-  return {
-    booking_id: 8,
-    customer_id: 2,
-    pickup_latitude: '10.760100',
-    pickup_longitude: '106.680100',
-    requested_vehicle_type_id: 1,
-    status: 'SEARCHING',
-    created_at: new Date(),
-    ...overrides,
-  };
-}
-
-test.afterEach(() => {
-  matching.stopAllTimers();
-  state.offered = new Set();
-  state.pages = [];
-  state.createdOffer = null;
-  state.noDriverEvent = null;
-  state.setStatusCalls = [];
+const test=require('node:test');const assert=require('node:assert/strict');
+const {fixture,input,AppError}=require('./fixture');
+test('matching queries current Driver contract with demo radius and candidate limit',async()=>{
+ const f=fixture();await f.service.createBooking(input());
+ assert.deepEqual(f.state.searches,[{pickupLatitude:10.76,pickupLongitude:106.68,radiusKm:1,vehicleType:'CAR',limit:20,correlationId:'booking-test'}]);
 });
-
-test('matching paginates past drivers already offered for the same Booking', async () => {
-  state.offered = new Set(['1', '2']);
-
-  const result =
-    await matching.startMatching({
-      booking: booking(),
-      correlationId: 'req-8',
-    });
-
-  assert.deepEqual(state.pages, [1, 2]);
-  assert.equal(state.createdOffer.driverId, '7');
-  assert.equal(state.createdOffer.vehicleId, '7');
-  assert.equal(result.driver_id, '7');
+test('nearest matching vehicle is selected; exactly one Offer is committed before event',async()=>{
+ const f=fixture();f.state.candidates=[
+ {userId:'12',driverId:'3',vehicleId:'3',vehicleType:'BIKE',distanceKm:0.01},
+ {userId:'12',driverId:'9',vehicleId:'9',vehicleType:'CAR',distanceKm:0.4},
+ {userId:'12',driverId:'7',vehicleId:'7',vehicleType:'CAR',distanceKm:0.1},
+ {userId:'12',driverId:'1',vehicleId:'1',vehicleType:'CAR',distanceKm:2}];
+ await f.service.createBooking(input());assert.equal(f.state.offers.length,1);assert.equal(f.state.offers[0].did,'7');
+ assert.deepEqual(f.state.operations.slice(-3),['offer.persist','commit','offer.created']);
 });
-
-test('matching ends as NO_DRIVER_FOUND only when no remaining eligible candidate exists', async () => {
-  state.offered = new Set(['1', '2', '7']);
-
-  const result =
-    await matching.startMatching({
-      booking: booking(),
-      correlationId: 'req-8',
-    });
-
-  assert.equal(result.status, 'NO_DRIVER_FOUND');
-  assert.equal(state.createdOffer, null);
-  assert.equal(state.setStatusCalls.length, 1);
-  assert.equal(
-    state.setStatusCalls[0].nextStatus,
-    'NO_DRIVER_FOUND',
-  );
-  assert.equal(
-    state.noDriverEvent.reason,
-    'NO_SUITABLE_DRIVER',
-  );
+test('repeated matching does not query or publish another Offer',async()=>{
+ const f=fixture();await f.service.createBooking(input());
+ await f.matching.startMatching({booking:f.state.bookings[0],correlationId:'booking-test'});
+ assert.equal(f.state.searches.length,1);assert.equal(f.state.offers.length,1);assert.equal(f.state.events.length,2);
 });
-
-test('terminal Booking does not start matching again', async () => {
-  const result =
-    await matching.startMatching({
-      booking: booking({
-        status: 'ASSIGNED',
-      }),
-      correlationId: 'req-8',
-    });
-
-  assert.equal(result, null);
-  assert.deepEqual(state.pages, []);
-  assert.equal(state.createdOffer, null);
+test('equal distance uses deterministic Driver ID ordering',async()=>{
+ const f=fixture();f.state.candidates=[{userId:'12',driverId:'10',vehicleId:'10',vehicleType:'CAR',distanceKm:0.1},{userId:'12',driverId:'2',vehicleId:'2',vehicleType:'CAR',distanceKm:0.1}];
+ await f.service.createBooking(input());assert.equal(f.state.offers[0].did,'2');
+});
+test('terminal result is retained without timers or matching attempts',async(t)=>{
+ const f=fixture();f.state.candidates=[];await f.service.createBooking(input());
+ t.mock.method(global,'setTimeout',()=>assert.fail('MVP must not start automatic matching timers'));
+ await f.matching.startMatching({booking:f.state.bookings[0]});assert.equal(f.state.searches.length,1);assert.equal(f.state.offers.length,0);
+});
+test('Driver lookup failure is propagated without marking false NO_DRIVER_FOUND or retrying',async()=>{
+ const f=fixture();f.state.searchError=new AppError('Unavailable',{statusCode:503});
+ await assert.rejects(f.service.createBooking(input()),{statusCode:503});
+ assert.equal(f.state.bookings[0].s,'SEARCHING');assert.equal(f.state.searches.length,1);assert.equal(f.state.offers.length,0);
+});
+test('Offer publication failure retains one persisted Offer and reports failure',async()=>{
+ const f=fixture();f.state.publishFailure='offer.created';
+ await assert.rejects(f.service.createBooking(input()),{statusCode:503});assert.equal(f.state.offers.length,1);
 });

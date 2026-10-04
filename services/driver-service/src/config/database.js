@@ -20,9 +20,7 @@ const pool = new Pool({
     process.env.POSTGRES_PASSWORD,
 
   database:
-    process.env.DB_NAME ||
     process.env.DRIVER_DB_NAME ||
-    process.env.DRIVER_DB ||
     'driver_db',
 
   max: 10,

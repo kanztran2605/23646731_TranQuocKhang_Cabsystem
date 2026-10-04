@@ -8,6 +8,17 @@ const LEVELS = Object.freeze({
 });
 
 const REDACTED_KEYS = new Set([
+  'pw',
+  'pwhash',
+  'jwtsecret',
+  'dataencryptionkeybase64',
+  'dataencryptionlegacykeybase64',
+  'lic',
+  'license',
+  'licenc',
+  'driverlicenseciphertext',
+  'driverlicense',
+  'decryptedlicense',
   'password',
   'passwordhash',
   'authorization',
@@ -43,12 +54,10 @@ function serializeError(error) {
 
   return {
     name: error.name,
-    message: error.message,
     code: error.code,
     statusCode: error.statusCode,
-    stack: error.stack,
     ...(error.cause
-      ? { cause: serializeError(error.cause) }
+      ? { cause: error.cause }
       : {}),
   };
 }
@@ -59,7 +68,11 @@ function redact(value, seen = new WeakSet()) {
   }
 
   if (value instanceof Error) {
-    return serializeError(value);
+    if (seen.has(value)) return '[Circular]';
+    seen.add(value);
+    const output = redact(serializeError(value), seen);
+    seen.delete(value);
+    return output;
   }
 
   if (Buffer.isBuffer(value)) {
@@ -91,7 +104,7 @@ function redact(value, seen = new WeakSet()) {
       .replace(/[_-]/g, '')
       .toLowerCase();
 
-    output[key] = REDACTED_KEYS.has(normalizedKey)
+    output[key] = (REDACTED_KEYS.has(normalizedKey) || normalizedKey.endsWith('password') || normalizedKey.endsWith('secret'))
       ? '[REDACTED]'
       : redact(item, seen);
   }

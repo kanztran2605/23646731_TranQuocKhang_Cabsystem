@@ -19,14 +19,14 @@ const EVENT_PRODUCERS = Object.freeze({
 });
 
 const REQUIRED_PAYLOAD_FIELDS = Object.freeze({
-  'booking.created': ['bookingId', 'customerId', 'createdAt'],
-  'offer.created': ['offerId', 'bookingId', 'driverId', 'createdAt'],
-  'driver.accepted': ['bookingId', 'customerId', 'driverId', 'vehicleId', 'acceptedAt'],
-  'driver.approval.changed': ['driverId', 'userId', 'approvalStatus', 'changedAt'],
-  'trip.status.changed': ['tripId', 'customerId', 'driverId', 'fromStatus', 'toStatus', 'changedAt'],
-  'trip.canceled': ['tripId', 'customerId', 'driverId', 'reason', 'canceledAt'],
-  'trip.completed': ['tripId', 'bookingId', 'customerId', 'driverId', 'completedAt'],
-  'payment.completed': ['paymentId', 'bookingId', 'tripId', 'customerId', 'amount', 'paidAt'],
+  'booking.created': ['bookingId', 'customerId', 'customerUserId', 'createdAt'],
+  'offer.created': ['offerId', 'bookingId', 'driverId', 'recipientUserIds', 'createdAt'],
+  'driver.accepted': ['bookingId', 'customerId', 'driverId', 'vehicleId', 'customerUserId', 'driverUserId', 'acceptedAt'],
+  'driver.approval.changed': ['driverId', 'userId', 'recipientUserIds', 'approvalStatus', 'changedAt'],
+  'trip.status.changed': ['tripId', 'customerId', 'driverId', 'recipientUserIds', 'fromStatus', 'toStatus', 'changedAt'],
+  'trip.canceled': ['tripId', 'customerId', 'driverId', 'recipientUserIds', 'reason', 'canceledAt'],
+  'trip.completed': ['tripId', 'bookingId', 'customerId', 'driverId', 'customerUserId', 'driverUserId', 'completedAt'],
+  'payment.completed': ['paymentId', 'bookingId', 'tripId', 'customerId', 'recipientUserIds', 'amount', 'paidAt'],
 });
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -53,6 +53,22 @@ function validatePayload(eventType, payload) {
   for (const field of requiredFields) {
     if (!Object.prototype.hasOwnProperty.call(payload, field)) {
       throw new Error(`${eventType} payload is missing required field: ${field}`);
+    }
+  }
+  const { id } = require('../validation');
+  for (const field of ['customerUserId','driverUserId']) {
+    if (Object.hasOwn(payload, field)) {
+      if (typeof payload[field] !== 'string') throw new TypeError('User reference must be a string');
+      id(payload[field]);
+    }
+  }
+  if (requiredFields.includes('recipientUserIds')) {
+    if (!Array.isArray(payload.recipientUserIds) || payload.recipientUserIds.length === 0) {
+      throw new TypeError('recipientUserIds must be a non-empty array of User IDs');
+    }
+    for (const recipient of payload.recipientUserIds) {
+      if (typeof recipient !== 'string') throw new TypeError('Recipient ID must be a string');
+      id(recipient);
     }
   }
 

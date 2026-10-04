@@ -1,15 +1,12 @@
 # =========================================================
-# CAB System - Docker Ignore
+# CAB System - Git Ignore
 # =========================================================
 
 # Git
 .git/
-.gitignore
-.gitattributes
 
-# AI development instructions
+# Local AI/cache state (project instructions and documentation are versioned)
 .ai/
-AI_CONTEXT.md
 
 # Environment / secrets
 .env
@@ -64,19 +61,9 @@ postgres-data/
 rabbitmq-data/
 redis-data/
 
-# Documentation not needed inside runtime images
-docs/
-postman/
-
-# Reports / generated artifacts
+# Generated artifacts; authoritative docs and Postman files are versioned
 reports/
-*.pdf
-*.docx
-*.xlsx
-*.pptx
-*.png
-*.jpg
-*.jpeg
+outputs/
 
 # Local certificates / keys
 *.pem
@@ -86,6 +73,7 @@ reports/
 *.pfx
 
 # Database dumps
+.backups/
 *.dump
 *.backup
 *.sql.gz
@@ -93,3 +81,5 @@ reports/
 # Misc cache
 .cache/
 .eslintcache
+__pycache__/
+*.pyc

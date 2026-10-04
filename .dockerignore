@@ -96,3 +96,5 @@ reports/
 # Cache
 .cache/
 .eslintcache
+# Local database backups must never enter the build context.
+.backups/

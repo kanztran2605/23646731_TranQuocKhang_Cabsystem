@@ -303,9 +303,9 @@ Nearby smoke may display multiple states; matching must use only eligible driver
 MVP flow:
 
 ```text
-persist Booking
+validate Customer
+ -> persist Booking
  -> booking.created
- -> validate Customer
  -> find nearest eligible Driver
  -> create ONE Offer
  -> offer.created
@@ -322,8 +322,10 @@ Do not implement offer TTL, expiration, rejection loop, matching retry scheduler
 ### Offer accept
 
 ```text
-OPEN -> ACCEPTED
- -> DriverAssignment
+Validate OPEN Offer
+ -> Booking calls Driver.MarkBusyForAssignment before persisting acceptance/Assignment
+    APPROVED + AVAILABLE -> BUSY (internal gRPC, no public REST)
+ -> persist Offer ACCEPTED + DriverAssignment
  -> Booking ASSIGNED
  -> driver.accepted
  -> Trip ASSIGNED
@@ -359,9 +361,13 @@ No `PICKED_UP`, ETA or abnormal-trip workflow.
 - MongoDB `notification_db`.
 - Consume only the event bindings defined in AsyncAPI/RabbitMQ definitions.
 - Persist local Notification document.
-- Deduplicate by source `eventId`.
+- Deduplicate by source `eventId` plus recipient `uid`.
 - No SMS/Email/Push provider.
 - Notification failure must not roll back the source business transaction.
+
+Notification identity: all five consumed events require non-empty `recipientUserIds` (string User IDs). Offer/approval notify the Driver; normal Trip progress notifies the Customer; cancellation notifies both; Payment completion notifies the Customer. Persist one document per distinct uid with UNIQUE `(eid, uid)`, retaining the original event ID on replay. Never infer uid from cid/did or call another service for identity resolution.
+
+`booking.created` propagates `customerUserId`; `driver.accepted` and `trip.completed` propagate `customerUserId` and `driverUserId`. Trip stores logical `customer_uid`/`driver_uid`; Payment stores logical `customer_uid`. The existing Driver matching response carries `user_id`; Trip validation returns owner User references for Review. No new gRPC edge or event type is introduced.
 
 ### Review
 

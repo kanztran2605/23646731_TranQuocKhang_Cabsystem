@@ -1,42 +1,7 @@
 'use strict';
-
-function toCustomerProfile(
-  row,
-) {
-  return {
-    customerId:
-      String(
-        row.customer_id,
-      ),
-
-    userId:
-      String(
-        row.user_id,
-      ),
-
-    fullName:
-      row.full_name,
-
-    ...(row.address
-      ? {
-          address:
-            row.address,
-        }
-      : {}),
-
-    ...(row.date_of_birth
-      ? {
-          dateOfBirth:
-            new Date(
-              row.date_of_birth,
-            )
-              .toISOString()
-              .slice(0, 10),
-        }
-      : {}),
-  };
+function toCustomerProfile(row) {
+  return { customerId: String(row.cid), userId: String(row.uid), name: row.name,
+    ...(row.addr !== null && row.addr !== undefined ? { address: row.addr } : {}),
+    createdAt: new Date(row.c_at).toISOString(), updatedAt: new Date(row.u_at).toISOString() };
 }
-
-module.exports = {
-  toCustomerProfile,
-};
+module.exports = { toCustomerProfile };

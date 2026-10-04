@@ -1,1240 +1,141 @@
 'use strict';
+const repository = require('../repositories/booking.repository');
+const customerClient = require('../grpc/customer.client');
+const driverClient = require('../grpc/driver.client');
+const publisher = require('../events/booking.publisher');
+const database = require('../config/database');
+const { createMatchingService } = require('./driver-matching.service');
+const { toBooking } = require('../domain/booking');
+const { toDriverOffer } = require('../domain/driver-offer');
+const { AppError } = require('../../../../shared/errors/app-error');
+const { id, text, actor, coordinates } = require('../../../../shared/validation');
+const { createLogger } = require('../../../../shared/logging/logger');
+const logger = createLogger('booking-service');
 
-const {
-  AppError,
-} = require(
-  '../../../../shared/errors/app-error'
-);
-
-const {
-  createLogger,
-} = require(
-  '../../../../shared/logging/logger'
-);
-
-const {
-  withTransaction,
-} = require(
-  '../config/database'
-);
-
-const bookingRepository =
-  require(
-    '../repositories/booking.repository'
-  );
-
-const customerClient =
-  require(
-    '../grpc/customer.client'
-  );
-
-const driverClient =
-  require(
-    '../grpc/driver.client'
-  );
-
-const bookingPublisher =
-  require(
-    '../events/booking.publisher'
-  );
-
-const driverMatchingService =
-  require(
-    './driver-matching.service'
-  );
-
-const {
-  BOOKING_STATUS,
-  toBooking,
-} = require(
-  '../domain/booking'
-);
-
-const {
-  DRIVER_OFFER_STATUS,
-  toDriverOffer,
-} = require(
-  '../domain/driver-offer'
-);
-
-const {
-  toDriverAssignment,
-} = require(
-  '../domain/driver-assignment'
-);
-
-const logger =
-  createLogger(
-    'booking-service',
-  );
-
-function requireContext(
-  context,
-) {
-  if (
-    !context?.actorUserId ||
-    !context?.actorRole
-  ) {
-    throw AppError
-      .unauthorized();
-  }
+function location(value) {
+  coordinates(value?.latitude, value?.longitude);
+  return { latitude: value.latitude, longitude: value.longitude, address: text(value.address, 255, true) };
 }
-
-function requireRole(
-  context,
-  role,
-) {
-  requireContext(context);
-
-  if (
-    context.actorRole !==
-    role
-  ) {
-    throw AppError.forbidden(
-      `Only ${role} can perform this action`,
-      'FORBIDDEN',
-    );
+function pageInput(page = 1, limit = 2) {
+  if (!Number.isInteger(page) || page < 1 || page > 2147483647 ||
+      !Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isSafeInteger((page-1)*limit)) {
+    throw AppError.badRequest('Invalid pagination');
   }
+  return { page, limit };
 }
-
-function requirePermission(
-  context,
-  permission,
-) {
-  requireContext(context);
-
-  const permissions =
-    Array.isArray(
-      context.permissions,
-    )
-      ? context.permissions
-      : [];
-
-  if (
-    !permissions.includes(
-      permission,
-    )
-  ) {
-    throw AppError.forbidden(
-      'You do not have permission to perform this action',
-      'FORBIDDEN',
-    );
+function createBookingService({ repo = repository, customer = customerClient, driver = driverClient,
+  publish = publisher, transaction = database.withTransaction, matching } = {}) {
+  const matcher = matching || createMatchingService({ repo, driver, publish, transaction });
+  async function ownCustomer(context) {
+    const userId = actor(context, ['CUSTOMER']);
+    const profile = await customer.getCustomerByUserId(userId, context.correlationId);
+    if (!profile) throw AppError.notFound('Customer does not exist');
+    if (String(profile.userId) !== userId ||
+        (context.actorCustomerId && id(context.actorCustomerId) !== String(profile.customerId))) throw AppError.forbidden();
+    return { ...profile, customerId: id(profile.customerId) };
   }
-}
-
-function assertNumericId(
-  value,
-  fieldName,
-) {
-  if (
-    !/^\d+$/.test(
-      String(
-        value ||
-        '',
-      ),
-    )
-  ) {
-    throw AppError.badRequest(
-      `${fieldName} is invalid`,
-      'INVALID_REQUEST',
-    );
+  async function ownDriver(context) {
+    const userId = actor(context, ['DRIVER']);
+    const profile = await driver.getMyDriverProfile(context);
+    if (!profile) throw AppError.notFound('Driver does not exist');
+    if (String(profile.userId) !== userId ||
+        (context.actorDriverId && id(context.actorDriverId) !== String(profile.driverId))) throw AppError.forbidden();
+    return { ...profile, driverId: id(profile.driverId) };
   }
-
-  return String(value);
-}
-
-function normalizeLocation(
-  location,
-  fieldName,
-) {
-  const latitude =
-    Number(
-      location?.latitude,
-    );
-
-  const longitude =
-    Number(
-      location?.longitude,
-    );
-
-  if (
-    !Number.isFinite(
-      latitude,
-    ) ||
-
-    latitude < -90 ||
-    latitude > 90 ||
-
-    !Number.isFinite(
-      longitude,
-    ) ||
-
-    longitude < -180 ||
-    longitude > 180
-  ) {
-    throw AppError.badRequest(
-      `${fieldName} is invalid`,
-      'INVALID_LOCATION',
-    );
-  }
-
-  return {
-    latitude,
-    longitude,
-
-    ...(location?.address
-      ? {
-          address:
-            String(
-              location.address,
-            ).trim(),
-        }
-      : {}),
-  };
-}
-
-async function resolveCustomer(
-  context,
-) {
-  requireRole(
-    context,
-    'CUSTOMER',
-  );
-
-  return customerClient
-    .getCustomerByUserId(
-      context.actorUserId,
-      context.correlationId,
-    );
-}
-
-async function resolveDriver(
-  context,
-) {
-  requireRole(
-    context,
-    'DRIVER',
-  );
-
-  return driverClient
-    .getMyDriverProfile(
-      context,
-    );
-}
-
-async function assertVehicleTypeSupported(
-  context,
-  vehicleTypeId,
-) {
-  const result =
-    await driverClient
-      .listVehicleTypes(
-        context,
-      );
-
-  const supported =
-    (
-      result.items ||
-      []
-    ).some(
-      (item) =>
-        String(
-          item.vehicleTypeId,
-        ) ===
-          String(
-            vehicleTypeId,
-          ) &&
-
-        item.status ===
-          'ACTIVE',
-    );
-
-  if (!supported) {
-    throw AppError.badRequest(
-      'vehicleTypeId is not supported or is inactive',
-      'INVALID_VEHICLE_TYPE',
-    );
-  }
-}
-
-async function assignedDriverFor(
-  row,
-  context,
-) {
-  if (
-    !row.assigned_driver_id
-  ) {
-    return undefined;
-  }
-
-  try {
-    const profile =
-      await driverClient
-        .getDriverById(
-          context,
-          row.assigned_driver_id,
-        );
-
-    return {
-      driverId:
-        String(
-          row.assigned_driver_id,
-        ),
-
-      ...(profile.fullName
-        ? {
-            fullName:
-              profile.fullName,
-          }
-        : {}),
-
-      ...(profile.vehicle
-        ? {
-            vehicle:
-              profile.vehicle,
-          }
-        : {
-            vehicle: {
-              vehicleTypeId:
-                String(
-                  row
-                    .requested_vehicle_type_id,
-                ),
-            },
-          }),
-    };
-  } catch (error) {
-    logger.warn(
-      'Assigned Driver profile composition failed',
-      {
-        bookingId:
-          String(
-            row.booking_id,
-          ),
-
-        driverId:
-          String(
-            row
-              .assigned_driver_id,
-          ),
-
-        error,
-      },
-    );
-
-    return {
-      driverId:
-        String(
-          row
-            .assigned_driver_id,
-        ),
-
-      vehicle: {
-        vehicleTypeId:
-          String(
-            row
-              .requested_vehicle_type_id,
-          ),
-      },
-    };
-  }
-}
-
-async function composeBooking(
-  row,
-  context,
-) {
-  return toBooking(
-    row,
-
-    await assignedDriverFor(
-      row,
-      context,
-    ),
-  );
-}
-
-async function createBooking(
-  request,
-) {
-  requireRole(
-    request.context,
-    'CUSTOMER',
-  );
-
-  requirePermission(
-    request.context,
-    'BOOKING_CREATE',
-  );
-
-  if (
-    typeof request
-      .idempotencyKey !==
-      'string' ||
-
-    request
-      .idempotencyKey
-      .length < 8 ||
-
-    request
-      .idempotencyKey
-      .length > 255
-  ) {
-    throw AppError.badRequest(
-      'Idempotency-Key must contain 8 to 255 characters',
-      'INVALID_IDEMPOTENCY_KEY',
-    );
-  }
-
-  const pickup =
-    normalizeLocation(
-      request.pickup,
-      'pickup',
-    );
-
-  const destination =
-    normalizeLocation(
-      request.destination,
-      'destination',
-    );
-
-  const vehicleTypeId =
-    assertNumericId(
-      request.vehicleTypeId,
-      'vehicleTypeId',
-    );
-
-  /*
-   * Both are owned by another
-   * bounded context.
-   *
-   * No cross-database read.
-   */
-  const [customer] =
-    await Promise.all([
-      resolveCustomer(
-        request.context,
-      ),
-
-      assertVehicleTypeSupported(
-        request.context,
-        vehicleTypeId,
-      ),
-    ]);
-
-  /*
-   * Required lifecycle:
-   * first persist CREATED.
-   */
-  const created =
-    await bookingRepository
-      .createBooking({
-        customerId:
-          customer.customerId,
-
-        pickup,
-        destination,
-
-        vehicleTypeId,
-
-        status:
-          BOOKING_STATUS
-            .CREATED,
-      });
-
-  const createdAt =
-    new Date(
-      created.created_at,
-    ).toISOString();
-
-  /*
-   * Locked event contract:
-   * publish only after Booking
-   * has been persisted.
-   */
-  try {
-    await bookingPublisher
-      .publishBookingCreated({
-        bookingId:
-          created.booking_id,
-
-        customerId:
-          created.customer_id,
-
-        vehicleTypeId:
-          created
-            .requested_vehicle_type_id,
-
-        createdAt,
-
-        correlationId:
-          request.context
-            .correlationId,
-      });
-  } catch (error) {
-    /*
-     * Booking is already source-of-truth
-     * in PostgreSQL.
-     *
-     * We do not roll back committed
-     * business data because a notification
-     * event publisher is temporarily down.
-     */
-    logger.error(
-      'booking.created publish failed',
-      {
-        bookingId:
-          String(
-            created.booking_id,
-          ),
-
-        correlationId:
-          request.context
-            .correlationId,
-
-        error,
-      },
-    );
-  }
-
-  /*
-   * CREATED -> SEARCHING.
-   */
-  await bookingRepository
-    .setBookingStatus(
-      created.booking_id,
-
-      BOOKING_STATUS
-        .SEARCHING,
-
-      BOOKING_STATUS
-        .CREATED,
-    );
-
-  const searching =
-    await bookingRepository
-      .findBookingById(
-        created.booking_id,
-      );
-
-  await driverMatchingService
-    .startMatchingSafely({
-      booking:
-        searching,
-
-      correlationId:
-        request.context
-          .correlationId,
-    });
-
-  const current =
-    await bookingRepository
-      .findBookingById(
-        created.booking_id,
-      );
-
-  return composeBooking(
-    current,
-    request.context,
-  );
-}
-
-async function getBooking(
-  request,
-) {
-  requireContext(
-    request.context,
-  );
-
-  const bookingId =
-    assertNumericId(
-      request.bookingId,
-      'bookingId',
-    );
-
-  const row =
-    await bookingRepository
-      .findBookingById(
-        bookingId,
-      );
-
-  if (!row) {
-    throw AppError.notFound(
-      'Booking does not exist',
-      'BOOKING_NOT_FOUND',
-    );
-  }
-
-  if (
-    request.context
-      .actorRole ===
-      'CUSTOMER'
-  ) {
-    requirePermission(
-      request.context,
-      'BOOKING_READ_SELF',
-    );
-
-    const customer =
-      await resolveCustomer(
-        request.context,
-      );
-
-    if (
-      String(
-        row.customer_id,
-      ) !==
-      String(
-        customer.customerId,
-      )
-    ) {
-      throw AppError.forbidden(
-        'You cannot access another Customer booking',
-        'FORBIDDEN',
-      );
+  async function emit(method, input) {
+    try { await publish[method](input); }
+    catch (_error) {
+      logger.error('Booking event publication failed', { bookingId: String(input.bookingId), correlationId: input.correlationId });
+      throw new AppError('Event publisher unavailable', { statusCode: 503, code: 'EVENT_PUBLISH_FAILED' });
     }
-  } else if (
-    request.context
-      .actorRole ===
-      'DRIVER'
-  ) {
-    requirePermission(
-      request.context,
-      'DRIVER_OFFER_RESPOND_SELF',
-    );
-
-    const driver =
-      await resolveDriver(
-        request.context,
-      );
-
-    const ownsBookingRelation =
-      String(
-        row
-          .assigned_driver_id ||
-        '',
-      ) ===
-        String(
-          driver.driverId,
-        ) ||
-
-      await bookingRepository
-        .driverHasOfferForBooking(
-          bookingId,
-          driver.driverId,
-        );
-
-    if (
-      !ownsBookingRelation
-    ) {
-      throw AppError.forbidden(
-        'Driver is not related to this Booking',
-        'FORBIDDEN',
-      );
-    }
-  } else {
-    throw AppError.forbidden(
-      'Booking access is not allowed for this role',
-      'FORBIDDEN',
-    );
   }
-
-  return composeBooking(
-    row,
-    request.context,
-  );
-}
-
-async function getMyBookings(
-  request,
-) {
-  requireRole(
-    request.context,
-    'CUSTOMER',
-  );
-
-  requirePermission(
-    request.context,
-    'BOOKING_READ_SELF',
-  );
-
-  const page =
-    Number(
-      request.page ||
-      1,
-    );
-
-  const limit =
-    Number(
-      request.limit ||
-      5,
-    );
-
-  if (
-    !Number.isInteger(page) ||
-    page < 1 ||
-
-    !Number.isInteger(limit) ||
-    limit < 1 ||
-    limit > 100
-  ) {
-    throw AppError.badRequest(
-      'Invalid pagination parameters',
-      'INVALID_REQUEST',
-    );
-  }
-
-  const customer =
-    await resolveCustomer(
-      request.context,
-    );
-
-  const result =
-    await bookingRepository
-      .listCustomerBookings({
-        customerId:
-          customer.customerId,
-
-        page,
-        limit,
-      });
-
-  const items = [];
-
-  for (
-    const row
-    of result.rows
-  ) {
-    items.push(
-      await composeBooking(
-        row,
-        request.context,
-      ),
-    );
-  }
-
   return {
-    page,
-    limit,
-
-    total:
-      result.total,
-
-    items,
-  };
-}
-
-async function getMyDriverOffers(
-  request,
-) {
-  requireRole(
-    request.context,
-    'DRIVER',
-  );
-
-  requirePermission(
-    request.context,
-    'DRIVER_OFFER_RESPOND_SELF',
-  );
-
-  const driver =
-    await resolveDriver(
-      request.context,
-    );
-
-  const rows =
-    await bookingRepository
-      .listPendingOffersByDriver(
-        driver.driverId,
-      );
-
-  return {
-    items:
-      rows.map(
-        toDriverOffer,
-      ),
-  };
-}
-
-async function acceptDriverOffer(
-  request,
-) {
-  requireRole(
-    request.context,
-    'DRIVER',
-  );
-
-  requirePermission(
-    request.context,
-    'DRIVER_OFFER_RESPOND_SELF',
-  );
-
-  const offerId =
-    assertNumericId(
-      request.offerId,
-      'offerId',
-    );
-
-  /*
-   * Verify current Driver state again.
-   * Do not trust only the state when
-   * matching originally occurred.
-   */
-  const driver =
-    await resolveDriver(
-      request.context,
-    );
-
-  const outcome =
-    await withTransaction(
-      async (client) => {
-        const offer =
-          await bookingRepository
-            .lockOfferById(
-              offerId,
-              client,
-            );
-
-        if (!offer) {
-          throw AppError.notFound(
-            'Driver Offer does not exist',
-            'DRIVER_OFFER_NOT_FOUND',
-          );
-        }
-
-        if (
-          String(
-            offer.driver_id,
-          ) !==
-          String(
-            driver.driverId,
-          )
-        ) {
-          throw AppError.forbidden(
-            'Driver Offer does not belong to the current Driver',
-            'FORBIDDEN',
-          );
-        }
-
-        /*
-         * Retry-safe accept:
-         * if DB commit succeeded but
-         * RabbitMQ publish failed,
-         * same accept request can
-         * publish driver.accepted again.
-         */
-        if (
-          offer.status ===
-          DRIVER_OFFER_STATUS
-            .ACCEPTED
-        ) {
-          const existingAssignment =
-            await bookingRepository
-              .findAssignmentByOfferId(
-                offerId,
-                client,
-              );
-
-          if (
-            !existingAssignment
-          ) {
-            throw AppError.conflict(
-              'Accepted Offer does not have a Driver Assignment',
-              'ASSIGNMENT_NOT_FOUND',
-            );
+    async createBooking(request) {
+      actor(request.context, ['CUSTOMER']);
+      const pickup = location(request.pickup), destination = location(request.destination);
+      const vehicleType = text(request.vehicleType, 50);
+      if (/^\d+$/.test(vehicleType)) throw AppError.badRequest('Vehicle type must be a string category');
+      const profile = await ownCustomer(request.context);
+      const created = await repo.createBooking({ customerId: profile.customerId, pickup, destination, vehicleType });
+      await emit('publishBookingCreated', { bookingId: created.bid, customerId: created.cid, customerUserId: profile.userId,
+        createdAt: new Date(created.c_at).toISOString(), correlationId: request.context.correlationId });
+      try { await matcher.startMatching({ booking: created, correlationId: request.context.correlationId }); }
+      catch (error) {
+        if (error instanceof AppError) throw error;
+        throw new AppError('Matching unavailable', { statusCode: 503, code: 'MATCHING_UNAVAILABLE' });
+      }
+      return toBooking(await repo.findBookingById(created.bid));
+    },
+    async getBooking(request) {
+      actor(request.context, ['CUSTOMER', 'DRIVER']);
+      const row = await repo.findBookingById(id(request.bookingId));
+      if (!row) throw AppError.notFound('Booking does not exist');
+      if (request.context.actorRole === 'CUSTOMER') {
+        const profile = await ownCustomer(request.context);
+        if (String(row.cid) !== profile.customerId) throw AppError.forbidden();
+      } else {
+        const profile = await ownDriver(request.context);
+        if (!await repo.driverHasOfferForBooking(row.bid, profile.driverId)) throw AppError.forbidden();
+      }
+      return toBooking(row);
+    },
+    async listMyBookings(request) {
+      const profile = await ownCustomer(request.context);
+      const page = pageInput(request.page || 1, request.limit || 2);
+      const result = await repo.listCustomerBookings({ customerId: profile.customerId, ...page });
+      return { ...page, total: result.total, items: result.rows.map(toBooking) };
+    },
+    async listMyOffers(request) {
+      const profile = await ownDriver(request.context);
+      return { items: (await repo.listOpenOffersByDriver(profile.driverId)).map(toDriverOffer) };
+    },
+    async acceptOffer(request) {
+      const offerId = id(request.offerId);
+      const profile = await ownDriver(request.context);
+      let outcome;
+      try {
+        outcome = await transaction(async (client) => {
+          const offer = await repo.lockOfferById(offerId, client);
+          if (!offer) throw AppError.notFound('Offer does not exist');
+          if (String(offer.did) !== profile.driverId) throw AppError.forbidden('Offer belongs to another Driver');
+          if (offer.s === 'ACCEPTED') {
+            const assignment = await repo.findAssignmentByOfferId(offerId, client);
+            if (!assignment || offer.booking_status !== 'ASSIGNED') throw AppError.conflict('Assignment is inconsistent');
+            return { offer, replay: true };
           }
-
-          return {
-            offer,
-
-            assignment:
-              existingAssignment,
-
-            replay: true,
-          };
-        }
-
-        if (
-          offer.status !==
-          DRIVER_OFFER_STATUS
-            .PENDING
-        ) {
-          throw AppError.conflict(
-            `Driver Offer is ${offer.status}`,
-            'DRIVER_OFFER_NOT_PENDING',
-          );
-        }
-
-        if (
-          new Date(
-            offer.expires_at,
-          ).getTime() <=
-          Date.now()
-        ) {
-          await bookingRepository
-            .markOfferStatus(
-              offerId,
-
-              DRIVER_OFFER_STATUS
-                .EXPIRED,
-
-              client,
-            );
-
-          return {
-            offer,
-            expired: true,
-          };
-        }
-
-        if (
-          offer.booking_status !==
-          BOOKING_STATUS
-            .SEARCHING
-        ) {
-          throw AppError.conflict(
-            'Booking is no longer searching for a Driver',
-            'BOOKING_NOT_SEARCHING',
-          );
-        }
-
-        /*
-         * Eligibility is checked only for
-         * the first transition PENDING -> ACCEPTED.
-         * An ACCEPTED replay must still be allowed
-         * after driver-service has moved the Driver
-         * to BUSY so driver.accepted can be retried.
-         */
-        if (
-          driver.approvalStatus !==
-            'APPROVED' ||
-
-          driver
-            .availabilityStatus !==
-            'AVAILABLE'
-        ) {
-          throw AppError.conflict(
-            'Driver must be APPROVED and AVAILABLE to accept an Offer',
-            'DRIVER_NOT_AVAILABLE',
-          );
-        }
-
-        const acceptedAt =
-          new Date()
-            .toISOString();
-
-        await bookingRepository
-          .markOfferStatus(
-            offerId,
-
-            DRIVER_OFFER_STATUS
-              .ACCEPTED,
-
-            client,
-          );
-
-        /*
-         * UNIQUE booking_id in
-         * driver_assignment guarantees
-         * one Assignment per Booking.
-         */
-        const assignment =
-          await bookingRepository
-            .createAssignment(
-              {
-                bookingId:
-                  offer.booking_id,
-
-                offerId:
-                  offer.offer_id,
-
-                driverId:
-                  offer.driver_id,
-
-                vehicleId:
-                  offer.vehicle_id,
-
-                assignedAt:
-                  acceptedAt,
-              },
-
-              client,
-            );
-
-        await bookingRepository
-          .setBookingStatus(
-            offer.booking_id,
-
-            BOOKING_STATUS
-              .ASSIGNED,
-
-            BOOKING_STATUS
-              .SEARCHING,
-
-            client,
-          );
-
-        await bookingRepository
-          .expireOtherPendingOffers(
-            offer.booking_id,
-            offer.offer_id,
-            client,
-          );
-
-        return {
-          offer,
-          assignment,
-          acceptedAt,
-          replay: false,
-        };
-      },
-    );
-
-  driverMatchingService
-    .clearOfferTimer(
-      offerId,
-    );
-
-  driverMatchingService
-    .clearMatchingRetry(
-      outcome.offer
-        .booking_id,
-    );
-
-  if (outcome.expired) {
-    await driverMatchingService
-      .continueMatchingSafely(
-        outcome.offer
-          .booking_id,
-
-        request.context
-          .correlationId,
-      );
-
-    throw AppError.conflict(
-      'Driver Offer has expired',
-      'DRIVER_OFFER_EXPIRED',
-    );
-  }
-
-  const acceptedAt =
-    outcome.acceptedAt ||
-    new Date(
-      outcome.assignment
-        .assigned_at,
-    ).toISOString();
-
-  /*
-   * Critical event.
-   *
-   * trip-service creates Trip.
-   * driver-service switches to BUSY.
-   *
-   * Event has intentionally NO tripId.
-   */
-  try {
-    await bookingPublisher
-      .publishDriverAccepted({
-        assignmentId:
-          outcome.assignment
-            .assignment_id,
-
-        bookingId:
-          outcome.offer
-            .booking_id,
-
-        customerId:
-          outcome.offer
-            .customer_id,
-
-        driverId:
-          outcome.offer
-            .driver_id,
-
-        vehicleId:
-          outcome.offer
-            .vehicle_id,
-
-        vehicleTypeId:
-          outcome.offer
-            .requested_vehicle_type_id,
-
-        acceptedAt,
-
-        correlationId:
-          request.context
-            .correlationId,
+          if (offer.s !== 'OPEN' || offer.booking_status !== 'SEARCHING' ||
+              await repo.findAssignmentByBookingId(offer.bid, client)) throw AppError.conflict('Offer is no longer acceptable');
+          if (profile.approvalStatus !== 'APPROVED' || profile.availabilityStatus !== 'AVAILABLE') {
+            throw AppError.conflict('Driver must be approved and available');
+          }
+          id(offer.vid);
+          const customerIdentity = await customer.validateCustomer(String(offer.cid), request.context.correlationId);
+          if (!customerIdentity.valid || String(customerIdentity.customerId) !== String(offer.cid)) throw AppError.notFound('Customer does not exist');
+          const customerUserId = id(customerIdentity.userId);
+          // Driver owns the atomic eligibility transition. Persist only after success.
+          const reserved = await driver.markBusyForAssignment(request.context, profile.driverId);
+          if (reserved.driverId !== profile.driverId || reserved.approvalStatus !== 'APPROVED' || reserved.availabilityStatus !== 'BUSY') {
+            throw AppError.internal('Invalid Driver assignment response');
+          }
+          const acceptedAt = new Date().toISOString();
+          if (!await repo.markOfferAccepted(offerId, acceptedAt, client)) throw AppError.conflict();
+          const assignment = await repo.createAssignment({ bookingId: offer.bid, offerId,
+            driverId: offer.did, vehicleId: offer.vid, assignedAt: acceptedAt }, client);
+          if (!await repo.setBookingStatus(offer.bid, 'ASSIGNED', 'SEARCHING', client, acceptedAt)) throw AppError.conflict();
+          return { offer, assignment, acceptedAt, customerUserId, replay: false };
+        });
+      } catch (error) {
+        if (error.code === '23505') throw AppError.conflict('Booking already assigned');
+        throw error;
+      }
+      if (!outcome.replay) await emit('publishDriverAccepted', {
+        assignmentId: outcome.assignment.aid, bookingId: outcome.offer.bid, customerId: outcome.offer.cid,
+        driverId: outcome.offer.did, vehicleId: outcome.offer.vid, acceptedAt: outcome.acceptedAt,
+        customerUserId: outcome.customerUserId, driverUserId: profile.userId,
+        correlationId: request.context.correlationId,
       });
-  } catch (error) {
-    throw new AppError(
-      'Driver Assignment was saved but driver.accepted could not be published; retry the same accept request',
-      {
-        code:
-          'DRIVER_ACCEPTED_EVENT_UNAVAILABLE',
-
-        statusCode: 503,
-
-        cause:
-          error,
-      },
-    );
-  }
-
-  return {
-    bookingId:
-      String(
-        outcome.offer
-          .booking_id,
-      ),
-
-    status:
-      BOOKING_STATUS
-        .ASSIGNED,
-
-    assignment:
-      toDriverAssignment(
-        outcome.assignment,
-      ),
+      return { offerId, bookingId: String(outcome.offer.bid), offerStatus: 'ACCEPTED', tripPending: true };
+    },
   };
 }
-
-async function rejectDriverOffer(
-  request,
-) {
-  requireRole(
-    request.context,
-    'DRIVER',
-  );
-
-  requirePermission(
-    request.context,
-    'DRIVER_OFFER_RESPOND_SELF',
-  );
-
-  const offerId =
-    assertNumericId(
-      request.offerId,
-      'offerId',
-    );
-
-  const driver =
-    await resolveDriver(
-      request.context,
-    );
-
-  const outcome =
-    await withTransaction(
-      async (client) => {
-        const offer =
-          await bookingRepository
-            .lockOfferById(
-              offerId,
-              client,
-            );
-
-        if (!offer) {
-          throw AppError.notFound(
-            'Driver Offer does not exist',
-            'DRIVER_OFFER_NOT_FOUND',
-          );
-        }
-
-        if (
-          String(
-            offer.driver_id,
-          ) !==
-          String(
-            driver.driverId,
-          )
-        ) {
-          throw AppError.forbidden(
-            'Driver Offer does not belong to the current Driver',
-            'FORBIDDEN',
-          );
-        }
-
-        if (
-          offer.status !==
-          DRIVER_OFFER_STATUS
-            .PENDING
-        ) {
-          throw AppError.conflict(
-            `Driver Offer is ${offer.status}`,
-            'DRIVER_OFFER_NOT_PENDING',
-          );
-        }
-
-        if (
-          offer.booking_status !==
-          BOOKING_STATUS
-            .SEARCHING
-        ) {
-          throw AppError.conflict(
-            'Booking is no longer searching for a Driver',
-            'BOOKING_NOT_SEARCHING',
-          );
-        }
-
-        const expired =
-          new Date(
-            offer.expires_at,
-          ).getTime() <=
-          Date.now();
-
-        await bookingRepository
-          .markOfferStatus(
-            offerId,
-
-            expired
-              ? DRIVER_OFFER_STATUS
-                  .EXPIRED
-              : DRIVER_OFFER_STATUS
-                  .REJECTED,
-
-            client,
-          );
-
-        return {
-          offer,
-          expired,
-        };
-      },
-    );
-
-  driverMatchingService
-    .clearOfferTimer(
-      offerId,
-    );
-
-  /*
-   * AC07.04 / AC08.05:
-   * Customer does not need
-   * to create another Booking.
-   */
-  await driverMatchingService
-    .continueMatchingSafely(
-      outcome.offer
-        .booking_id,
-
-      request.context
-        .correlationId,
-    );
-
-  if (outcome.expired) {
-    throw AppError.conflict(
-      'Driver Offer has expired',
-      'DRIVER_OFFER_EXPIRED',
-    );
-  }
-
-  return {};
-}
-
-module.exports = {
-  createBooking,
-  getBooking,
-  getMyBookings,
-  getMyDriverOffers,
-  acceptDriverOffer,
-  rejectDriverOffer,
-};
+module.exports = { ...createBookingService(), createBookingService };

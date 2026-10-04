@@ -35,7 +35,7 @@ components:
         email:
           type: string
           format: email
-          example: newd@d.co
+          example: newd@d.com
     OtpResponse:
       type: object
       required:
@@ -58,7 +58,7 @@ components:
         email:
           type: string
           format: email
-          example: newd@d.co
+          example: newd@d.com
         pw:
           type: string
           example: '123'
