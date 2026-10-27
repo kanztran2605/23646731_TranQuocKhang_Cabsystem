@@ -41,7 +41,7 @@ test('P1 replay before and after callback returns same pid without double comple
  const f=fixture();await f.eligible();const req={...f.request(),idempotencyKey:'P1'};
  assert.equal((await f.service.payExistingPayment(req)).paymentId,'1');await f.service.payExistingPayment(req);
  await f.service.paymentCallback({...f.request(),status:'COMPLETED'});await f.service.paymentCallback({...f.request(),status:'COMPLETED'});
- const again=await f.service.payExistingPayment(req);assert.equal(again.paymentId,'1');assert.equal(again.status,'COMPLETED');assert.equal(f.state.rows.length,1);assert.equal(f.state.events.length,1);
+ const again=await f.service.payExistingPayment(req);assert.equal(again.paymentId,'1');assert.equal(again.status,'PENDING');assert.equal((await f.service.getPayment(f.request())).status,'COMPLETED');assert.equal(f.state.rows.length,1);assert.equal(f.state.events.length,1);
 });
 test('same Payment with another key conflicts',async()=>{
  const f=fixture();await f.eligible();await f.service.payExistingPayment({...f.request(),idempotencyKey:'P1'});
@@ -67,7 +67,7 @@ test('invalid callback and missing/oversized key rejected',async()=>{
  for(const key of ['',undefined,'x'.repeat(101)])await assert.rejects(f.service.payExistingPayment({...f.request(),idempotencyKey:key}),{statusCode:400});
 });
 test('payment.completed payload/envelope retains correlation and Customer recipient',async()=>{
- const f=fixture();await f.eligible();await f.service.paymentCallback({...f.request(),status:'COMPLETED'});const events=[];
+ const f=fixture();await f.eligible();await f.service.payExistingPayment({...f.request(),idempotencyKey:'P1'});await f.service.paymentCallback({...f.request(),status:'COMPLETED'});const events=[];
  await createPaymentPublisher(async e=>events.push(e))(f.state.events[0]);const e=events[0];validateEventEnvelope(e,e.eventType);
  assert.deepEqual(e.payload.recipientUserIds,['13']);assert.equal(e.payload.amount,50000);assert.equal(e.payload.bookingId,'20');assert.equal(e.correlationId,'payment-test');
 });
@@ -75,4 +75,15 @@ test('real Payment gRPC contract and HealthService',async t=>{
  const f=fixture();await f.eligible();const api=await serve(t,'payment.proto','cab.payment.v1','PaymentService',createPaymentGrpcHandlers(f.service));
  assert.equal((await api.call('getPayment',f.request())).paymentId,'1');assert.equal((await api.call('payExistingPayment',{...f.request(),idempotencyKey:'P1'})).status,'PENDING');
  assert.equal((await api.call('paymentCallback',{...f.request(),status:'COMPLETED'})).status,'COMPLETED');assert.equal((await api.checkHealth()).status,'UP');
+});
+
+test('callback không có Pay trước đó bị từ chối dù đã eligible',async()=>{
+ const f=fixture();await f.eligible();await assert.rejects(f.service.paymentCallback({...f.request(),status:'COMPLETED'}),{statusCode:409});assert.equal(f.state.events.length,0);assert.equal(f.state.rows[0].s,'PENDING');
+});
+test('snapshot Pay đầu tiên không đổi sau callback; cùng key khác amount bị 409',async()=>{
+ const f=fixture();await f.eligible();const req={...f.request(),idempotencyKey:'P1',amount:50000};
+ const first=await f.service.payExistingPayment(req);await f.service.paymentCallback({...f.request(),status:'COMPLETED'});
+ assert.deepEqual(await f.service.payExistingPayment(req),first);
+ await assert.rejects(f.service.payExistingPayment({...req,amount:50001}),{statusCode:409});
+ assert.equal(f.state.events.length,1);
 });

@@ -21,7 +21,11 @@ const locationSchema = z.object({
   lat: z.number().finite().min(-90).max(90),
   lng: z.number().finite().min(-180).max(180),
 });
-const vehicleType = z.string().trim().min(1).refine((value) => !/^\d+$/.test(value));
+const vehicleType = z.enum(['BIKE', 'CAR']).default('BIKE');
+const phone = z.string().transform((value, ctx) => {
+  try { return require('../../../../shared/demo-input').phone(value); }
+  catch (_error) { ctx.addIssue({ code: 'custom', message: 'Số điện thoại không hợp lệ' }); return z.NEVER; }
+});
 const email = z.string().trim().email();
 function queryNumber(schema) { return z.string().trim().min(1).transform(Number).pipe(schema); }
 const page = queryNumber(z.number().int().min(1).max(2147483647)).default('1');
@@ -38,4 +42,4 @@ function publicId(value) {
 function nullableId(value) { return value ? publicId(value) : null; }
 
 module.exports = { z, parse, asyncHandler, pathId, locationSchema, location, publicLocation,
-  vehicleType, email, queryNumber, pagination, publicId, nullableId, context: buildRequestContext };
+  vehicleType, phone, email, queryNumber, pagination, publicId, nullableId, context: buildRequestContext };

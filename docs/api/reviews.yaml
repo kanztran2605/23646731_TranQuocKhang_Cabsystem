@@ -4,7 +4,7 @@ info:
   version: 4.0.0
   description: Customer review Trip COMPLETED; Review Service validate Trip/ownership qua gRPC Trip link.
 servers:
-- url: http://localhost:8080/api/v1
+- url: http://localhost:8080/api
   description: API Gateway local/demo
 tags:
 - name: Review
@@ -41,28 +41,28 @@ components:
     Review:
       type: object
       required:
-      - rid
-      - tid
-      - cid
-      - did
-      - star
+      - 'Review ID'
+      - 'Trip ID'
+      - 'Customer ID'
+      - 'Driver ID'
+      - 'Rating'
       properties:
-        rid:
+        'Review ID':
           type: integer
           example: 1
-        tid:
+        'Trip ID':
           type: integer
           example: 1
-        cid:
+        'Customer ID':
           type: integer
           example: 1
-        did:
+        'Driver ID':
           type: integer
           example: 1
-        star:
+        'Rating':
           type: integer
           example: 5
-        c:
+        'Comment':
           type: string
           example: ok
     Error:

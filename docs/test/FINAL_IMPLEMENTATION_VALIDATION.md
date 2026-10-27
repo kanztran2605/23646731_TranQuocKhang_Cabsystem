@@ -1,5 +1,7 @@
 # Final CAB implementation validation
 
+Kết quả cập nhật ngày 27/10/2026 sau điều chỉnh demo theo phiếu chấm: **257 unit/gRPC + 19 DB integration PASS**, smoke **31/31**, rubric **30/30**, 13 container healthy và 8 business services HEALTHY. API chính `/api`; BIKE mặc định, phone/OTP và replay response Pay đã được kiểm tra lại. Chi tiết file, migration, dữ liệu bảo toàn và lệnh nghiệm thu ở [RUBRIC_DEMO_VALIDATION.md](RUBRIC_DEMO_VALIDATION.md). Phần dưới lưu kết quả milestone ban đầu.
+
 Validated on 2026-10-04 against the preserved local development stack, then verified again during the final repository audit described below. The final implementation milestone is complete. Git commit/status evidence is recorded by `git log -1 --oneline` and `git status --short` after the final submission commit.
 
 ## Implementation and regression

@@ -95,3 +95,9 @@ test('real Trip proto gRPC operations, Review validation and HealthService',asyn
  const validation=await api.call('validateCompletedTrip',{tripId:'1'});assert.equal(validation.customerUserId,'13');assert.equal(validation.completed,false);
  assert.equal((await api.call('getTripStatusHistory',f.request())).items.length,1);assert.equal((await api.checkHealth()).status,'UP');
 });
+
+test('Customer chỉ thấy thông tin Driver sau kiểm tra ownership; không lộ phone',async()=>{
+ const f=fixture();await f.service.assigned(assignment());
+ const trip=await f.service.getTrip(f.request());assert.equal(trip.driver.name,'Driver Demo');assert.equal(trip.driver.licensePlate,'59A12345');assert.equal(trip.driver.phone,undefined);
+ await assert.rejects(f.service.getTrip({...f.request(),context:{actorUserId:'999',actorRole:'CUSTOMER'}}),{statusCode:403});
+});

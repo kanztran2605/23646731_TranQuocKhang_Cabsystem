@@ -1,0 +1,27 @@
+# Use this workspace to collaborate
+workspace:
+  id: dbf6ba82-8728-4574-8102-0ab2ff6aaa96
+
+localResources:
+  specs:
+    - ../proto/auth.proto
+    - ../proto/booking.proto
+    - ../proto/customer.proto
+    - ../proto/driver.proto
+    - ../proto/notification.proto
+    - ../proto/payment.proto
+    - ../proto/review.proto
+    - ../proto/trip.proto
+    - ../docs/api/asyncapi.yaml
+    - ../docs/api/authentication.yaml
+    - ../docs/api/authorization.yaml
+    - ../docs/api/bookings.yaml
+    - ../docs/api/drivers.yaml
+    - ../docs/api/health.yaml
+    - ../docs/api/notifications.yaml
+    - ../docs/api/payments.yaml
+    - ../docs/api/reviews.yaml
+    - ../docs/api/trips.yaml
+    - ../docs/api/users.yaml
+    - ../docs/api/vehicles.yaml
+    - ../proto/common/common.proto

@@ -15,12 +15,15 @@ const { serve } = require('../../../shared/tests/grpc-service');
 let service, row, published, captured, candidateQuery;
 const owner = { actorUserId:'2',actorRole:'DRIVER',actorDriverId:'1' };
 const admin = { actorUserId:'7',actorRole:'ADMIN' };
-const onboarding = { context:owner,userId:'2',otp:'123',name:'Driver',vehicleType:'CAR',licensePlate:'51A1',driverLicense:'LICENSE-UNIT' };
+const onboarding = { phone:'0901234567',email:'unit@driver.test',registrationToken:'11111111-1111-4111-8111-111111111111',context:owner,userId:'2',otp:'123',name:'Driver',vehicleType:'CAR',licensePlate:'51A1',driverLicense:'LICENSE-UNIT' };
 beforeEach(() => {
   row = { did:'1',uid:'2',ap:'APPROVED',av:'AVAILABLE',name:'Driver',vid:'1',vt:'CAR',plate:'51A1',vehicle_status:'ACTIVE',
     lat:10.76,lng:106.68,rec_at:new Date(),distance_km:0 };
   published = []; captured = null;
   service = createDriverService({
+    async requestOtp() {},
+    async prepareRegistration() {return onboarding.registrationToken;},
+    async assignedDriver(){return row;},
     async findById(id) { return id === '1' ? row : undefined; },
     async findByUserId(id) { return id === '2' ? row : undefined; },
     async register(input) { captured=input; row={ ...row,ap:'PENDING_APPROVAL',av:'OFFLINE' }; return row; },
@@ -41,9 +44,9 @@ beforeEach(() => {
     async releaseAfterTrip() { if (row.ap === 'APPROVED' && row.av === 'BUSY') row.av='AVAILABLE'; },
   }, async (event) => { published.push(event); });
 });
-test('Driver OTP is deterministic from ENV',async () => { assert.deepEqual(await service.requestOtp({ email:'newd@d.com' }),{ otp:'123' }); });
+test('Driver OTP is deterministic from ENV',async () => { assert.deepEqual(await service.requestOtp({ phone:'0901234567' }),{ otp:'123' }); });
 test('wrong OTP cannot persist onboarding',async () => {
-  await assert.rejects(service.registerDriver({ ...onboarding,otp:'wrong' }),(e) => e.statusCode === 400);
+  await assert.rejects(service.prepareDriverRegistration({ ...onboarding,otp:'wrong' }),(e) => e.statusCode === 400);
   assert.equal(captured,null);
 });
 test('onboarding starts pending/offline and stores authenticated ciphertext only',async () => {
@@ -160,7 +163,7 @@ test('Driver consumer rejects uncontracted events and invalid terminal timestamp
 });
 test('real Driver gRPC supports Booking assignment/eligibility, Trip location, current handlers and health',async (t) => {
   const rpc=await serve(t,'driver.proto','cab.driver.v1','DriverService',createDriverGrpcHandlers(service));
-  assert.equal((await rpc.call('requestOtp',{ email:'newd@d.com' })).otp,'123');
+  assert.equal((await rpc.call('requestOtp',{ phone:'0901234567' })).otp,'123');
   assert.equal((await rpc.call('findEligibleDrivers',{ pickupLatitude:10.76,pickupLongitude:106.68,vehicleType:'CAR',radiusKm:1,limit:20 })).items[0].vehicleType,'CAR');
   assert.equal((await rpc.call('getDriverByUserId',{ userId:'2' })).driverId,'1');
   assert.equal((await rpc.call('getDriverLocation',{ driverId:'1' })).latitude,10.76);

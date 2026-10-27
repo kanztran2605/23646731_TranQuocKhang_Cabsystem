@@ -292,7 +292,7 @@ Không tích hợp provider thật.
 
 | Nhóm | Quy ước |
 |---|---|
-| Base URL | `http://localhost:8080/api/v1` |
+| Base URL | `http://localhost:8080/api` |
 | Customer seed | `c@c.com` / `123` |
 | Driver seed | `d@d.com` / `123` |
 | Admin seed | `a@a.com` / `123` |
@@ -306,7 +306,9 @@ Không tích hợp provider thật.
 | Cancel reason | `x` |
 | Review | `star=5`, comment `ok` |
 
-Tên domain/proto/code nội bộ vẫn dùng tên rõ nghĩa; alias ngắn chỉ áp dụng cho public REST contract khi giúp demo nhanh.
+Tên domain/proto/code nội bộ vẫn dùng tên rõ nghĩa. Request REST giữ alias ngắn để nhập nhanh; response business tại `/api` dùng nhãn đầy đủ như `User ID`, `Customer ID`, `Driver ID`, `Approval Status`, `Latitude`. `/api/v1` giữ response alias ngắn cho client cũ. Health trả `status: HEALTHY|UNHEALTHY`; lỗi giữ `code`, `message`, `at`.
+
+Sau khi Auth xác thực đăng nhập, Gateway lấy Customer ID hoặc Driver ID qua RPC GetByUserId hiện có, dựa trên User ID do Auth trả về. Nếu chưa có profile thì ID profile là null; lỗi dependency vẫn được trả đúng lỗi. Admin không có profile/ID riêng ngoài User ID và role ADMIN. Đây là ghép dữ liệu response tại Gateway, không thêm liên kết giữa business services.
 
 ## 4.5. Out of Scope
 
@@ -357,17 +359,20 @@ Tên domain/proto/code nội bộ vẫn dùng tên rõ nghĩa; alias ngắn ch�
 
 ## 6.2. BP02 – Driver Onboarding
 
-1. Driver yêu cầu OTP.
-2. Hệ thống dùng OTP mock `123`.
-3. Driver gửi hồ sơ cá nhân/xe.
+1. Driver yêu cầu OTP bằng số điện thoại Việt Nam, chuẩn hóa `+84` về `0`.
+2. OTP mock `123` gắn đúng phone, có hạn 300 giây và chỉ xác thực một lần.
+3. Driver gửi phone + email/mật khẩu + OTP + hồ sơ/xe; bỏ `vt` mặc định `BIKE`, vẫn chấp nhận `CAR`. Biển số viết liền được chấp nhận và chuẩn hóa chữ hoa.
 4. Hồ sơ được tạo `PENDING_APPROVAL`.
 5. Admin duyệt hoặc từ chối.
 6. Driver nhận notification kết quả.
 7. Driver `APPROVED` mới được bật Online.
 
+Gateway kiểm tra OTP qua `PrepareDriverRegistration` trước khi tạo Auth Account. OTP sai/hết hạn không tạo Account. Nếu RPC gián đoạn sau bước này, mã hồ sơ cho phép gửi lại cùng request; Account đang dở ở `INACTIVE`, chỉ chuyển `ACTIVE` sau khi Driver/Profile/Vehicle/Application đã lưu. Không thêm liên kết Auth → Driver. Phone Driver duy nhất; hồ sơ cũ có thể giữ NULL. Customer có phone tùy chọn, chỉ trả số này trong hồ sơ chính Customer.
+
 ## 6.3. BP03 – Booking & Matching
 
 1. Customer đã đăng nhập tạo Booking với pickup/destination.
+   `p.lat/lng` và `d.lat/lng` bắt buộc; bỏ `vt` mặc định `BIKE`, nhập `CAR` vẫn hợp lệ. Không đặt tọa độ mặc định.
 2. Booking Service xác thực Customer cần thiết qua liên kết gRPC với Customer Service.
 3. Booking Service lưu Booking thành công.
 4. Ngay sau khi Booking tồn tại, Booking Service publish `booking.created` qua RabbitMQ.
@@ -435,7 +440,9 @@ Trip Service sử dụng liên kết gRPC với Driver Service khi cần dữ li
 8. Payment Service publish `payment.completed`.
 9. Trip Service consume để ghi nhận chuyến đã thanh toán.
 10. Notification Service consume để lưu kết quả Payment.
-11. Replay cùng `Idempotency-Key` trả đúng Payment hiện có/cùng `pid`, không insert Payment mới và không double charge.
+11. Replay cùng `Idempotency-Key` + pid/amount trả response Pay đầu tiên đã lưu (PENDING), kể cả sau callback; không insert Payment mới hoặc phát thêm event. GET Payment trả trạng thái hiện tại. Cùng key khác nội dung trả 409; transaction/row lock và unique key bảo vệ request đồng thời.
+
+Callback chỉ nhận `s=COMPLETED`, đúng Payment và đúng quyền, sau Pay hợp lệ đã lưu key/request/response. Callback trước Pay bị từ chối dù Trip đã đủ điều kiện. Không chấp nhận body giả mạo pid/amount/status khác.
 
 `PENDING` chỉ biểu thị Payment đã được khởi tạo nhưng chưa hoàn tất thanh toán; không có Pricing Engine và không gọi Payment Provider thật.
 
@@ -514,17 +521,23 @@ sequenceDiagram
     actor A as Admin
     participant G as API Gateway
     participant DS as Driver Service
+    participant AU as Auth Service
     participant MQ as RabbitMQ
     participant NS as Notification Service
 
-    D->>G: Request OTP
-    G->>DS: gRPC OTP request
+    D->>G: Request OTP(phone)
+    G->>DS: gRPC RequestOtp(phone)
     DS-->>G: OTP demo = 123
     G-->>D: OTP requested
 
-    D->>G: Submit OTP + profile + vehicle
-    G->>DS: gRPC RegisterDriver
+    D->>G: Submit phone + OTP + email/pw + profile/vehicle
+    G->>DS: gRPC PrepareDriverRegistration
+    DS-->>G: registration_token
+    G->>AU: gRPC CreateAccount (INACTIVE, registration_id)
+    AU-->>G: uid
+    G->>DS: gRPC RegisterDriver (uid + token)
     DS-->>G: PENDING_APPROVAL
+    G->>AU: gRPC CompleteDriverRegistration (ACTIVE)
     G-->>D: pending
 
     A->>G: Approve / Reject
@@ -811,6 +824,8 @@ sequenceDiagram
 | FR05.07 | Sau `IN_PROGRESS`, Driver phải có thể cập nhật `lat/lng` phục vụ smoke #17 |
 | FR05.08 | Chỉ Driver được gán mới được cập nhật Trip đó |
 | FR05.09 | Trip hoàn thành publish `trip.completed` |
+
+Khi Customer sở hữu Trip gọi GET theo `tid`/`bid`, response bổ sung `Driver` gồm mã, tên, loại xe và biển số. Trip lấy đúng Driver/Vehicle đã gán qua liên kết Trip → Driver hiện có; kiểm tra ownership trước khi lookup. Không mở endpoint Driver dành riêng Admin và không trả phone/giấy phép.
 
 ## 7.6. BR06 – Cancel
 

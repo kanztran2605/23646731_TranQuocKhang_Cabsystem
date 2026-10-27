@@ -258,9 +258,9 @@ Customer/System pays the existing Payment using `Idempotency-Key`, demo value `P
 
 - require `status=PENDING`;
 - require `eligible=true`;
-- same key + same request => return same Payment;
+- cùng key + cùng pid/amount => trả response Pay đầu tiên đã lưu (PENDING), kể cả sau callback; GET Payment trả trạng thái hiện tại;
 - same key + conflicting request => conflict;
-- mock callback completes the Payment;
+- callback mock chỉ hoàn tất sau Pay hợp lệ đã lưu key + request/response trong payment_db;
 - completed Payment publishes `payment.completed`;
 - trip-service consumes it and sets `paid=true`.
 
@@ -271,6 +271,10 @@ No real payment provider and no sensitive card/account data.
 ## 8. Driver / Booking / Trip rules
 
 ### Driver
+
+Quy tắc demo hiện hành: `vt` bỏ trống mặc định `BIKE` cho Booking và đăng ký Driver; `CAR` vẫn dùng được. Tọa độ Booking/Nearby luôn do người dùng nhập; Nearby giữ r=1/page=1/limit=5. Biển số 3–20 ký tự chữ/số (cho phép dấu của dữ liệu cũ), chuẩn hóa chữ hoa, không trùng.
+
+Driver bắt buộc phone Việt Nam duy nhất. RequestOtp(phone) lưu hạn 300 giây; PrepareDriverRegistration kiểm tra mock `123` một lần trước Auth. Gateway tạo Account INACTIVE với mã hồ sơ, tạo Driver rồi CompleteDriverRegistration để bật ACTIVE. Gửi lại cùng hồ sơ/mật khẩu có thể hoàn tất RPC bị gián đoạn. Auth không sở hữu OTP và không gọi Driver. Customer có phone tùy chọn, chỉ hiển thị cho chính Customer.
 
 OTP mock:
 
@@ -297,6 +301,8 @@ APPROVED + AVAILABLE + compatible vehicle type
 ```
 
 Nearby smoke may display multiple states; matching must use only eligible drivers.
+
+GET Trip của Customer sở hữu chuyến có thêm Driver (did/name/vt/plate), dùng GetAssignedDriver qua cạnh Trip → Driver hiện có sau ownership check. Không có phone/giấy phép trong summary.
 
 ### Booking
 
@@ -388,6 +394,10 @@ Public REST/demo may use short aliases for fast typing:
 uid cid did vid bid oid tid pid rid
 pw s lat lng vt amt r star c
 ```
+
+The preferred public base URL is `http://localhost:8080/api`. Short aliases remain in request bodies, query parameters and path parameters. Successful business responses use readable display labels (`User ID`, `Customer ID`, `Driver ID`, `Approval Status`, `Latitude`, etc.). `/api/v1` remains compatible with the original short business-response keys. Health uses `status: HEALTHY|UNHEALTHY`; error keys remain `code`, `message`, `at`.
+
+Login response composition is Gateway-only: after Auth authenticates, use the existing Customer/Driver GetByUserId RPC with the authenticated userId to return that role's profile ID. A missing profile yields null, dependency failures remain errors, and ADMIN has only User ID/role (no separate Admin profile). No new RPC, service-to-service edge or DB access is introduced.
 
 Internal Proto/Event/Domain/Repository code should use descriptive names:
 

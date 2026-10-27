@@ -5,7 +5,7 @@ info:
   description: 'Booking/Matching/Offer cho Demo MVP. Sau khi Booking persist: publish booking.created để Payment Service tạo
     Payment PENDING, sau đó matching và tạo một Offer.'
 servers:
-- url: http://localhost:8080/api/v1
+- url: http://localhost:8080/api
   description: API Gateway local/demo
 tags:
 - name: Booking
@@ -47,12 +47,25 @@ components:
           type: number
           format: double
           example: 106.68
+    LocationResponse:
+      type: object
+      required:
+      - 'Latitude'
+      - 'Longitude'
+      properties:
+        'Latitude':
+          type: number
+          format: double
+          example: 10.76
+        'Longitude':
+          type: number
+          format: double
+          example: 106.68
     CreateBookingRequest:
       type: object
       required:
       - p
       - d
-      - vt
       properties:
         p:
           $ref: '#/components/schemas/Location'
@@ -60,45 +73,48 @@ components:
           $ref: '#/components/schemas/Location'
         vt:
           type: string
-          example: CAR
+          enum: [BIKE, CAR]
+          default: BIKE
+          example: BIKE
+          description: Có thể bỏ vt; điểm đón và điểm đến vẫn bắt buộc.
     Booking:
       type: object
       required:
-      - bid
-      - cid
-      - p
-      - d
-      - vt
-      - s
+      - 'Booking ID'
+      - 'Customer ID'
+      - 'Pickup'
+      - 'Destination'
+      - 'Vehicle Type'
+      - 'Status'
       properties:
-        bid:
+        'Booking ID':
           type: integer
           format: int64
           example: 6
-        cid:
+        'Customer ID':
           type: integer
           format: int64
           example: 1
-        p:
-          $ref: '#/components/schemas/Location'
-        d:
-          $ref: '#/components/schemas/Location'
-        vt:
+        'Pickup':
+          $ref: '#/components/schemas/LocationResponse'
+        'Destination':
+          $ref: '#/components/schemas/LocationResponse'
+        'Vehicle Type':
           type: string
           example: CAR
-        s:
+        'Status':
           type: string
           enum:
           - SEARCHING
           - ASSIGNED
           - NO_DRIVER_FOUND
           example: SEARCHING
-        oid:
+        'Offer ID':
           type: integer
           format: int64
           nullable: true
           example: 1
-        did:
+        'Driver ID':
           type: integer
           format: int64
           nullable: true
@@ -106,28 +122,28 @@ components:
     Offer:
       type: object
       required:
-      - oid
-      - bid
-      - did
-      - s
+      - 'Offer ID'
+      - 'Booking ID'
+      - 'Driver ID'
+      - 'Status'
       properties:
-        oid:
+        'Offer ID':
           type: integer
           format: int64
           example: 1
-        bid:
+        'Booking ID':
           type: integer
           format: int64
           example: 6
-        did:
+        'Driver ID':
           type: integer
           format: int64
           example: 1
-        vid:
+        'Vehicle ID':
           type: integer
           format: int64
           example: 1
-        s:
+        'Status':
           type: string
           enum:
           - OPEN
@@ -136,37 +152,37 @@ components:
     BookingPage:
       type: object
       required:
-      - page
-      - limit
-      - items
+      - 'Page'
+      - 'Limit'
+      - 'Items'
       properties:
-        page:
+        'Page':
           type: integer
           example: 1
-        limit:
+        'Limit':
           type: integer
           example: 2
-        items:
+        'Items':
           type: array
           items:
             $ref: '#/components/schemas/Booking'
     AcceptResponse:
       type: object
       required:
-      - oid
-      - bid
-      - s
+      - 'Offer ID'
+      - 'Booking ID'
+      - 'Status'
       properties:
-        oid:
+        'Offer ID':
           type: integer
           example: 1
-        bid:
+        'Booking ID':
           type: integer
           example: 6
-        s:
+        'Status':
           type: string
           example: ACCEPTED
-        tripPending:
+        'Trip Pending':
           type: boolean
           example: true
     Error:

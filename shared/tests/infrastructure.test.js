@@ -19,7 +19,8 @@ test('correlation IDs accept safe bounded tokens and replace untrusted input', (
 test('recursive logging redacts public password aliases and configured credentials', () => {
   const fields = ['pw', 'pw_hash', 'password_hash', 'JWT_SECRET', 'DATA_ENCRYPTION_KEY_BASE64', 'driverLicense', 'decryptedLicense',
     'POSTGRES_PASSWORD', 'MONGO_PASSWORD', 'RABBITMQ_PASSWORD', 'REDIS_PASSWORD', 'authorization', 'accessToken',
-    'lic', 'license', 'lic_enc', 'driver_license_ciphertext', 'DATA_ENCRYPTION_LEGACY_KEY_BASE64'];
+    'lic', 'license', 'lic_enc', 'driver_license_ciphertext', 'DATA_ENCRYPTION_LEGACY_KEY_BASE64',
+    'phone', 'registration_token', 'registration_id'];
   const input = { correlationId: 'demo-123', nested: [Object.fromEntries(fields.map((key) => [key, 'private']))] };
   const output = redact(input);
   assert.equal(output.correlationId, 'demo-123');

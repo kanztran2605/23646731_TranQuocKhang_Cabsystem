@@ -15,7 +15,7 @@ test('all five current Booking RPCs serialize canonical requests/responses and e
 });
 test('Booking gRPC preserves validation, authentication, ownership and precondition errors',async(t)=>{
  const f=fixture(),rpc=await serve(t,'booking.proto','cab.booking.v1','BookingService',createBookingGrpcHandlers(f.service));
- await assert.rejects(rpc.call('createBooking',{...input(),vehicleType:''}),{code:3});
+ await assert.rejects(rpc.call('createBooking',{...input(),vehicleType:'TRUCK'}),{code:3});
  await assert.rejects(rpc.call('createBooking',{...input(),context:{}}),{code:16});
  await assert.rejects(rpc.call('getBooking',{context:customerContext,bookingId:'1'}),{code:5});
  await rpc.call('createBooking',input());f.state.driver.driverId='99';

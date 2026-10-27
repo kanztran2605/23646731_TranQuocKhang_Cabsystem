@@ -3,11 +3,12 @@ const repository = require('../repositories/customer.repository');
 const { toCustomerProfile } = require('../domain/customer-profile');
 const { id, text, actor } = require('../../../../shared/validation');
 const { AppError } = require('../../../../shared/errors/app-error');
+const { phone } = require('../../../../shared/demo-input');
 function createCustomerService(repo = repository) {
   function found(row) { if (!row) throw AppError.notFound('Customer does not exist'); return toCustomerProfile(row); }
   return {
     async createCustomerProfile(request) {
-      const input = { userId: id(request.userId), name: text(request.name, 100), address: text(request.address, 255, true) };
+      const input = { userId: id(request.userId), name: text(request.name, 100), address: text(request.address, 255, true), phone: phone(request.phone, true) };
       try { return toCustomerProfile(await repo.createProfile(input)); }
       catch (error) { if (error.code === '23505') throw AppError.conflict('Customer profile already exists', 'ALREADY_EXISTS'); throw error; }
     },
@@ -16,7 +17,9 @@ function createCustomerService(repo = repository) {
       const row = await repo.findById(id(request.customerId));
       if (!row) throw AppError.notFound('Customer does not exist');
       if (request.context.actorRole !== 'ADMIN' && String(row.uid) !== userId) throw AppError.forbidden();
-      return toCustomerProfile(row);
+      const profile = toCustomerProfile(row);
+      if (request.context.actorRole !== 'CUSTOMER') delete profile.phone;
+      return profile;
     },
     async getCustomerByUserId(request) { return found(await repo.findByUserId(id(request.userId))); },
     async validateCustomer(request) {

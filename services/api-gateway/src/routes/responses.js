@@ -3,7 +3,8 @@
 const { publicId, nullableId, publicLocation } = require('./transport');
 
 function customer(value) {
-  return { cid: publicId(value.customerId), uid: publicId(value.userId), name: value.name, addr: value.address ?? null };
+  return { cid: publicId(value.customerId), uid: publicId(value.userId), name: value.name, addr: value.address ?? null,
+    ...(value.phone ? { phone: value.phone } : {}) };
 }
 function driver(value) {
   return {
@@ -29,7 +30,9 @@ function offer(value) {
 }
 function trip(value) {
   return { tid: publicId(value.tripId), bid: publicId(value.bookingId), cid: publicId(value.customerId),
-    did: publicId(value.driverId), s: value.status, paid: value.paid, r: value.cancelReason ?? null };
+    did: publicId(value.driverId), s: value.status, paid: value.paid, r: value.cancelReason ?? null,
+    ...(value.driver ? { driver: { did: publicId(value.driver.driverId), name: value.driver.name,
+      vt: value.driver.vehicleType, plate: value.driver.licensePlate } } : {}) };
 }
 function payment(value) {
   return { pid: publicId(value.paymentId), bid: publicId(value.bookingId), tid: nullableId(value.tripId),

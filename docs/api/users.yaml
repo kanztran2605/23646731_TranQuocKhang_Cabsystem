@@ -4,7 +4,7 @@ info:
   version: 4.0.0
   description: Customer Profile public contract qua Gateway. Customer data không chứa password/JWT.
 servers:
-- url: http://localhost:8080/api/v1
+- url: http://localhost:8080/api
   description: API Gateway local/demo
 tags:
 - name: Customer
@@ -27,25 +27,29 @@ components:
     Customer:
       type: object
       required:
-      - cid
-      - uid
-      - name
+      - 'Customer ID'
+      - 'User ID'
+      - 'Name'
       properties:
-        cid:
+        'Customer ID':
           type: integer
           format: int64
           example: 1
-        uid:
+        'User ID':
           type: integer
           format: int64
           example: 1
-        name:
+        'Name':
           type: string
           example: C
-        addr:
+        'Address':
           type: string
           nullable: true
           example: HCMC
+        'Phone':
+          type: string
+          example: '0901234567'
+          description: Chỉ trả khi Customer xem chính hồ sơ mình và có lưu phone; không trả trong lookup nội bộ cho Booking.
     Error:
       type: object
       required:

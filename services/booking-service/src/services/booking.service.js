@@ -9,6 +9,7 @@ const { toBooking } = require('../domain/booking');
 const { toDriverOffer } = require('../domain/driver-offer');
 const { AppError } = require('../../../../shared/errors/app-error');
 const { id, text, actor, coordinates } = require('../../../../shared/validation');
+const { vehicleType: validateVehicleType } = require('../../../../shared/demo-input');
 const { createLogger } = require('../../../../shared/logging/logger');
 const logger = createLogger('booking-service');
 
@@ -53,8 +54,7 @@ function createBookingService({ repo = repository, customer = customerClient, dr
     async createBooking(request) {
       actor(request.context, ['CUSTOMER']);
       const pickup = location(request.pickup), destination = location(request.destination);
-      const vehicleType = text(request.vehicleType, 50);
-      if (/^\d+$/.test(vehicleType)) throw AppError.badRequest('Vehicle type must be a string category');
+      const vehicleType = validateVehicleType(request.vehicleType);
       const profile = await ownCustomer(request.context);
       const created = await repo.createBooking({ customerId: profile.customerId, pickup, destination, vehicleType });
       await emit('publishBookingCreated', { bookingId: created.bid, customerId: created.cid, customerUserId: profile.userId,

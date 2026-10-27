@@ -41,21 +41,29 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: cab-rabbitmq
+    # Existing volumes must pin their current identity in the local override.
+    hostname: ${RABBITMQ_NODE_HOSTNAME:-cab-rabbitmq}
+    entrypoint: ["python3", "/etc/rabbitmq/bootstrap.py"]
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_NODENAME: rabbit@${RABBITMQ_NODE_HOSTNAME:-cab-rabbitmq}
     ports:
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - cab_rabbitmq_data:/var/lib/rabbitmq
       - ./infrastructure/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
       - ./infrastructure/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./infrastructure/rabbitmq/bootstrap.py:/etc/rabbitmq/bootstrap.py:ro
+    tmpfs:
+      - /run/cab-rabbitmq:rw,noexec,nosuid,size=1m,mode=0700
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+      test: ["CMD", "python3", "/etc/rabbitmq/bootstrap.py", "--healthcheck"]
+      interval: 15s
+      timeout: 10s
+      start_period: 40s
+      retries: 6
     networks: [cab-network]
 
   redis:
@@ -227,7 +235,7 @@ services:
 
 networks:
   cab-network:
-    driver: bridge
+    name: cab-system_cab-network
 
 volumes:
   cab_postgres_data:

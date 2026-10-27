@@ -38,6 +38,7 @@ message PayExistingPaymentRequest {
   cab.common.v1.RequestContext context = 1;
   string payment_id = 2;
   string idempotency_key = 3;
+  optional double amount = 4;
 }
 
 message PaymentCallbackRequest {

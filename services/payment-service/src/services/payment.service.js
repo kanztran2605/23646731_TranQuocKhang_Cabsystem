@@ -46,9 +46,19 @@ function createPaymentService({ repo = repository, transaction = database.withTr
       try {
         return await transaction(async client => {
           const row = found(await repo.lock(id(request.paymentId),client)); own(request.context,row,['CUSTOMER']);
-          if (checkKey(row,key)) return toPayment(row);
+          const amount = request.amount ?? Number(row.amt);
+          if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) throw AppError.badRequest();
+          const payRequest = { paymentId:String(row.pid),amount };
+          if (checkKey(row,key)) {
+            if (row.pay_request && (row.pay_request.paymentId !== payRequest.paymentId || row.pay_request.amount !== amount)) throw AppError.conflict('Idempotency key đã dùng với nội dung khác');
+            // Dữ liệu cũ không có snapshot giữ cách đọc cũ; giao dịch mới luôn lưu response đầu tiên.
+            return row.pay_response || toPayment(row);
+          }
+          if (amount !== Number(row.amt)) throw AppError.badRequest('Số tiền không khớp Payment');
           if (row.s !== 'PENDING' || !row.eligible) throw AppError.conflict('Payment must be pending and eligible');
-          return toPayment(await repo.key(row.pid,key,client));
+          const response = toPayment({ ...row,ikey:key });
+          await repo.key(row.pid,key,payRequest,response,client);
+          return response;
         });
       } catch (error) {
         if (error.code === '23505') throw AppError.conflict('Idempotency key already belongs to another Payment');
@@ -61,7 +71,9 @@ function createPaymentService({ repo = repository, transaction = database.withTr
       const result = await transaction(async client => {
         const row = found(await repo.lock(id(request.paymentId),client)); own(request.context,row);
         if (row.s === 'COMPLETED') return { row, replay:true };
-        if (row.s !== 'PENDING' || !row.eligible || row.tid == null) throw AppError.conflict('Payment must be pending and eligible');
+        if (row.s !== 'PENDING' || !row.eligible || row.tid == null || !row.ikey || !row.pay_request || !row.pay_response) {
+          throw AppError.conflict('Phải khởi tạo Pay hợp lệ trước callback');
+        }
         return { row:await repo.complete(row.pid,new Date().toISOString(),client), replay:false };
       });
       if (!result.replay) {

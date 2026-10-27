@@ -6,13 +6,18 @@ const repository = require('../src/repositories/driver.repository');
 const { pool,closeDatabase } = require('../src/config/database');
 const { decryptLicense } = require('../src/security/license');
 const { createTripEventHandler } = require('../src/events/trip-events.consumer');
-const created=[]; const events=[];
+const created=[]; const events=[]; const phones=[];
 const service=createDriverService(repository,async (event)=>events.push(event));
 const admin={ actorUserId:'7',actorRole:'ADMIN' };
 async function register(index,vehicleType='CAR') {
   const userId=String(Date.now()+index);
-  const profile=await service.registerDriver({ context:{ actorUserId:userId,actorRole:'DRIVER' },userId,otp:'123',
-    name:'DB Test Driver',vehicleType,licensePlate:'T'+userId,driverLicense:'LICENSE-INTEGRATION' });
+  const phone='09'+String(Date.now()+index).slice(-8); phones.push(phone);
+  const input={phone,email:'db-'+userId+'@driver.test',otp:'123',name:'DB Test Driver',vehicleType,
+    licensePlate:'T'+userId,driverLicense:'LICENSE-INTEGRATION'};
+  await service.requestOtp({phone});
+  await assert.rejects(service.prepareDriverRegistration({...input,phone:'07'+phone.slice(2)}),{statusCode:400});
+  const grant=await service.prepareDriverRegistration(input);
+  const profile=await service.registerDriver({ ...input, ...grant,context:{ actorUserId:userId,actorRole:'DRIVER' },userId });
   created.push(profile.driverId);
   return { profile,context:{ actorUserId:userId,actorRole:'DRIVER',actorDriverId:profile.driverId } };
 }
@@ -30,7 +35,32 @@ after(async()=>{
       } catch(error) { await client.query('ROLLBACK');throw error; }
       finally { client.release(); }
     }
+    if(phones.length) await pool.query('DELETE FROM driver_otp WHERE phone=ANY($1::text[])',[phones]);
   } finally { await closeDatabase(); }
+});
+
+test('OTP gắn đúng phone, có hạn, dùng một lần; retry cùng hồ sơ không tạo Driver thứ hai',async()=>{
+  const phone='08'+String(Date.now()).slice(-8); phones.push(phone);
+  const input={phone,email:'otp-'+Date.now()+'@driver.test',otp:'123',name:'OTP Test',licensePlate:'OT'+Date.now()};
+  await assert.rejects(service.prepareDriverRegistration(input),{statusCode:400});
+  await service.requestOtp({phone});
+  await assert.rejects(service.prepareDriverRegistration({...input,otp:'wrong'}),{statusCode:400});
+  assert.equal((await pool.query('SELECT consumed_at FROM driver_otp WHERE phone=$1',[phone])).rows[0].consumed_at,null);
+  await pool.query("UPDATE driver_otp SET expires_at=now()-interval '1 second' WHERE phone=$1",[phone]);
+  await assert.rejects(service.prepareDriverRegistration(input),{statusCode:400});
+  await service.requestOtp({phone});
+  const grants=await Promise.all([service.prepareDriverRegistration(input),service.prepareDriverRegistration(input)]);
+  assert.equal(grants[0].registrationToken,grants[1].registrationToken);
+  await assert.rejects(service.prepareDriverRegistration({...input,name:'Hồ sơ khác'}),{statusCode:400});
+  const userId=String(Date.now()), request={...input,...grants[0],userId,context:{actorUserId:userId,actorRole:'DRIVER'}};
+  const profile=await service.registerDriver(request); created.push(profile.driverId);
+  assert.equal(profile.vehicle.vehicleType,'BIKE');
+  assert.equal((await service.registerDriver(request)).driverId,profile.driverId);
+  await assert.rejects(service.requestOtp({phone}),{statusCode:409});
+  const summary=await service.getAssignedDriver({driverId:profile.driverId,vehicleId:profile.vehicle.vehicleId});
+  assert.equal(summary.licensePlate,input.licensePlate); assert.ok(!Object.hasOwn(summary,'phone'));
+  const otherPhone='03'+phone.slice(2);phones.push(otherPhone);await service.requestOtp({phone:otherPhone});
+  await assert.rejects(service.prepareDriverRegistration({...input,phone:otherPhone,licensePlate:input.licensePlate.toLowerCase()}),{statusCode:409});
 });
 test('real driver_db: atomic onboarding creates all four records and ciphertext',async()=>{
   const {profile}=await register(0);

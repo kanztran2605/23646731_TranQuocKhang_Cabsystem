@@ -61,7 +61,7 @@ API Gateway  <->  Redis
 Async business events -> RabbitMQ exchange cab.events
 ```
 
-Client chỉ gọi business API qua Gateway `http://localhost:8080/api/v1`.
+Client gọi business API qua Gateway `http://localhost:8080/api`. Request giữ alias ngắn để gõ nhanh; JSON trả về dùng tên rõ nghĩa như `User ID`, `Customer ID`, `Driver ID`, `Latitude`. `/api/v1` vẫn hỗ trợ client cũ với response alias ngắn. Xem ví dụ Postman trong `docs/api/README.md`.
 
 ### Service-to-service gRPC
 
@@ -255,14 +255,27 @@ http://localhost:15672
 Health smoke:
 
 ```text
-GET /api/v1/health
-GET /api/v1/ready
-GET /api/v1/health/services
+GET /api/health
+GET /api/ready
+GET /api/health/services
 ```
 
 Only Gateway exposes a business HTTP port to the host. Business services remain inside the Docker network.
 
 Run `npm ci` at the root and install each service's declared dependencies before local tests. `npm test` runs all nine service suites and shared tests. Real DB integration suites are explicit `tests/database.integration.js` files. `scripts/smoke-local-full.py` verifies the full stack and the 30-item rubric through the Gateway. Its default payment key is P1; preserved P1 records can be replayed, and a repeat full smoke uses `--idempotency-key` with a fresh key. Current results are recorded in `docs/test/FINAL_IMPLEMENTATION_VALIDATION.md`.
+
+### Demo Postman ngắn theo phiếu chấm
+
+Base URL: `http://localhost:8080/api`. Body giữ tên viết tắt; response dùng nhãn đầy đủ như `User ID`, `Phone`, `Driver`.
+
+- Customer: `POST /register` với `{"email":"demo@c.com","pw":"123","name":"Demo","phone":"0901234567"}`. Có thể bỏ `phone`; không cần OTP Customer.
+- Driver: `POST /drivers/otp` với `{"phone":"0901234567"}`, sau đó `POST /drivers/register` với `{"phone":"0901234567","email":"driver.demo@example.com","pw":"123","otp":"123","name":"Driver Demo","plate":"59A12345"}`. OTP gắn phone, hạn 300 giây. Driver mới PENDING_APPROVAL/OFFLINE; Admin duyệt rồi Driver cập nhật vị trí và Online.
+- Booking: `POST /bookings` với `{"p":{"lat":10.76,"lng":106.68},"d":{"lat":10.77,"lng":106.69}}` mặc định BIKE. Thêm `"vt":"CAR"` khi cần CAR; loại khác bị từ chối. Không có tọa độ mặc định.
+- Nearby (Admin): `GET /drivers/nearby?lat=10.76&lng=106.68`, mặc định r=1/page=1/limit=5.
+- Customer xem Driver được gán: `GET /trips/by-booking/{bid}` hoặc `/trips/{tid}` với token sở hữu Trip; có tên/mã Driver, loại xe và biển số.
+- Pay: `POST /payments/{pid}/pay`, header `Idempotency-Key: P1`, có thể bỏ body. Callback: `POST /payments/{pid}/callback`, body `{"s":"COMPLETED"}`. Callback trước Pay bị từ chối. Replay Pay trả response Pay đầu tiên; xem trạng thái mới nhất bằng GET Payment.
+
+Volume cũ: chạy `python scripts/migrate-demo-rubric.py` để kiểm tra, rồi `python scripts/migrate-demo-rubric.py --apply` để backup và bổ sung schema. Nếu bảng/schema cũ thuộc superuser khác, dùng `--backup-user <superuser> --schema-user <chủ-bảng>` sau khi xác minh. Không chạy lại init/seed trên volume cũ. Chạy `python scripts/ensure-bike-demo.py` sau cập nhật image để đảm bảo có BIKE demo riêng; không chuyển Driver CAR sang BIKE.
 
 ## 10. Definition of Done
 

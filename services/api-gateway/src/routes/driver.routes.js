@@ -3,27 +3,32 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth.middleware');
 const { requireRole } = require('../middleware/authorization.middleware');
-const { z, parse, asyncHandler, context, pathId, pagination, locationSchema, location, email, vehicleType, queryNumber, publicId } = require('./transport');
+const { z, parse, asyncHandler, context, pathId, pagination, locationSchema, location, email, phone, vehicleType, queryNumber, publicId } = require('./transport');
+const { licensePlate } = require('../../../../shared/demo-input');
 const responses = require('./responses');
 
 module.exports = function driverRoutes({ call }) {
   const router = express.Router();
   router.post('/drivers/otp', asyncHandler(async (req, res) => {
-    const body = parse(z.object({ email }), req.body);
-    const result = await call('driver', 'requestOtp', { email: body.email, correlationId: req.correlationId }, req.correlationId);
+    const body = parse(z.object({ phone }), req.body);
+    const result = await call('driver', 'requestOtp', { phone: body.phone, correlationId: req.correlationId }, req.correlationId);
     res.json({ otp: result.otp });
   }));
   router.post('/drivers/register', asyncHandler(async (req, res) => {
     const body = parse(z.object({
-      email, pw: z.string().min(1).refine((value) => value.trim().length > 0),
-      otp: z.string().trim().min(1), name: z.string().trim().min(1),
-      vt: vehicleType, plate: z.string().trim().min(1),
+      phone,email, pw: z.string().min(3).max(72).refine((value) => value.trim().length > 0 && Buffer.byteLength(value,'utf8') <= 72),
+      otp: z.string().trim().min(1), name: z.string().trim().min(1).max(100),
+      vt: vehicleType, plate: z.string().trim().min(1).max(20).refine(value => { try { licensePlate(value); return true; } catch { return false; } }),
     }), req.body);
-    const account = await call('auth', 'createAccount', { email: body.email, password: body.pw, role: 'DRIVER' }, req.correlationId);
+    const input = { phone:body.phone,email:body.email,otp:body.otp,name:body.name,vehicleType:body.vt,licensePlate:licensePlate(body.plate) };
+    // OTP sai/hết hạn phải dừng trước Auth. Mã hồ sơ cho phép retry an toàn khi RPC lỗi.
+    const grant = await call('driver','prepareDriverRegistration',input,req.correlationId);
+    const account = await call('auth', 'createAccount', { email: body.email, password: body.pw, role: 'DRIVER',registrationId:grant.registrationToken }, req.correlationId);
     const result = await call('driver', 'registerDriver', {
       context: { actorUserId: account.userId, actorRole: 'DRIVER', correlationId: req.correlationId },
-      userId: account.userId, otp: body.otp, name: body.name, vehicleType: body.vt, licensePlate: body.plate,
+      ...input,userId:account.userId,registrationToken:grant.registrationToken,
     }, req.correlationId);
+    await call('auth','completeDriverRegistration',{ userId:account.userId,registrationId:grant.registrationToken },req.correlationId);
     res.status(201).json({ uid: publicId(result.userId), did: publicId(result.driverId), ap: result.approvalStatus });
   }));
   router.get('/drivers/pending-approval', authenticate, requireRole('ADMIN'), asyncHandler(async (req, res) => {

@@ -65,9 +65,9 @@ test('login rejects appended input beyond bcrypt 72-byte limit',async () => {
   assert.equal((await service.login({ email:'bounded@c.com',password })).role,'CUSTOMER');
   await assert.rejects(service.login({ email:'bounded@c.com',password:password+'wrong' }),(e) => e.statusCode === 401);
 });
-test('Auth exposes exactly the current two business RPCs',() => {
-  assert.deepEqual(Object.keys(createAuthGrpcHandlers(service)).sort(),['createAccount','login']);
-  assert.deepEqual(Object.keys(service).sort(),['createAccount','login']);
+test('Auth chỉ lộ RPC tài khoản và hoàn tất đăng ký nội bộ',() => {
+  assert.deepEqual(Object.keys(createAuthGrpcHandlers(service)).sort(),['completeDriverRegistration','createAccount','login']);
+  assert.deepEqual(Object.keys(service).sort(),['completeDriverRegistration','createAccount','login']);
 });
 test('real Auth gRPC uses current contract, error codes and HealthService UP/DOWN',async (t) => {
   let healthy = true;
@@ -76,4 +76,22 @@ test('real Auth gRPC uses current contract, error codes and HealthService UP/DOW
   assert.equal((await rpc.call('createAccount',{ email:'rpc@c.com',password:'123',role:'CUSTOMER' })).status,'ACTIVE');
   await assert.rejects(rpc.call('login',{ email:'c@c.com',password:'wrong' }),(e) => e.code === 16);
   assert.equal((await rpc.checkHealth()).status,'UP'); healthy = false; assert.equal((await rpc.checkHealth()).status,'DOWN');
+});
+
+test('đăng ký Driver chưa đủ hồ sơ không login; retry và hoàn tất không tạo trùng',async()=>{
+ const rows=[];
+ const repo={
+  async createAccount(i){if(rows.some(r=>r.email===i.email))throw {code:'23505'};const r={uid:'20',email:i.email,pw_hash:i.passwordHash,role:i.role,s:'INACTIVE',registration_id:i.registrationId,registration_done:false,c_at:new Date()};rows.push(r);return r;},
+  async findByEmail(e){return rows.find(r=>r.email===e);},
+  async completeRegistration(uid,ref){const r=rows.find(r=>r.uid===uid&&r.registration_id===ref&&(!r.registration_done||r.s==='ACTIVE'));if(r){r.s='ACTIVE';r.registration_done=true;}return r;},
+ };
+ const auth=createAuthService(repo),req={email:'new@d.test',password:'123',role:'DRIVER',registrationId:'11111111-1111-4111-8111-111111111111'};
+ const first=await auth.createAccount(req);assert.equal(first.status,'INACTIVE');
+ await assert.rejects(auth.login(req),{statusCode:401});
+ assert.equal((await auth.createAccount(req)).userId,first.userId);assert.equal(rows.length,1);
+ await auth.completeDriverRegistration({userId:first.userId,registrationId:req.registrationId});
+ assert.equal((await auth.login(req)).role,'DRIVER');
+ rows[0].s='INACTIVE';
+ await assert.rejects(auth.completeDriverRegistration({userId:first.userId,registrationId:req.registrationId}),{statusCode:409});
+ await assert.rejects(auth.createAccount({...req,password:'wrong'}),{statusCode:409});
 });

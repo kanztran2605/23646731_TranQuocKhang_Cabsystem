@@ -28,7 +28,7 @@ function fixture() {
     catch(e){Object.assign(state,before);throw e;}
   };
   const publish=async (type,row,from,correlationId)=>{state.operations.push(type);state.events.push({type,row:{...row},from,correlationId});};
-  const driverClient={async getDriverLocation(did,correlationId){state.driverCalls.push({did,correlationId});return {driverId:did,latitude:0,longitude:0};}};
+  const driverClient={async getAssignedDriver(did,vid){return {driverId:did,name:'Driver Demo',vehicleType:'BIKE',licensePlate:'59A12345'};},async getDriverLocation(did,correlationId){state.driverCalls.push({did,correlationId});return {driverId:did,latitude:0,longitude:0};}};
   const service=createTripService({repo,transaction,publish,driver:driverClient});
   const request=(context=customer)=>({context,tripId:'1'});
   const advance=async()=>{await service.assigned(assignment());await service.updateTripStatus({...request(driver),status:'ARRIVED'});await service.updateTripStatus({...request(driver),status:'IN_PROGRESS'});};

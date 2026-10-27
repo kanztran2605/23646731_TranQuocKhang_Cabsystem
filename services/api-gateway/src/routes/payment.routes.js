@@ -18,13 +18,15 @@ module.exports = function paymentRoutes({ call }) {
   }));
   router.post('/payments/:pid/pay', authenticate, requireRole('CUSTOMER'), asyncHandler(async (req, res) => {
     const key = parse(z.string().trim().min(1), req.get('Idempotency-Key'));
+    const body = parse(z.object({ amt:z.number().finite().positive().optional() }).strict(),req.body ?? {});
     const result = await call('payment', 'payExistingPayment', {
       context: context(req), paymentId: pathId(req, 'pid'), idempotencyKey: key,
+      ...(body.amt !== undefined ? { amount:body.amt } : {}),
     }, req.correlationId);
     res.json(responses.payment(result));
   }));
   router.post('/payments/:pid/callback', authenticate, requireRole('CUSTOMER', 'ADMIN'), asyncHandler(async (req, res) => {
-    const body = parse(z.object({ s: z.literal('COMPLETED') }), req.body);
+    const body = parse(z.object({ s: z.literal('COMPLETED') }).strict(), req.body);
     const result = await call('payment', 'paymentCallback', {
       context: context(req), paymentId: pathId(req, 'pid'), status: body.s,
     }, req.correlationId);

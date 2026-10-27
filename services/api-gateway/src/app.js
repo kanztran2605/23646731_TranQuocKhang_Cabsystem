@@ -10,6 +10,7 @@ const { grpcToAppError } = require('../../../shared/errors/grpc-error');
 const { AppError } = require('../../../shared/errors/app-error');
 const { correlationMiddleware } = require('./middleware/correlation.middleware');
 const { createRateLimitMiddleware } = require('./middleware/rate-limit.middleware');
+const { presentationMiddleware } = require('./middleware/presentation.middleware');
 const { notFoundHandler, errorHandler } = require('./middleware/error.middleware');
 
 function createApp({
@@ -30,16 +31,19 @@ function createApp({
   }));
   app.use(express.json({ limit: '1mb' }));
   const health = require('./routes/health.routes')({ pingRedis, checkServiceHealth });
-  // Root aliases support process/container probes; the documented API uses /api/v1.
+  // Root aliases support process/container probes; /api is the demo entry point.
   app.use(health);
-  app.use('/api/v1', health);
-  app.use('/api/v1', createRateLimitMiddleware({ redisClient }));
+  const apiPrefixes = ['/api/v1', '/api'];
+
+  app.use(apiPrefixes, health);
+  app.use(apiPrefixes, presentationMiddleware);
+  app.use(apiPrefixes, createRateLimitMiddleware({ redisClient }));
   const call = async (...args) => {
     try { return await callRpc(...args); }
     catch (error) { throw grpcToAppError(error); }
   };
   for (const name of ['auth', 'booking', 'customer', 'driver', 'vehicle', 'trip', 'payment', 'notification', 'review']) {
-    app.use('/api/v1', require('./routes/' + name + '.routes')({ call }));
+    app.use(apiPrefixes, require('./routes/' + name + '.routes')({ call }));
   }
   app.use(notFoundHandler);
   app.use(errorHandler);

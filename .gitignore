@@ -56,6 +56,7 @@ Thumbs.db
 desktop.ini
 
 # Local Docker data
+/docker-compose.override.yml
 docker-data/
 postgres-data/
 rabbitmq-data/

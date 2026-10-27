@@ -27,9 +27,12 @@ const trip = { tripId: '1', bookingId: '6', customerId: '1', driverId: '1', stat
 const payment = { paymentId: '1', bookingId: '6', customerId: '1', amount: 50000, status: 'PENDING', eligible: false };
 const fixtures = {
   'auth.createAccount': { userId: '5', email: 'newd@d.com', role: 'DRIVER' },
+  'auth.completeDriverRegistration': {userId:'5',email:'newd@d.com',role:'DRIVER',status:'ACTIVE'},
+  'driver.prepareDriverRegistration': {registrationToken:'11111111-1111-4111-8111-111111111111'},
   'auth.login': { userId: '1', role: 'CUSTOMER', accessToken: 'test-token', expiresInSeconds: '3600' },
   'customer.createCustomerProfile': { customerId: '5', userId: '5', name: 'C' },
   'customer.getCustomer': { customerId: '1', userId: '1', name: 'C', address: 'HCMC' },
+  'customer.getCustomerByUserId': { customerId: '7', userId: '1', name: 'C', address: 'HCMC' },
   'driver.requestOtp': { otp: '123' },
   'driver.registerDriver': { ...driver, driverId: '5', userId: '5', approvalStatus: 'PENDING_APPROVAL' },
   'driver.getDriver': driver,
@@ -69,6 +72,7 @@ function token(role = 'CUSTOMER', options = {}) {
 }
 
 async function harness(t, overrides = {}) {
+  const { rpcResults = {}, ...appOverrides } = overrides;
   const calls = [];
   const redisOps = [];
   const app = createApp({
@@ -84,9 +88,9 @@ async function harness(t, overrides = {}) {
       // Exercise the real proto serializers: stale field names cannot pass these mapping assertions.
       const wire = spec.requestDeserialize(spec.requestSerialize(payload));
       calls.push({ service, method, payload, wire, correlationId });
-      return spec.responseDeserialize(spec.responseSerialize(fixtures[service + '.' + method]));
+      return spec.responseDeserialize(spec.responseSerialize(rpcResults[service + '.' + method] ?? fixtures[service + '.' + method]));
     },
-    ...overrides,
+    ...appOverrides,
   });
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -159,8 +163,8 @@ const routeCases = [
   ['POST', '/register', null, { email: 'n@c.com', pw: '123', name: 'C' }, 'customer', 'createCustomerProfile', { userId: '5', name: 'C' }, 201, 'cid', 5],
   ['POST', '/login', null, { email: 'c@c.com', pw: '123' }, 'auth', 'login', { email: 'c@c.com', password: '123' }, 200, 'token', 'test-token'],
   ['GET', '/customers/1', 'CUSTOMER', undefined, 'customer', 'getCustomer', { customerId: '1' }, 200, 'cid', 1],
-  ['POST', '/drivers/otp', null, { email: 'newd@d.com' }, 'driver', 'requestOtp', { email: 'newd@d.com' }, 200, 'otp', '123'],
-  ['POST', '/drivers/register', null, { email: 'newd@d.com', pw: '123', otp: '123', name: 'D', vt: 'CAR', plate: '51A1' }, 'driver', 'registerDriver', { userId: '5', otp: '123', vehicleType: 'CAR', licensePlate: '51A1' }, 201, 'ap', 'PENDING_APPROVAL'],
+  ['POST', '/drivers/otp', null, { phone: '0901234567' }, 'driver', 'requestOtp', { phone: '0901234567' }, 200, 'otp', '123'],
+  ['POST', '/drivers/register', null, { phone:'0901234567', email: 'newd@d.com', pw: '123', otp: '123', name: 'D', vt: 'CAR', plate: '51A1' }, 'driver', 'registerDriver', { userId: '5', otp: '123', vehicleType: 'CAR', licensePlate: '51A1' }, 201, 'ap', 'PENDING_APPROVAL'],
   ['GET', '/drivers/pending-approval', 'ADMIN', undefined, 'driver', 'listPendingDrivers', { page: 1, limit: 5 }, 200, 'limit', 5],
   ['GET', '/drivers/nearby?lat=10.76&lng=106.68', 'ADMIN', undefined, 'driver', 'getNearbyDrivers', { latitude: 10.76, longitude: 106.68, radiusKm: 1, page: 1, limit: 5 }, 200, 'page', 1],
   ['PATCH', '/drivers/1/approval', 'ADMIN', { ap: 'REJECTED' }, 'driver', 'reviewDriverApproval', { driverId: '1', approvalStatus: 'REJECTED' }, 200, 'did', 1],
@@ -207,9 +211,10 @@ test('every public REST route uses current proto methods, fields and short respo
       }
       assert.equal(result.headers.get('x-correlation-id'), 'demo-123');
       if (path === '/register' || path === '/drivers/register') {
-        assert.equal(calls[0].method, 'createAccount');
-        assert.equal(calls[0].wire.role, path === '/register' ? 'CUSTOMER' : 'DRIVER');
-        assert.equal(calls[0].wire.password, '123');
+        const account = calls.find(c => c.method === 'createAccount');
+        assert.equal(account.wire.role, path === '/register' ? 'CUSTOMER' : 'DRIVER');
+        assert.equal(account.wire.password, '123');
+        if(path === '/drivers/register') assert.deepEqual(calls.map(c=>c.method),['prepareDriverRegistration','createAccount','registerDriver','completeDriverRegistration']);
       }
       if (path === '/drivers/me/location') assert.deepEqual(calls.map((item) => item.method), ['updateLocation', 'getDriverByUserId']);
       assert.ok(!JSON.stringify(result.body).includes('password'));
@@ -221,6 +226,130 @@ test('every public REST route uses current proto methods, fields and short respo
     assert.match(operation.options.keys[0], /^cab:gateway:ratelimit:api:/);
     assert.deepEqual(operation.options.arguments, ['10000']);
   }
+});
+
+test('/api uses readable response labels while all requests retain short aliases and current RPCs', async (t) => {
+  const { request, calls } = await harness(t);
+  const labels = {
+    cid: 'Customer ID', token: 'Token', otp: 'OTP', ap: 'Approval Status',
+    limit: 'Limit', page: 'Page', did: 'Driver ID', av: 'Availability Status',
+    lat: 'Latitude', bid: 'Booking ID', tripPending: 'Trip Pending', tid: 'Trip ID',
+    s: 'Status', r: 'Cancel Reason', amt: 'Amount', eligible: 'Eligible',
+    key: 'Idempotency Key', star: 'Rating',
+  };
+  for (const [method, path, role, body, service, rpc, fields, status, alias, value] of routeCases) {
+    await t.test(method + ' ' + path, async () => {
+      calls.length = 0;
+      const result = await request('/api' + path, {
+        method, role, body, headers: { 'x-correlation-id': 'readable-123', 'Idempotency-Key': 'P1' },
+      });
+      assert.equal(result.status, status);
+      if (alias) {
+        assert.equal(result.body[labels[alias]], value);
+        assert.ok(!Object.hasOwn(result.body, alias));
+      }
+      const called = calls.find((item) => item.service === service && item.method === rpc);
+      assert.ok(called);
+      for (const [field, expected] of Object.entries(fields)) assert.deepEqual(called.wire[field], expected);
+      assert.equal(called.correlationId, 'readable-123');
+      assert.equal(result.headers.get('x-correlation-id'), 'readable-123');
+    });
+  }
+});
+
+test('/api formats full Driver details, nested locations, pages and arrays without changing values', async (t) => {
+  const { request } = await harness(t);
+  const fullDriver = {
+    'Driver ID': 1, 'User ID': 2, Name: 'D',
+    'Approval Status': 'APPROVED', 'Availability Status': 'AVAILABLE',
+    'Vehicle ID': 1, 'Vehicle Type': 'CAR', 'License Plate': '51A1',
+    Latitude: 10.76, Longitude: 106.68, 'Distance (km)': null,
+  };
+  assert.deepEqual((await request('/api/drivers/1', { role: 'ADMIN' })).body, fullDriver);
+  assert.deepEqual((await request('/api/drivers/nearby?lat=10.76&lng=106.68', { role: 'ADMIN' })).body, {
+    Page: 1, Limit: 5, Items: [fullDriver],
+  });
+  assert.deepEqual((await request('/api/bookings/6')).body, {
+    'Booking ID': 6, 'Customer ID': 1, Pickup: { Latitude: 10.76, Longitude: 106.68 },
+    Destination: { Latitude: 10.76, Longitude: 106.68 }, 'Vehicle Type': 'CAR',
+    Status: 'SEARCHING', 'Offer ID': null, 'Driver ID': null,
+  });
+  assert.deepEqual((await request('/api/vehicle-types')).body, [{ 'Vehicle Type': 'CAR', Name: 'Car' }]);
+  assert.deepEqual((await request('/api/notifications')).body, { Items: [{
+    'Notification ID': 'n1', 'Event ID': 'e1', 'User ID': 1, Type: 'PAYMENT_COMPLETED',
+    Reference: 'pid:1', Message: 'Payment completed', Status: 'SENT', 'Created At': '2026-10-04T01:00:00Z',
+  }] });
+  // Existing clients can keep using the versioned response format.
+  const legacy = (await request('/api/v1/drivers/1', { role: 'ADMIN' })).body;
+  assert.equal(legacy.did, 1);
+  assert.ok(!Object.hasOwn(legacy, 'Driver ID'));
+});
+
+test('login includes the profile ID from the matching existing service, independently of User ID', async (t) => {
+  for (const [role, userId, profileService, profileMethod, idLabel, profileId] of [
+    ['CUSTOMER', '1', 'customer', 'getCustomerByUserId', 'Customer ID', 7],
+    ['DRIVER', '2', 'driver', 'getDriverByUserId', 'Driver ID', 1],
+    ['ADMIN', '3', null, null, null, null],
+  ]) {
+    await t.test(role, async (t) => {
+      const { request, calls } = await harness(t, { rpcResults: {
+        'auth.login': { userId, role, accessToken: 'test-token', expiresInSeconds: '3600' },
+      } });
+      const result = await request('/api/login', { method: 'POST', role: null,
+        body: { email: 'c@c.com', pw: '123', uid: 999, cid: 999, did: 999 },
+        headers: { 'x-correlation-id': 'login-123' },
+      });
+      assert.equal(result.status, 200);
+      assert.deepEqual(result.body, { Token: 'test-token', 'User ID': Number(userId), Role: role,
+        ...(idLabel ? { [idLabel]: profileId } : {}),
+      });
+      assert.equal(calls[0].service, 'auth');
+      assert.equal(calls[0].method, 'login');
+      assert.equal(calls.length, profileService ? 2 : 1);
+      if (profileService) {
+        assert.equal(calls[1].service, profileService);
+        assert.equal(calls[1].method, profileMethod);
+        assert.equal(calls[1].wire.userId, userId);
+        assert.equal(calls[1].wire.correlationId, 'login-123');
+        assert.equal(calls[1].correlationId, 'login-123');
+      }
+    });
+  }
+});
+
+test('missing profiles return a null profile ID; unavailable profile services remain errors', async (t) => {
+  for (const [role, label] of [['CUSTOMER', 'Customer ID'], ['DRIVER', 'Driver ID']]) {
+    await t.test(role, async (t) => {
+      let profileError = 5;
+      const { request } = await harness(t, { callRpc: async (service) => {
+        if (service === 'auth') return { userId: '1', accessToken: 'test-token', role };
+        throw { code: profileError, details: 'private downstream data' };
+      } });
+      const input = { method: 'POST', role: null, body: { email: 'c@c.com', pw: '123' } };
+      const result = await request('/api/login', input);
+      assert.equal(result.status, 200);
+      assert.equal(result.body[label], null);
+      profileError = 14;
+      const unavailable = await request('/api/login', input);
+      assert.equal(unavailable.status, 503);
+      assert.deepEqual(Object.keys(unavailable.body), ['code', 'message', 'at']);
+      assert.ok(!JSON.stringify(unavailable.body).includes('private'));
+    });
+  }
+});
+
+test('/api retains JWT, RBAC and authentication failure behavior', async (t) => {
+  const { request, calls } = await harness(t);
+  assert.equal((await request('/api/customers/1', { role: null })).status, 401);
+  assert.equal((await request('/api/customers/1', { bearer: 'tampered' })).status, 401);
+  assert.equal((await request('/api/drivers/1', { role: 'CUSTOMER' })).status, 403);
+  assert.equal(calls.length, 0);
+  const failures = [];
+  const rejected = await harness(t, { callRpc: async (service) => { failures.push(service); throw { code: 16 }; } });
+  const result = await rejected.request('/api/login', { method: 'POST', role: null, body: { email: 'c@c.com', pw: 'wrong' } });
+  assert.equal(result.status, 401);
+  assert.deepEqual(failures, ['auth']);
+  assert.deepEqual(Object.keys(result.body), ['code', 'message', 'at']);
 });
 
 test('all documented role restrictions reject other roles before a business RPC', async (t) => {
@@ -278,7 +407,7 @@ test('fourth request gets 429 for ten seconds; Redis holds only rate counters', 
       },
     }),
   });
-  for (let i = 0; i < 3; i++) assert.equal((await request('/api/v1/vehicle-types')).status, 200);
+  for (let i = 0; i < 3; i++) assert.equal((await request((i % 2 ? '/api/v1' : '/api') + '/vehicle-types')).status, 200);
   now = 9999;
   const fourth = await request('/api/v1/vehicle-types');
   assert.equal(fourth.status, 429);
@@ -305,14 +434,15 @@ test('health is process-alive; ready checks Redis and every required gRPC servic
     pingRedis: async () => redisReady,
     checkServiceHealth: async (key) => ({ s: key === downService ? 'DOWN' : 'UP' }),
   });
-  for (const prefix of ['', '/api/v1']) {
-    assert.deepEqual((await request(prefix + '/health')).body, { s: 'UP' });
+  for (const prefix of ['', '/api/v1', '/api']) {
+    assert.deepEqual((await request(prefix + '/health')).body, { status: 'HEALTHY' });
     assert.equal((await request(prefix + '/ready')).status, 200);
     const result = await request(prefix + '/health/services');
     assert.equal(result.status, 200);
     assert.deepEqual(result.body.services.map((item) => item.name), Object.values(SERVICE_DEFINITIONS).map((item) => item.name));
     assert.equal(result.body.services.length, 8);
-    assert.equal(result.body.s, 'UP');
+    assert.equal(result.body.status, 'HEALTHY');
+    assert.ok(result.body.services.every((item) => item.status === 'HEALTHY'));
   }
   redisReady = false;
   assert.equal((await request('/ready')).status, 503);
@@ -320,8 +450,8 @@ test('health is process-alive; ready checks Redis and every required gRPC servic
   downService = 'trip';
   assert.equal((await request('/ready')).status, 503);
   const degraded = await request('/health/services');
-  assert.equal(degraded.body.services.find((item) => item.name === 'trip-service').s, 'DOWN');
-  assert.equal(degraded.body.s, 'DOWN');
+  assert.equal(degraded.body.services.find((item) => item.name === 'trip-service').status, 'UNHEALTHY');
+  assert.equal(degraded.body.status, 'UNHEALTHY');
   assert.equal((await request('/health')).status, 200);
 });
 
@@ -334,7 +464,7 @@ test('unresponsive dependencies have a bounded readiness/service-health timeout'
   assert.equal((await request('/ready')).status, 503);
   const result = await request('/health/services');
   assert.equal(result.body.services.length, 8);
-  assert.ok(result.body.services.every((item) => item.s === 'DOWN'));
+  assert.ok(result.body.services.every((item) => item.status === 'UNHEALTHY'));
   assert.ok(Date.now() - start < 1000);
 });
 
@@ -402,4 +532,49 @@ test('obsolete routes are unavailable and Gateway imports no domain storage/even
     const source = fs.readFileSync(path.resolve(__dirname, '../src', file), 'utf8');
     assert.doesNotMatch(source, /require\(['"][^'"]*(?:rabbitmq|repositories|\/domain\/|mongoose|pg['"])/);
   }
+});
+
+test('OTP sai/hết hạn dừng trước khi tạo Auth Account',async t=>{
+ const calls=[];const {request}=await harness(t,{callRpc:async(service,method)=>{calls.push(service+'.'+method);throw {code:3};}});
+ const result=await request('/api/drivers/register',{method:'POST',role:null,body:{phone:'0901234567',email:'new@d.test',pw:'123',otp:'wrong',name:'Driver',plate:'59A12345'}});
+ assert.equal(result.status,400);assert.deepEqual(calls,['driver.prepareDriverRegistration']);
+});
+test('bỏ vt thành BIKE, CAR còn dùng được và Nearby vẫn yêu cầu tọa độ',async t=>{
+ const {request,calls}=await harness(t);const p={lat:10.76,lng:106.68};
+ assert.equal((await request('/api/bookings',{method:'POST',body:{p,d:p}})).status,201);
+ assert.equal(calls.at(-1).wire.vehicleType,'BIKE');
+ assert.equal((await request('/api/bookings',{method:'POST',body:{p,d:p,vt:'CAR'}})).status,201);
+ assert.equal(calls.at(-1).wire.vehicleType,'CAR');
+ assert.equal((await request('/api/bookings',{method:'POST',body:{p,d:p,vt:'TRUCK'}})).status,400);
+ assert.equal((await request('/api/drivers/nearby',{role:'ADMIN'})).status,400);
+});
+test('Driver phone bắt buộc; không cần vt và biển số được viết liền',async t=>{
+ const {request,calls}=await harness(t);const body={phone:'+84 901 234 567',email:'new@d.test',pw:'123',otp:'123',name:'Driver',plate:'59a12345'};
+ assert.equal((await request('/api/drivers/register',{method:'POST',role:null,body})).status,201);
+ const registration=calls.find(c=>c.method==='registerDriver');assert.equal(registration.wire.phone,'0901234567');assert.equal(registration.wire.vehicleType,'BIKE');assert.equal(registration.wire.licensePlate,'59A12345');
+ assert.equal((await request('/api/drivers/register',{method:'POST',role:null,body:{...body,phone:undefined}})).status,400);
+});
+test('lỗi giữa các RPC không bật Account khi Driver chưa lưu xong hồ sơ',async t=>{
+ const calls=[];const {request}=await harness(t,{callRpc:async(service,method)=>{
+  calls.push(method);if(method==='prepareDriverRegistration')return {registrationToken:'11111111-1111-4111-8111-111111111111'};
+  if(method==='createAccount')return {userId:'5',status:'INACTIVE'};throw {code:14};
+ }});
+ const result=await request('/api/drivers/register',{method:'POST',role:null,body:{phone:'0901234567',email:'new@d.test',pw:'123',otp:'123',name:'Driver',plate:'59A12345'}});
+ assert.equal(result.status,503);assert.deepEqual(calls,['prepareDriverRegistration','createAccount','registerDriver']);
+});
+test('callback không nhận status giả/Payment ID từ body và Pay không nhận field tùy ý',async t=>{
+ const {request,calls}=await harness(t);
+ assert.equal((await request('/api/payments/1/callback',{method:'POST',body:{s:'COMPLETED',pid:2}})).status,400);
+ assert.equal((await request('/api/payments/1/pay',{method:'POST',body:{x:1},headers:{'Idempotency-Key':'P1'}})).status,400);
+ assert.equal(calls.length,0);
+});
+
+test('/api hiển thị Phone và Driver summary đầy đủ nhưng request vẫn dùng tên ngắn',async t=>{
+ const {request,calls}=await harness(t,{rpcResults:{
+  'customer.getCustomer':{...fixtures['customer.getCustomer'],phone:'0901234567'},
+  'trip.getTrip':{...trip,driver:{driverId:'1',name:'Driver Demo',vehicleType:'BIKE',licensePlate:'59A12345'}},
+ }});
+ assert.equal((await request('/api/customers/1')).body.Phone,'0901234567');
+ assert.deepEqual((await request('/api/trips/1')).body.Driver,{'Driver ID':1,Name:'Driver Demo','Vehicle Type':'BIKE','License Plate':'59A12345'});
+ assert.deepEqual(calls.map(c=>c.service+'.'+c.method),['customer.getCustomer','trip.getTrip']);
 });

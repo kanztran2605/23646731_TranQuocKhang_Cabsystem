@@ -22,6 +22,11 @@ function createTripService({ repo = repository, transaction = database.withTrans
     try { await publish(type,row,from,correlationId); }
     catch (_error) { throw new AppError('Event publisher unavailable',{statusCode:503,code:'EVENT_PUBLISH_FAILED'}); }
   }
+  async function visibleTrip(row, context) {
+    const result = toTrip(row);
+    if (context.actorRole === 'CUSTOMER') result.driver = await driver.getAssignedDriver(String(row.did),String(row.vid),context.correlationId);
+    return result;
+  }
   return {
     async assigned(payload, correlationId) {
       for (const field of ['bookingId','customerId','driverId','vehicleId','customerUserId','driverUserId']) id(payload[field]);
@@ -52,11 +57,11 @@ function createTripService({ repo = repository, transaction = database.withTrans
     },
     async getTrip(request) {
       actor(request.context,['CUSTOMER','DRIVER','ADMIN']);
-      const row = found(await repo.byId(id(request.tripId))); own(request.context,row); return toTrip(row);
+      const row = found(await repo.byId(id(request.tripId))); own(request.context,row); return visibleTrip(row,request.context);
     },
     async getTripByBooking(request) {
       actor(request.context,['CUSTOMER','DRIVER','ADMIN']);
-      const row = found(await repo.byBooking(id(request.bookingId))); own(request.context,row); return toTrip(row);
+      const row = found(await repo.byBooking(id(request.bookingId))); own(request.context,row); return visibleTrip(row,request.context);
     },
     async updateTripStatus(request) {
       actor(request.context,['DRIVER']);

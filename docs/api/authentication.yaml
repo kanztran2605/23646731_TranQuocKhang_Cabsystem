@@ -7,7 +7,7 @@ info:
 
     Không Refresh Token/Logout flow phức tạp. Driver OTP/onboarding thuộc Driver API.'
 servers:
-- url: http://localhost:8080/api/v1
+- url: http://localhost:8080/api
   description: API Gateway local/demo
 tags:
 - name: Authentication
@@ -32,17 +32,21 @@ components:
           type: string
           maxLength: 100
           example: X
+        phone:
+          type: string
+          example: '0901234567'
+          description: Không bắt buộc; chuẩn hóa số Việt Nam, không yêu cầu OTP Customer.
     RegisterResponse:
       type: object
       required:
-      - uid
-      - cid
+      - 'User ID'
+      - 'Customer ID'
       properties:
-        uid:
+        'User ID':
           type: integer
           format: int64
           example: 4
-        cid:
+        'Customer ID':
           type: integer
           format: int64
           example: 4
@@ -62,24 +66,36 @@ components:
     LoginResponse:
       type: object
       required:
-      - token
-      - uid
-      - role
+      - 'Token'
+      - 'User ID'
+      - 'Role'
       properties:
-        token:
+        'Token':
           type: string
           example: eyJhbGciOi...
-        uid:
+        'User ID':
           type: integer
           format: int64
           example: 1
-        role:
+        'Role':
           type: string
           enum:
           - CUSTOMER
           - DRIVER
           - ADMIN
           example: CUSTOMER
+        'Customer ID':
+          type: integer
+          format: int64
+          nullable: true
+          description: Chỉ trả cho CUSTOMER; null nếu Account chưa có CustomerProfile.
+          example: 3
+        'Driver ID':
+          type: integer
+          format: int64
+          nullable: true
+          description: Chỉ trả cho DRIVER; null nếu Account chưa có Driver profile. ADMIN không có ID hồ sơ riêng.
+          example: 8
     Error:
       type: object
       required:

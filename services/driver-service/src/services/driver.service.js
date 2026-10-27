@@ -5,10 +5,16 @@ const { AppError } = require('../../../../shared/errors/app-error');
 const { id, text, actor, coordinates, paging } = require('../../../../shared/validation');
 const { toDriver, toLocation } = require('../domain/driver');
 const { encryptLicense } = require('../security/license');
-function vehicleType(value) {
-  const result = text(value,50);
-  if (/^\d+$/.test(result)) throw AppError.badRequest('Vehicle type must be a string category');
-  return result;
+const { phone, vehicleType, licensePlate, registrationId } = require('../../../../shared/demo-input');
+const { createHash } = require('node:crypto');
+function registrationInput(request) {
+  const email = text(request.email,100).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw AppError.badRequest();
+  const license = text(request.driverLicense,100,true);
+  if (license !== undefined && Buffer.byteLength(license,'utf8') > 156) throw AppError.badRequest('Driver license is too long');
+  const input = { phone:phone(request.phone),email,name:text(request.name,100),vehicleType:vehicleType(request.vehicleType),
+    licensePlate:licensePlate(request.licensePlate),brand:text(request.brand,50,true),model:text(request.model,50,true),driverLicense:license };
+  return { ...input,fingerprint:createHash('sha256').update(JSON.stringify(input)).digest('hex') };
 }
 function radius(value = 1) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) throw AppError.badRequest('Invalid radius');
@@ -24,18 +30,23 @@ function createDriverService(repo = repository, publish = publishEvent) {
   }
   return {
     async requestOtp(request) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(request.email,100))) throw AppError.badRequest();
+      const value = phone(request.phone), ttl = Number(process.env.DRIVER_OTP_TTL_SECONDS || 300);
+      if (!Number.isInteger(ttl) || ttl < 1 || ttl > 900) throw new Error('Cấu hình thời hạn OTP không hợp lệ');
+      await repo.requestOtp(value,ttl);
       return { otp: process.env.OTP_MOCK_CODE || '123' };
+    },
+    async prepareDriverRegistration(request) {
+      const { driverLicense: _license, ...input } = registrationInput(request);
+      if (request.otp !== (process.env.OTP_MOCK_CODE || '123')) throw AppError.badRequest('OTP không hợp lệ');
+      try { return { registrationToken:await repo.prepareRegistration(input) }; }
+      catch (error) { if (error.code === '23505') throw AppError.conflict('Biển số đang được đăng ký'); throw error; }
     },
     async registerDriver(request) {
       const userId = id(request.userId);
       if (actor(request.context,['DRIVER']) !== userId) throw AppError.forbidden();
-      if (request.otp !== (process.env.OTP_MOCK_CODE || '123')) throw AppError.badRequest('Invalid OTP');
-      const license = text(request.driverLicense,100,true);
-      if (license !== undefined && Buffer.byteLength(license, 'utf8') > 156) throw AppError.badRequest('Driver license is too long');
-      const input = { userId,name: text(request.name,100),vehicleType: vehicleType(request.vehicleType),
-        licensePlate: text(request.licensePlate,20),brand: text(request.brand,50,true),model: text(request.model,50,true),
-        ...(license !== undefined ? { encryptedLicense: encryptLicense(license) } : {}) };
+      const { driverLicense, ...details } = registrationInput(request);
+      const input = { ...details,userId,registrationToken:registrationId(request.registrationToken),
+        ...(driverLicense !== undefined ? { encryptedLicense:encryptLicense(driverLicense) } : {}) };
       try { return toDriver(await repo.register(input)); }
       catch (error) { if (error.code === '23505') throw AppError.conflict('Driver or plate already exists','ALREADY_EXISTS'); throw error; }
     },
@@ -44,6 +55,10 @@ function createDriverService(repo = repository, publish = publishEvent) {
       return toDriver(found(await repo.findById(id(request.driverId))));
     },
     async getDriverByUserId(request) { return toDriver(found(await repo.findByUserId(id(request.userId)))); },
+    async getAssignedDriver(request) {
+      const row = found(await repo.assignedDriver(id(request.driverId),id(request.vehicleId)));
+      return { driverId:String(row.did),name:row.name,vehicleType:row.vt,licensePlate:row.plate };
+    },
     async listPendingDrivers(request) {
       actor(request.context,['ADMIN']);
       const page = paging(request.page || 1,request.limit || 5);
@@ -109,7 +124,7 @@ function createDriverService(repo = repository, publish = publishEvent) {
     },
     async listVehicleTypes(request) {
       actor(request.context,['CUSTOMER','DRIVER','ADMIN']);
-      return { items: [{ vehicleType: 'CAR',name: 'Car' }] };
+      return { items: [{ vehicleType: 'BIKE',name: 'Xe máy' },{ vehicleType: 'CAR',name: 'Ô tô' }] };
     },
     async releaseAfterTrip(driverId,terminalAt) {
       id(driverId);

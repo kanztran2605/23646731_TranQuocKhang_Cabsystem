@@ -13,9 +13,14 @@ test('real payment_db: duplicate Booking concurrent deliveries yield one PENDING
 });
 test('real payment_db: concurrent same-key pay/callback serialize into one completion/event',async()=>{
  const {p,result}=await payment();await service.tripCompleted({...p,tripId:p.bookingId});const key='integration-'+randomUUID(),request={context,paymentId:result.paymentId,idempotencyKey:key};
- await Promise.all([service.payExistingPayment(request),service.payExistingPayment(request)]);
+ await assert.rejects(service.paymentCallback({context,paymentId:result.paymentId,status:'COMPLETED'}),{statusCode:409});
+ const replies=await Promise.all(Array.from({length:10},()=>service.payExistingPayment(request)));
+ for(const reply of replies) assert.deepEqual(reply,replies[0]);
  await Promise.all([service.paymentCallback({context,paymentId:result.paymentId,status:'COMPLETED'}),service.paymentCallback({context,paymentId:result.paymentId,status:'COMPLETED'})]);
  assert.equal((await service.payExistingPayment(request)).paymentId,result.paymentId);assert.equal(events.filter(id=>String(id)===result.paymentId).length,1);
+ assert.deepEqual(await service.payExistingPayment(request),replies[0]);
+ assert.equal((await service.getPayment({context,paymentId:result.paymentId})).status,'COMPLETED');
+ await assert.rejects(service.payExistingPayment({...request,amount:1}),{statusCode:409});
  const other=await payment();await service.tripCompleted({...other.p,tripId:other.p.bookingId});
  await assert.rejects(service.payExistingPayment({...request,paymentId:other.result.paymentId}),{statusCode:409});
  assert.equal((await pool.query('SELECT ikey FROM payment WHERE pid=$1',[other.result.paymentId])).rows[0].ikey,null);

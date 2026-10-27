@@ -12,7 +12,10 @@ function createPaymentRepository(database = pool) {
     lock(id, client) { return first('SELECT * FROM payment WHERE pid=$1 FOR UPDATE',[id],client); },
     lockByBooking(id, client) { return first('SELECT * FROM payment WHERE bid=$1 FOR UPDATE',[id],client); },
     eligible(id, tripId, client) { return first('UPDATE payment SET tid=$2,eligible=true WHERE pid=$1 RETURNING *',[id,tripId],client); },
-    key(id, key, client) { return first('UPDATE payment SET ikey=$2 WHERE pid=$1 RETURNING *',[id,key],client); },
+    key(id, key, request, response, client) {
+      return first('UPDATE payment SET ikey=$2,pay_request=$3::jsonb,pay_response=$4::jsonb WHERE pid=$1 RETURNING *',
+        [id,key,JSON.stringify(request),JSON.stringify(response)],client);
+    },
     complete(id, at, client) { return first("UPDATE payment SET s='COMPLETED',paid_at=$2 WHERE pid=$1 RETURNING *",[id,at],client); },
   };
 }

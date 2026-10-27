@@ -12,7 +12,7 @@ beforeEach(() => {
   service = createCustomerService({
     async createProfile(input) {
       if (rows.some((r) => r.uid === input.userId)) throw Object.assign(new Error(),{ code:'23505' });
-      const row = { cid:'2',uid:input.userId,name:input.name,addr:input.address ?? null,c_at:new Date(),u_at:new Date() };
+      const row = { cid:'2',uid:input.userId,name:input.name,addr:input.address ?? null,phone:input.phone,c_at:new Date(),u_at:new Date() };
       rows.push(row); return row;
     },
     async findById(id) { return rows.find((r) => r.cid === id); },
@@ -60,4 +60,12 @@ test('real Customer gRPC supports Booking validation/get and HealthService',asyn
   assert.equal((await rpc.call('createCustomerProfile',{ userId:'200',name:'RPC' })).name,'RPC');
   await assert.rejects(rpc.call('getCustomer',{ context:admin,customerId:'99' }),(e) => e.code === 5);
   assert.equal((await rpc.checkHealth()).status,'UP');
+});
+
+test('phone tùy chọn, chuẩn hóa và chỉ trả cho Customer sở hữu',async()=>{
+ const created=await service.createCustomerProfile({userId:'200',name:'Phone',phone:'+84 901 234 567'});
+ assert.equal(created.phone,'0901234567');
+ assert.equal((await service.getCustomer({context:{actorUserId:'200',actorRole:'CUSTOMER'},customerId:'2'})).phone,'0901234567');
+ assert.equal((await service.getCustomer({context:admin,customerId:'2'})).phone,undefined);
+ await assert.rejects(service.createCustomerProfile({userId:'201',name:'Bad',phone:'123'}),{statusCode:400});
 });

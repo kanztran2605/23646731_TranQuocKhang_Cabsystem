@@ -3,6 +3,7 @@ syntax = "proto3";
 package cab.trip.v1;
 
 import "common/common.proto";
+import "driver.proto";
 
 service TripService {
   rpc GetTrip(GetTripRequest) returns (Trip);
@@ -27,6 +28,7 @@ message Trip {
   string updated_at = 10;
   optional string completed_at = 11;
   optional string canceled_at = 12;
+  cab.driver.v1.DriverInfo driver = 13;
 }
 
 message GetTripRequest {

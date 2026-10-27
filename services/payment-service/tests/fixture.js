@@ -11,8 +11,8 @@ function fixture(){
   async byId(id){return structuredClone(state.rows.find(r=>r.pid===id)||null);},async byBooking(id){return structuredClone(state.rows.find(r=>r.bid===id)||null);},
   async lock(id){return this.byId(id);},async lockByBooking(id){return this.byBooking(id);},
   async eligible(id,tid){const row=state.rows.find(r=>r.pid===id);Object.assign(row,{tid,eligible:true});return {...row};},
-  async key(id,key){if(state.rows.some(r=>r.ikey===key&&r.pid!==id))throw Object.assign(new Error('duplicate'),{code:'23505'});
-   const row=state.rows.find(r=>r.pid===id);row.ikey=key;return {...row};},
+  async key(id,key,request,response){if(state.rows.some(r=>r.ikey===key&&r.pid!==id))throw Object.assign(new Error('duplicate'),{code:'23505'});
+   const row=state.rows.find(r=>r.pid===id);row.ikey=key;row.pay_request=structuredClone(request);row.pay_response=structuredClone(response);return {...row};},
   async complete(id,at){const row=state.rows.find(r=>r.pid===id);Object.assign(row,{s:'COMPLETED',paid_at:at});state.operations.push('payment.complete');return {...row};},
  };
  const transaction=async work=>{const before=structuredClone(state.rows);try{const r=await work({});state.operations.push('commit');return r;}catch(e){state.rows=before;throw e;}};

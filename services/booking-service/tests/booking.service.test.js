@@ -26,7 +26,7 @@ test('missing Customer and mismatched user identity cannot create Booking',async
 for(const [label,patch] of [
  ['missing pickup',{pickup:undefined}],['missing destination',{destination:undefined}],
  ['out of range latitude',{pickup:{latitude:91,longitude:106}}],['invalid longitude',{destination:{latitude:10,longitude:-181}}],
- ['non-numeric coordinate',{pickup:{latitude:'10',longitude:106}}],['missing vehicle type',{vehicleType:undefined}],
+ ['non-numeric coordinate',{pickup:{latitude:'10',longitude:106}}],['loại xe không hợp lệ',{vehicleType:'TRUCK'}],
  ['numeric vehicle type',{vehicleType:'1'}],['NaN latitude',{pickup:{latitude:NaN,longitude:106}}],
 ]) test('creation rejects '+label,async()=>{const f=fixture();await assert.rejects(f.service.createBooking({...input(),...patch}),{statusCode:400});assert.equal(f.state.bookings.length,0);assert.equal(f.state.events.length,0);});
 test('creation ignores a public customer ID and rejects inconsistent actor Customer context',async()=>{
@@ -126,3 +126,5 @@ test('assignment SQL failure rolls back local records and exposes no success eve
  assert.equal(f.state.offers[0].s,'OPEN');assert.equal(f.state.assignments.length,0);
  assert.equal(f.state.events.filter(e=>e.type==='driver.accepted').length,0);
 });
+
+test('bỏ vt mặc định BIKE, CAR vẫn giữ nguyên',async()=>{const f=fixture();const value=await f.service.createBooking({...input(),vehicleType:undefined});assert.equal(value.vehicleType,'BIKE');assert.equal(f.state.bookings[0].vt,'BIKE');});

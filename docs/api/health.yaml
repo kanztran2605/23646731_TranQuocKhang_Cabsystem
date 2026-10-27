@@ -4,7 +4,7 @@ info:
   version: 4.0.0
   description: 'Health endpoints tại API Gateway phục vụ rubric #6.'
 servers:
-- url: http://localhost:8080/api/v1
+- url: http://localhost:8080/api
   description: API Gateway local/demo
 tags:
 - name: Health
@@ -13,35 +13,35 @@ components:
     Health:
       type: object
       required:
-      - s
+      - status
       properties:
-        s:
+        status:
           type: string
-          example: UP
+          example: HEALTHY
     ServiceHealth:
       type: object
       required:
       - name
-      - s
+      - status
       properties:
         name:
           type: string
           example: booking-service
-        s:
+        status:
           type: string
           enum:
-          - UP
-          - DOWN
-          example: UP
+          - HEALTHY
+          - UNHEALTHY
+          example: HEALTHY
     ServicesHealth:
       type: object
       required:
-      - s
+      - status
       - services
       properties:
-        s:
+        status:
           type: string
-          example: UP
+          example: HEALTHY
         services:
           type: array
           items:

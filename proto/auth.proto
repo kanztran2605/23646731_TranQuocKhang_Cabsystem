@@ -7,12 +7,20 @@ import "common/common.proto";
 service AuthService {
   rpc CreateAccount(CreateAccountRequest) returns (Account);
   rpc Login(LoginRequest) returns (LoginResponse);
+  // Chỉ Gateway hoàn tất đăng ký sau khi Driver đã lưu hồ sơ.
+  rpc CompleteDriverRegistration(CompleteDriverRegistrationRequest) returns (Account);
 }
 
 message CreateAccountRequest {
   string email = 1;
   string password = 2;
   string role = 3; // CUSTOMER | DRIVER | ADMIN
+  optional string registration_id = 4;
+}
+
+message CompleteDriverRegistrationRequest {
+  string user_id = 1;
+  string registration_id = 2;
 }
 
 message Account {

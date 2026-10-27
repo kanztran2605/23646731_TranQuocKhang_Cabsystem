@@ -4,7 +4,7 @@ info:
   version: 4.0.0
   description: Notification Service consume RabbitMQ events và lưu MongoDB. Không SMS/Email/Push provider thật.
 servers:
-- url: http://localhost:8080/api/v1
+- url: http://localhost:8080/api
   description: API Gateway local/demo
 tags:
 - name: Notification
@@ -18,47 +18,47 @@ components:
     Notification:
       type: object
       required:
-      - nid
-      - eid
-      - uid
-      - type
-      - ref
-      - msg
-      - s
+      - 'Notification ID'
+      - 'Event ID'
+      - 'User ID'
+      - 'Type'
+      - 'Reference'
+      - 'Message'
+      - 'Status'
       properties:
-        nid:
+        'Notification ID':
           type: string
           example: 66f...
-        eid:
+        'Event ID':
           type: string
           format: uuid
-        uid:
+        'User ID':
           type: integer
           format: int64
           example: 1
-        type:
+        'Type':
           type: string
           example: PAYMENT_COMPLETED
-        ref:
+        'Reference':
           type: string
           example: pid:1
-        msg:
+        'Message':
           type: string
           example: Payment completed
-        s:
+        'Status':
           type: string
           enum:
           - SENT
           example: SENT
-        c_at:
+        'Created At':
           type: string
           format: date-time
     NotificationPage:
       type: object
       required:
-      - items
+      - 'Items'
       properties:
-        items:
+        'Items':
           type: array
           items:
             $ref: '#/components/schemas/Notification'

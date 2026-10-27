@@ -18,6 +18,7 @@ message Customer {
   optional string address = 4;
   string created_at = 5;
   string updated_at = 6;
+  optional string phone = 7;
 }
 
 message CreateCustomerProfileRequest {
@@ -25,6 +26,7 @@ message CreateCustomerProfileRequest {
   string name = 2;
   optional string address = 3;
   string correlation_id = 4;
+  optional string phone = 5;
 }
 
 message GetCustomerRequest {

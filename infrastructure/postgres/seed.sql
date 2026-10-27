@@ -14,7 +14,8 @@ VALUES
   (4, 'd3@d.com', crypt('123', gen_salt('bf', 10)), 'DRIVER', 'ACTIVE'),
   (5, 'd4@d.com', crypt('123', gen_salt('bf', 10)), 'DRIVER', 'ACTIVE'),
   (6, 'd5@d.com', crypt('123', gen_salt('bf', 10)), 'DRIVER', 'ACTIVE'),
-  (7, 'a@a.com', crypt('123', gen_salt('bf', 10)), 'ADMIN', 'ACTIVE')
+  (7, 'a@a.com', crypt('123', gen_salt('bf', 10)), 'ADMIN', 'ACTIVE'),
+  (8, 'bike@cab.demo', crypt('123', gen_salt('bf', 10)), 'DRIVER', 'ACTIVE')
 ON CONFLICT (uid) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('user_account','uid'), COALESCE((SELECT MAX(uid) FROM user_account),1), true);
 
@@ -31,7 +32,8 @@ VALUES
   (2, 3, 'APPROVED', 'BUSY'),
   (3, 4, 'APPROVED', 'OFFLINE'),
   (4, 5, 'PENDING_APPROVAL', 'OFFLINE'),
-  (5, 6, 'REJECTED', 'OFFLINE')
+  (5, 6, 'REJECTED', 'OFFLINE'),
+  (6, 8, 'APPROVED', 'AVAILABLE')
 ON CONFLICT (did) DO NOTHING;
 
 INSERT INTO driver_profile (did, name, lic_enc, key_ver)
@@ -43,13 +45,17 @@ VALUES
   (5, 'Driver Demo 5', 'v1:35kmFbMCRyFadSKx:b3T9jbTqd4DXphk=:89yprzpfuEwcJ7mR0UwYGg==', 1)
 ON CONFLICT (did) DO NOTHING;
 
+-- Driver BIKE riêng cho demo mặc định; không chuyển các Driver CAR hiện có.
+INSERT INTO driver_profile(did,name,phone) VALUES(6,'Driver BIKE Demo','0900000099') ON CONFLICT(did) DO NOTHING;
+
 INSERT INTO driver_location (did, lat, lng)
 VALUES
   (1, 10.760000, 106.680000),
   (2, 10.760500, 106.680500),
   (3, 10.761000, 106.681000),
   (4, 10.761500, 106.681500),
-  (5, 10.762000, 106.682000)
+  (5, 10.762000, 106.682000),
+  (6, 10.760000, 106.680000)
 ON CONFLICT (did) DO NOTHING;
 
 INSERT INTO vehicle (vid, did, vt, plate, brand, model, s)
@@ -58,7 +64,8 @@ VALUES
   (2, 2, 'CAR', '51A-002.02', 'Toyota', 'Vios', 'ACTIVE'),
   (3, 3, 'CAR', '51A-003.03', 'Kia', 'Morning', 'ACTIVE'),
   (4, 4, 'CAR', '51A-004.04', 'Hyundai', 'Accent', 'ACTIVE'),
-  (5, 5, 'CAR', '51A-005.05', 'Toyota', 'Vios', 'ACTIVE')
+  (5, 5, 'CAR', '51A-005.05', 'Toyota', 'Vios', 'ACTIVE'),
+  (6, 6, 'BIKE', '59B00099', 'Honda', 'Wave', 'ACTIVE')
 ON CONFLICT (vid) DO NOTHING;
 
 INSERT INTO driver_application (appid, did, vid, s, rev_uid, rev_at)
@@ -67,7 +74,8 @@ VALUES
   (2, 2, 2, 'APPROVED', 7, CURRENT_TIMESTAMP),
   (3, 3, 3, 'APPROVED', 7, CURRENT_TIMESTAMP),
   (4, 4, 4, 'PENDING_APPROVAL', NULL, NULL),
-  (5, 5, 5, 'REJECTED', 7, CURRENT_TIMESTAMP)
+  (5, 5, 5, 'REJECTED', 7, CURRENT_TIMESTAMP),
+  (6, 6, 6, 'APPROVED', 7, CURRENT_TIMESTAMP)
 ON CONFLICT (appid) DO NOTHING;
 
 SELECT setval(pg_get_serial_sequence('driver','did'), COALESCE((SELECT MAX(did) FROM driver),1), true);

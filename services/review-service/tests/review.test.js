@@ -39,6 +39,11 @@ test('optional/empty comment allowed; oversized or non-text comment rejected',as
  const empty=fixture();assert.equal((await empty.service.createReview({...empty.request(),comment:''})).comment,'');
  for(const comment of ['x'.repeat(256),123]){const other=fixture();await assert.rejects(other.service.createReview({...other.request(),comment}),{statusCode:400});}
 });
+
+test('nhận xét tiếng Việt và dấu câu hợp lệ được giữ nguyên',async()=>{
+ const f=fixture(),comment="Tài xế rất tốt! Mình chấm 5/5, xe sạch - 'ok'.";
+ assert.equal((await f.service.createReview({...f.request(),comment})).comment,comment);
+});
 test('Driver/Admin cannot create Review; missing authentication rejected',async()=>{
  const f=fixture();for(const actorRole of ['DRIVER','ADMIN'])await assert.rejects(f.service.createReview({...f.request(),context:{actorUserId:'13',actorRole}}),{statusCode:403});
  await assert.rejects(f.service.createReview({...f.request(),context:{}}),{statusCode:401});

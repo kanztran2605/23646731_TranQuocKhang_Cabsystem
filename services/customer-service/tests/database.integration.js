@@ -7,8 +7,10 @@ const created=[];
 after(async () => { if (created.length) await pool.query('DELETE FROM customer_profile WHERE cid=ANY($1::bigint[])',[created]); await closeDatabase(); });
 test('real customer_db: create/get logical user profile, validation and ownership',async () => {
   const userId=String(Date.now());
-  const profile=await service.createCustomerProfile({ userId,name:'Integration Customer',address:'HCMC' }); created.push(profile.customerId);
-  assert.deepEqual(Object.keys(profile).sort(),['address','createdAt','customerId','name','updatedAt','userId']);
+  const profile=await service.createCustomerProfile({ userId,name:'Integration Customer',address:'HCMC',phone:'+84 901 234 567' }); created.push(profile.customerId);
+  assert.equal(profile.phone,'0901234567');
+  assert.equal((await service.getCustomer({context:{actorUserId:userId,actorRole:'CUSTOMER'},customerId:profile.customerId})).phone,'0901234567');
+  assert.ok(!Object.hasOwn(await service.getCustomerByUserId({userId}),'phone'));
   assert.equal((await service.getCustomer({ context:{ actorUserId:userId,actorRole:'CUSTOMER' },customerId:profile.customerId })).name,profile.name);
   assert.equal((await service.getCustomerByUserId({ userId })).customerId,profile.customerId);
   assert.equal((await service.validateCustomer({ customerId:profile.customerId })).valid,true);
@@ -23,7 +25,7 @@ test('real customer_db: only owned fields, no credentials and no cross-database 
   const columns=(await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='customer_profile'")).rows.map((r)=>r.column_name).sort();
   // Recovery intentionally preserves the old owned DOB column and its data.
   for(const required of ['addr','c_at','cid','name','u_at','uid']) assert.ok(columns.includes(required));
-  assert.ok(columns.every(column=>['addr','c_at','cid','date_of_birth','name','u_at','uid'].includes(column)));
+  assert.ok(columns.every(column=>['addr','c_at','cid','date_of_birth','name','phone','u_at','uid'].includes(column)));
   const foreignKeys=await pool.query("SELECT constraint_name FROM information_schema.table_constraints WHERE table_name='customer_profile' AND constraint_type='FOREIGN KEY'");
   assert.equal(foreignKeys.rowCount,0);
   await pool.query('SELECT 1');

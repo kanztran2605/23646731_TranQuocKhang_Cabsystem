@@ -5,7 +5,7 @@ info:
   description: 'Trip được tạo async từ driver.accepted. State machine: ASSIGNED -> ARRIVED -> IN_PROGRESS -> COMPLETED; có
     location update và cancel.'
 servers:
-- url: http://localhost:8080/api/v1
+- url: http://localhost:8080/api
   description: API Gateway local/demo
 tags:
 - name: Trip
@@ -36,30 +36,30 @@ components:
     Trip:
       type: object
       required:
-      - tid
-      - bid
-      - cid
-      - did
-      - s
-      - paid
+      - 'Trip ID'
+      - 'Booking ID'
+      - 'Customer ID'
+      - 'Driver ID'
+      - 'Status'
+      - 'Paid'
       properties:
-        tid:
+        'Trip ID':
           type: integer
           format: int64
           example: 1
-        bid:
+        'Booking ID':
           type: integer
           format: int64
           example: 6
-        cid:
+        'Customer ID':
           type: integer
           format: int64
           example: 1
-        did:
+        'Driver ID':
           type: integer
           format: int64
           example: 1
-        s:
+        'Status':
           type: string
           enum:
           - ASSIGNED
@@ -68,13 +68,27 @@ components:
           - COMPLETED
           - CANCELED
           example: ASSIGNED
-        paid:
+        'Paid':
           type: boolean
           example: false
-        r:
+        'Cancel Reason':
           type: string
           nullable: true
           example: x
+        'Driver':
+          type: object
+          description: Chỉ bổ sung cho Customer sở hữu Trip khi GET theo tid/bid. Không chứa phone hoặc dữ liệu nhạy cảm.
+          properties:
+            'Driver ID':
+              type: integer
+              format: int64
+            'Name':
+              type: string
+            'Vehicle Type':
+              type: string
+              enum: [BIKE, CAR]
+            'License Plate':
+              type: string
     StatusRequest:
       type: object
       required:
@@ -272,13 +286,13 @@ paths:
               schema:
                 type: object
                 properties:
-                  tid:
+                  'Trip ID':
                     type: integer
                     example: 1
-                  lat:
+                  'Latitude':
                     type: number
                     example: 10.761
-                  lng:
+                  'Longitude':
                     type: number
                     example: 106.681
         '400':

@@ -7,7 +7,7 @@ info:
 
     trip.completed chỉ gắn tid + eligible=true. Customer pay Payment đã tồn tại; callback mock hoàn tất Payment.'
 servers:
-- url: http://localhost:8080/api/v1
+- url: http://localhost:8080/api
   description: API Gateway local/demo
 tags:
 - name: Payment
@@ -45,44 +45,44 @@ components:
     Payment:
       type: object
       required:
-      - pid
-      - bid
-      - cid
-      - amt
-      - eligible
-      - s
+      - 'Payment ID'
+      - 'Booking ID'
+      - 'Customer ID'
+      - 'Amount'
+      - 'Eligible'
+      - 'Status'
       properties:
-        pid:
+        'Payment ID':
           type: integer
           format: int64
           example: 1
-        bid:
+        'Booking ID':
           type: integer
           format: int64
           example: 6
-        tid:
+        'Trip ID':
           type: integer
           format: int64
           nullable: true
           example: 1
-        cid:
+        'Customer ID':
           type: integer
           format: int64
           example: 1
-        amt:
+        'Amount':
           type: number
           format: double
           example: 50000
-        eligible:
+        'Eligible':
           type: boolean
           example: false
-        s:
+        'Status':
           type: string
           enum:
           - PENDING
           - COMPLETED
           example: PENDING
-        key:
+        'Idempotency Key':
           type: string
           nullable: true
           example: P1
@@ -199,9 +199,21 @@ paths:
       parameters:
       - $ref: '#/components/parameters/Pid'
       - $ref: '#/components/parameters/IdemKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                amt:
+                  type: number
+                  example: 50000
+                  description: Có thể bỏ; nếu nhập phải khớp amount của Payment.
       responses:
         '200':
-          description: Payment hiện tại; replay cùng key trả cùng pid
+          description: Response Pay đầu tiên (PENDING) được lưu và trả nguyên nội dung khi replay, kể cả sau callback; GET Payment trả trạng thái hiện tại.
           content:
             application/json:
               schema:
@@ -227,7 +239,7 @@ paths:
       x-internal-flow:
       - Load existing Payment by pid
       - Require PENDING + eligible=true
-      - Record/check Idempotency-Key; replay returns same pid
+      - Lưu request/response đầu tiên theo key trong payment_db; cùng key khác nội dung trả 409
   /payments/{pid}/callback:
     post:
       tags:
@@ -274,7 +286,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: eligible=false hoặc state conflict
+          description: Chưa Pay hợp lệ, eligible=false hoặc state conflict
           content:
             application/json:
               schema:

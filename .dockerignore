@@ -6,6 +6,7 @@
 .git/
 .gitignore
 .gitattributes
+docker-compose.override.yml
 
 # AI development instructions
 .ai/

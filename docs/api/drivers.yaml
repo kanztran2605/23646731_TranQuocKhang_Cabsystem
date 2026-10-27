@@ -7,7 +7,7 @@ info:
     Không SMS/Map provider thật. Gateway có thể orchestration Account DRIVER với Auth mà không tạo service-to-service gRPC
     mới.'
 servers:
-- url: http://localhost:8080/api/v1
+- url: http://localhost:8080/api
   description: API Gateway local/demo
 tags:
 - name: Driver
@@ -30,31 +30,35 @@ components:
     OtpRequest:
       type: object
       required:
-      - email
+      - phone
       properties:
-        email:
+        phone:
           type: string
-          format: email
-          example: newd@d.com
+          example: '0901234567'
+          description: Số Việt Nam; +84 được chuẩn hóa về 0. OTP gắn số này, hết hạn sau 300 giây.
     OtpResponse:
       type: object
       required:
-      - otp
+      - 'OTP'
       properties:
-        otp:
+        'OTP':
           type: string
           example: '123'
           description: Demo only; lấy từ ENV
     DriverRegisterRequest:
       type: object
       required:
+      - phone
       - email
       - pw
       - otp
       - name
-      - vt
       - plate
       properties:
+        phone:
+          type: string
+          example: '0901234567'
+          description: Bắt buộc, duy nhất; phải yêu cầu OTP cho số này trước.
         email:
           type: string
           format: email
@@ -70,67 +74,72 @@ components:
           example: D
         vt:
           type: string
-          example: CAR
+          enum: [BIKE, CAR]
+          default: BIKE
+          example: BIKE
         plate:
           type: string
-          example: 51A1
+          minLength: 3
+          maxLength: 20
+          description: Chữ/số, cho phép dấu chấm/gạch/khoảng trắng của biển số cũ; chuẩn hóa chữ hoa và không trùng.
+          example: 59A12345
     Driver:
       type: object
       required:
-      - did
-      - uid
-      - ap
-      - av
+      - 'Driver ID'
+      - 'User ID'
+      - 'Approval Status'
+      - 'Availability Status'
       properties:
-        did:
+        'Driver ID':
           type: integer
           format: int64
           example: 1
-        uid:
+        'User ID':
           type: integer
           format: int64
           example: 2
-        name:
+        'Name':
           type: string
           example: D
-        ap:
+        'Approval Status':
           type: string
           enum:
           - PENDING_APPROVAL
           - APPROVED
           - REJECTED
           example: APPROVED
-        av:
+        'Availability Status':
           type: string
           enum:
           - OFFLINE
           - AVAILABLE
           - BUSY
           example: AVAILABLE
-        vid:
+        'Vehicle ID':
           type: integer
           format: int64
           nullable: true
           example: 1
-        vt:
+        'Vehicle Type':
           type: string
           nullable: true
           example: CAR
-        plate:
+        'License Plate':
           type: string
           nullable: true
           example: 51A1
-        lat:
+        'Latitude':
           type: number
           format: double
           nullable: true
           example: 10.76
-        lng:
+        'Longitude':
           type: number
           format: double
           nullable: true
           example: 106.68
-        km:
+        'Distance (km)':
           type: number
           format: double
           nullable: true
@@ -138,19 +147,19 @@ components:
     DriverRegisterResponse:
       type: object
       required:
-      - uid
-      - did
-      - ap
+      - 'User ID'
+      - 'Driver ID'
+      - 'Approval Status'
       properties:
-        uid:
+        'User ID':
           type: integer
           format: int64
           example: 5
-        did:
+        'Driver ID':
           type: integer
           format: int64
           example: 5
-        ap:
+        'Approval Status':
           type: string
           example: PENDING_APPROVAL
     ApprovalRequest:
@@ -189,17 +198,17 @@ components:
     NearbyPage:
       type: object
       required:
-      - page
-      - limit
-      - items
+      - 'Page'
+      - 'Limit'
+      - 'Items'
       properties:
-        page:
+        'Page':
           type: integer
           example: 1
-        limit:
+        'Limit':
           type: integer
           example: 5
-        items:
+        'Items':
           type: array
           items:
             $ref: '#/components/schemas/Driver'

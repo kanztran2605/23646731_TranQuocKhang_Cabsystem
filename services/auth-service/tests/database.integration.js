@@ -3,10 +3,21 @@ const { test,after } = require('node:test');
 const assert = require('node:assert/strict');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const {randomUUID}=require('node:crypto');
 const service = require('../src/services/auth.service');
 const { pool,closeDatabase } = require('../src/config/database');
 const { health } = require('../../../shared/grpc/handlers');
 const created=[];
+
+test('Đăng ký Driver dở được giữ INACTIVE; retry không tạo Account trùng và chỉ bật sau hoàn tất',async()=>{
+  const request={email:'draft-'+Date.now()+'@auth.test',password:'123',role:'DRIVER',registrationId:randomUUID()};
+  const rows=await Promise.all([service.createAccount(request),service.createAccount(request)]);
+  created.push(rows[0].userId); assert.equal(rows[0].userId,rows[1].userId);
+  await assert.rejects(service.login(request),{statusCode:401});
+  await assert.rejects(service.createAccount({...request,password:'wrong'}),{statusCode:409});
+  await service.completeDriverRegistration({userId:rows[0].userId,registrationId:request.registrationId});
+  assert.equal((await service.login(request)).role,'DRIVER');
+});
 after(async () => { if (created.length) await pool.query('DELETE FROM user_account WHERE uid=ANY($1::bigint[])',[created]); await closeDatabase(); });
 test('real auth_db: seeded three roles login, bcrypt compatibility and minimal signed JWT',async () => {
   for (const [email,role] of [['c@c.com','CUSTOMER'],['d@d.com','DRIVER'],['a@a.com','ADMIN']]) {

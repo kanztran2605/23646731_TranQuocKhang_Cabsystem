@@ -1,16 +1,50 @@
 'use strict';
 const { pool, withTransaction } = require('../config/database');
+const { randomUUID } = require('node:crypto');
+const { AppError } = require('../../../../shared/errors/app-error');
 const projection = 'SELECT d.did,d.uid,d.ap,d.av,p.name,v.vid,v.vt,v.plate,v.brand,v.model,v.s AS vehicle_status,l.lat,l.lng,l.rec_at FROM driver d JOIN driver_profile p ON p.did=d.did LEFT JOIN LATERAL (SELECT * FROM vehicle WHERE did=d.did ORDER BY (s=\'ACTIVE\') DESC,vid LIMIT 1) v ON TRUE LEFT JOIN driver_location l ON l.did=d.did';
 async function findById(driverId, client = pool) { return (await client.query(projection + ' WHERE d.did=$1', [driverId])).rows[0]; }
 async function findByUserId(userId) { return (await pool.query(projection + ' WHERE d.uid=$1', [userId])).rows[0]; }
 async function register(input) {
   return withTransaction(async (client) => {
+    const grant = (await client.query('SELECT * FROM driver_otp WHERE registration_id=$1 FOR UPDATE', [input.registrationToken])).rows[0];
+    if (!grant || grant.phone !== input.phone || grant.fingerprint !== input.fingerprint) throw AppError.forbidden();
+    if (grant.uid != null) {
+      if (String(grant.uid) !== input.userId) throw AppError.forbidden();
+      return findById((await client.query('SELECT did FROM driver WHERE uid=$1', [input.userId])).rows[0]?.did, client);
+    }
     const driver = (await client.query('INSERT INTO driver (uid) VALUES ($1) RETURNING did', [input.userId])).rows[0];
-    await client.query('INSERT INTO driver_profile (did,name,lic_enc,key_ver) VALUES ($1,$2,$3,1)', [driver.did,input.name,input.encryptedLicense ?? null]);
+    await client.query('INSERT INTO driver_profile (did,name,phone,lic_enc,key_ver) VALUES ($1,$2,$3,$4,1)', [driver.did,input.name,input.phone,input.encryptedLicense ?? null]);
     const vehicle = (await client.query('INSERT INTO vehicle (did,vt,plate,brand,model) VALUES ($1,$2,$3,$4,$5) RETURNING vid', [driver.did,input.vehicleType,input.licensePlate,input.brand ?? null,input.model ?? null])).rows[0];
     await client.query('INSERT INTO driver_application (did,vid) VALUES ($1,$2)', [driver.did,vehicle.vid]);
+    await client.query('UPDATE driver_otp SET uid=$2 WHERE phone=$1', [input.phone,input.userId]);
     return findById(driver.did, client);
   });
+}
+async function requestOtp(phone, ttl) {
+  return withTransaction(async client => {
+    await client.query('INSERT INTO driver_otp(phone,expires_at) VALUES($1,CURRENT_TIMESTAMP) ON CONFLICT(phone) DO NOTHING', [phone]);
+    await client.query('SELECT phone FROM driver_otp WHERE phone=$1 FOR UPDATE', [phone]);
+    if ((await client.query('SELECT did FROM driver_profile WHERE phone=$1', [phone])).rows[0]) throw AppError.conflict('Số điện thoại đã đăng ký');
+    await client.query("UPDATE driver_otp SET expires_at=CURRENT_TIMESTAMP+($2 * INTERVAL '1 second'),consumed_at=NULL,registration_id=NULL,fingerprint=NULL,plate=NULL,uid=NULL WHERE phone=$1", [phone,ttl]);
+  });
+}
+async function prepareRegistration(input) {
+  return withTransaction(async client => {
+    const row = (await client.query('SELECT *,expires_at>CURRENT_TIMESTAMP AS valid FROM driver_otp WHERE phone=$1 FOR UPDATE', [input.phone])).rows[0];
+    if (!row) throw AppError.badRequest('Chưa yêu cầu OTP cho số điện thoại này');
+    // Cùng hồ sơ có thể retry khi RPC gián đoạn; không tiêu thụ/xác thực OTP lần hai.
+    if (row.registration_id && row.fingerprint === input.fingerprint) return row.registration_id;
+    if (row.consumed_at || !row.valid) throw AppError.badRequest('OTP đã dùng hoặc hết hạn');
+    if ((await client.query('SELECT did FROM driver_profile WHERE phone=$1', [input.phone])).rows[0]) throw AppError.conflict('Số điện thoại đã đăng ký');
+    if ((await client.query('SELECT vid FROM vehicle WHERE upper(btrim(plate))=$1', [input.licensePlate])).rows[0]) throw AppError.conflict('Biển số đã tồn tại');
+    const token = randomUUID();
+    await client.query('UPDATE driver_otp SET registration_id=$2,fingerprint=$3,plate=$4,consumed_at=CURRENT_TIMESTAMP WHERE phone=$1', [input.phone,token,input.fingerprint,input.licensePlate]);
+    return token;
+  });
+}
+async function assignedDriver(driverId, vehicleId) {
+  return (await pool.query('SELECT d.did,p.name,v.vt,v.plate FROM driver d JOIN driver_profile p ON p.did=d.did JOIN vehicle v ON v.did=d.did WHERE d.did=$1 AND v.vid=$2', [driverId,vehicleId])).rows[0];
 }
 async function pending({ limit, offset }) {
   const count = await pool.query("SELECT COUNT(*) FROM driver WHERE ap='PENDING_APPROVAL'");
@@ -55,4 +89,4 @@ async function releaseAfterTrip(driverId, terminalAt) {
   // An old terminal event must not release a newer assignment.
   await pool.query("UPDATE driver SET av='AVAILABLE',u_at=CURRENT_TIMESTAMP WHERE did=$1 AND ap='APPROVED' AND av='BUSY' AND u_at<=$2::timestamptz", [driverId,terminalAt]);
 }
-module.exports = { findById,findByUserId,register,pending,approve,availability,markBusy,updateLocation,location,nearby,eligible,releaseAfterTrip };
+module.exports = { findById,findByUserId,register,requestOtp,prepareRegistration,assignedDriver,pending,approve,availability,markBusy,updateLocation,location,nearby,eligible,releaseAfterTrip };
