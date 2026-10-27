@@ -2,6 +2,12 @@
 
 Exchange: `cab.events` (`topic`, durable).
 
+**Xác minh ngày 27/10/2026:** container hiện tại đã chạy entrypoint
+`python3 /etc/rabbitmq/bootstrap.py` và healthcheck `--healthcheck`.
+Hostname/node name khớp local override và Mnesia đang dùng; account ENV có quyền
+configure/write/read trên `/`. Bốn queue canonical đều có consumer. Lần rà soát
+này chỉ đọc trạng thái và chạy test offline, không restart/recreate broker.
+
 Queues / bindings:
 
 | Queue | Routing keys |
@@ -50,7 +56,7 @@ RabbitMQ does not create the default user on a blank node when it imports
 definitions at boot. Therefore ENV credentials alone with the old topology-only
 definitions file were insufficient. See [RabbitMQ access control](https://www.rabbitmq.com/docs/access-control).
 
-At the next approved container creation, the Python bootstrap uses
+At container startup, the Python bootstrap uses
 `RABBITMQ_DEFAULT_USER/PASS` supplied by Compose from `RABBITMQ_USER/PASSWORD`:
 
 1. Read the unchanged canonical `definitions.json` and check the node identity.
@@ -74,7 +80,7 @@ not by editing the running broker's account automatically.
 
 ## Readiness
 
-The proposed healthcheck uses four authenticated, read-only Management API checks
+The active healthcheck uses four authenticated, read-only Management API checks
 available in RabbitMQ 3.13: no alarms, running virtual hosts, AMQP listener 5672,
 and the configured account's `/` configure/write/read permissions. Incorrect
 credentials or unavailable dependencies fail health. It does not consume or
@@ -93,19 +99,19 @@ See [Docker network names/external networks](https://docs.docker.com/reference/c
 
 ## Activation boundary and acceptance
 
-**No RabbitMQ recreate, node rename, data migration, account import or network
-disconnect was performed while preparing these files.** The existing container
-continues using its original entrypoint and healthcheck until an approved
-recreate. A definitions snapshot is kept privately in `.backups/`; definitions
-do **not** contain queued message bodies and are not a full Mnesia backup.
+Ở đợt chuẩn bị ban đầu, các file được tạo mà không recreate, đổi node, migration
+dữ liệu hoặc ngắt network. Đến lần rà soát nộp bài, bootstrap và healthcheck mới
+đã hoạt động trên container hiện tại; hướng dẫn này không phải yêu cầu recreate
+thêm lần nữa. Snapshot definitions được giữ riêng trong `.backups/`; definitions
+không chứa message body trong queue và không thay thế backup Mnesia đầy đủ.
 
-Before activation, obtain approval for a brief broker interruption, verify the
+Before any future recreate, obtain approval for a brief broker interruption, verify the
 resolved node/volume again and plan a consistent full data backup. Never rename
 the node to the fresh-install default on the preserved volume. Recreate can drop
 AMQP connections; verify consumers afterwards and plan dependent-service recovery
 in the same approved maintenance window. Do not remove volumes or reset data.
 
-Non-disruptive acceptance commands (the healthcheck is installed after approval):
+Non-disruptive acceptance commands:
 
 ```bash
 docker compose config --quiet
@@ -122,3 +128,13 @@ streaming `bootstrap.py` to Python stdin in the existing container, without
 installing/changing its entrypoint. Tests cover fresh/same-node/mismatched-node
 storage, real password-hash format, repeatable account seeding, unchanged topology,
 runtime-only file generation, permissions and failure/redaction paths.
+
+## Giới hạn phục hồi consumer
+
+`shared/rabbitmq/consumer.js` đăng ký consumer khi app khởi động; channel đóng thì
+hiện chỉ ghi log, chưa tự subscribe lại. Vì vậy nếu broker bị restart riêng,
+không chỉ nhìn health của app (chủ yếu kiểm tra DB): cần kiểm tra consumer count
+của bốn queue. Sau khi broker healthy, chủ động restart các app dùng RabbitMQ
+trong lần bảo trì đó theo README gốc. Đây là giới hạn triển khai đã được ghi nhận,
+không được sửa hoặc fault-injection trong milestone nộp bài. Kiểm thử tắt/mở Docker
+Desktop và recreate broker trên volume cũ chưa được thực hiện trong lần rà soát này.
