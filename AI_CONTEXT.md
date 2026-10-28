@@ -120,6 +120,13 @@ Do not recreate them.
 
 ## 4. Database ownership
 
+Admin demo read-only additions (28/10/2026): Gateway lists all Customers/Drivers using
+`ListCustomers`/`ListDrivers`. `/api/admin/security` is opt-in via
+`DEMO_SECURITY_ENABLED=true` (default false), obtaining only redacted evidence from
+Auth `GetPasswordAtRestEvidence` and Driver `GetLicenseAtRestEvidence`. No Gateway
+DB access, domain gRPC edge or event was added. Hardcoded-key/source-history checks
+remain UNVERIFIED unless actually audited; never replace them with a constant PASS.
+
 ```text
 auth-service         -> auth_db
 customer-service     -> customer_db

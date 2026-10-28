@@ -25,9 +25,37 @@ Bộ contract này đã được rút gọn theo **SRS + DDD FINAL** và phiếu
 - `notifications.yaml`: đọc notification đã consume từ RabbitMQ.
 - `reviews.yaml`: Review Trip COMPLETED.
 - `health.yaml`: `/health`, `/ready`, `/health/services`.
+- `admin-security.yaml`: bằng chứng lưu trữ chỉ đọc cho Admin, bật riêng bằng DEMO_SECURITY_ENABLED.
 - `asyncapi.yaml`: 8 Integration Events + RabbitMQ queue/binding.
 
 `fare.yaml` đã **xóa** vì SRS FINAL không có Fare/Pricing Engine.
+
+## Admin: xem danh sách và minh chứng tiêu chí #24
+
+Với token `a@a.com / 123`, không cần body:
+
+- `GET http://localhost:8080/api/customers`: Total + Items toàn bộ Customer; thêm `/<cid>` để xem chi tiết.
+- `GET http://localhost:8080/api/drivers`: Total + Items toàn bộ Driver; thêm `/<did>` để xem chi tiết.
+- `GET http://localhost:8080/api/admin/security`: ba phần Password, Sensitive Data, Key Management. Mặc định 404; chỉ bật cho demo local.
+
+URL cũ `/api/admin/security/at-rest` đã bỏ và trả 404, không redirect/alias. JSON hiện tại chỉ có status/thuật toán/số lượng và cờ an toàn; không còn Scope, Storage hoặc Masked Format dài. `Encrypted` trong Password là số hash bcrypt hợp lệ (hash một chiều), `Plaintext Stored` chỉ giới hạn ở trường pw_hash đã kiểm tra. `Plaintext Exposed=false`/`Key Exposed=false` chỉ khẳng định API không trả các giá trị đó, không phải kiểm toán toàn bộ DB/source. Các giá trị chưa xác minh được ghi UNVERIFIED.
+
+Git Bash, không sửa `.env`, không recreate DB/RabbitMQ/volume:
+
+```bash
+docker compose build auth-service customer-service driver-service api-gateway
+DEMO_SECURITY_ENABLED=true docker compose up -d --no-deps auth-service customer-service driver-service api-gateway
+```
+
+Tắt sau demo (danh sách Admin vẫn dùng được):
+
+```bash
+DEMO_SECURITY_ENABLED=false docker compose up -d --no-deps auth-service driver-service api-gateway
+```
+
+Container giữ cờ qua restart. Khi recreate/up lại, phải truyền lại cờ hoặc chủ động đặt trong `.env` local; mặc định của Compose là false. Không bật cho production. Không đổi hostname/volume RabbitMQ.
+
+Password PASS nghĩa là trường pw_hash đã kiểm tra có định dạng bcrypt hợp lệ; bcrypt là hash một chiều. Sensitive Data PASS nghĩa là ciphertext thực tế xác thực GCM thành công. Key Management có thể UNVERIFIED dù khóa ENV hợp lệ: endpoint không kiểm toán toàn source/Git và không xác minh khóa khác khóa demo công khai. Không dùng response để khẳng định bảo mật tuyệt đối.
 
 ## Postman: nhập ngắn, đọc kết quả đầy đủ
 

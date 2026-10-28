@@ -10,6 +10,7 @@ const admin = { actorUserId:'7',actorRole:'ADMIN' };
 beforeEach(() => {
   rows = [{ cid:'1',uid:'100',name:'Customer',addr:'HCMC',c_at:new Date(),u_at:new Date() }];
   service = createCustomerService({
+    async listAll() { return rows; },
     async createProfile(input) {
       if (rows.some((r) => r.uid === input.userId)) throw Object.assign(new Error(),{ code:'23505' });
       const row = { cid:'2',uid:input.userId,name:input.name,addr:input.address ?? null,phone:input.phone,c_at:new Date(),u_at:new Date() };
@@ -49,14 +50,25 @@ test('Booking-facing get and validation work without reverse dependency',async (
   assert.deepEqual(await service.validateCustomer({ customerId:'1' }),{ valid:true,customerId:'1',userId:'100' });
   assert.deepEqual(await service.validateCustomer({ customerId:'99' }),{ valid:false,customerId:'99' });
 });
-test('only the four current Customer proto operations are exposed',() => {
-  assert.deepEqual(Object.keys(createCustomerGrpcHandlers(service)).sort(),['createCustomerProfile','getCustomer','getCustomerByUserId','validateCustomer']);
+test('Customer expose các RPC hiện hành và danh sách Admin chỉ đọc',() => {
+  assert.deepEqual(Object.keys(createCustomerGrpcHandlers(service)).sort(),['createCustomerProfile','getCustomer','getCustomerByUserId','listCustomers','validateCustomer']);
+});
+
+test('Admin liệt kê mọi Customer, không trả phone và không ghi hồ sơ',async()=>{
+  rows.push({...rows[0],cid:'2',uid:'200',phone:'0901234567'});
+  const before=structuredClone(rows);
+  const result=await service.listCustomers({context:admin});
+  assert.equal(result.items.length,2);assert.equal(result.items[1].phone,undefined);
+  assert.deepEqual(rows,before);
+  for(const context of [owner,{actorUserId:'2',actorRole:'DRIVER'}])await assert.rejects(service.listCustomers({context}),{statusCode:403});
+  await assert.rejects(service.listCustomers({}),{statusCode:401});
 });
 test('real Customer gRPC supports Booking validation/get and HealthService',async (t) => {
   const rpc = await serve(t,'customer.proto','cab.customer.v1','CustomerService',createCustomerGrpcHandlers(service));
   assert.equal((await rpc.call('validateCustomer',{ customerId:'1' })).valid,true);
   assert.equal((await rpc.call('getCustomerByUserId',{ userId:'100' })).name,'Customer');
   assert.equal((await rpc.call('getCustomer',{ context:owner,customerId:'1' })).customerId,'1');
+  assert.equal((await rpc.call('listCustomers',{context:admin})).items.length,1);
   assert.equal((await rpc.call('createCustomerProfile',{ userId:'200',name:'RPC' })).name,'RPC');
   await assert.rejects(rpc.call('getCustomer',{ context:admin,customerId:'99' }),(e) => e.code === 5);
   assert.equal((await rpc.checkHealth()).status,'UP');

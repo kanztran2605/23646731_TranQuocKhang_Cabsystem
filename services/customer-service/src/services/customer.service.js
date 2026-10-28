@@ -7,6 +7,14 @@ const { phone } = require('../../../../shared/demo-input');
 function createCustomerService(repo = repository) {
   function found(row) { if (!row) throw AppError.notFound('Customer does not exist'); return toCustomerProfile(row); }
   return {
+    async listCustomers(request) {
+      actor(request.context,['ADMIN']);
+      return { items:(await repo.listAll()).map(row => {
+        const profile = toCustomerProfile(row);
+        delete profile.phone;
+        return profile;
+      }) };
+    },
     async createCustomerProfile(request) {
       const input = { userId: id(request.userId), name: text(request.name, 100), address: text(request.address, 255, true), phone: phone(request.phone, true) };
       try { return toCustomerProfile(await repo.createProfile(input)); }

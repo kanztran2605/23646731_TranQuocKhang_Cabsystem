@@ -9,6 +9,10 @@ const responses = require('./responses');
 
 module.exports = function driverRoutes({ call }) {
   const router = express.Router();
+  router.get('/drivers', authenticate, requireRole('ADMIN'), asyncHandler(async (req, res) => {
+    const result = await call('driver', 'listDrivers', { context: context(req) }, req.correlationId);
+    res.json({ Total: result.items.length, items: result.items.map(responses.driver) });
+  }));
   router.post('/drivers/otp', asyncHandler(async (req, res) => {
     const body = parse(z.object({ phone }), req.body);
     const result = await call('driver', 'requestOtp', { phone: body.phone, correlationId: req.correlationId }, req.correlationId);

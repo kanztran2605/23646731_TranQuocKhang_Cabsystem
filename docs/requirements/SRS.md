@@ -1155,6 +1155,15 @@ Không lưu Booking, Trip, Payment hay domain state chính trong Redis.
 - Password lưu hash.
 - Dữ liệu cần đọc lại nhưng nhạy cảm, ví dụ DriverLicense, được encrypt bằng key từ ENV; key không hard-code.
 
+### Bổ sung demo Admin chỉ đọc (28/10/2026)
+
+- `GET /api/customers` và `GET /api/drivers`: ADMIN xem toàn bộ danh sách; `/:cid` và `/:did` giữ API chi tiết hiện hành. Không trả phone Customer, password hoặc giấy phép Driver.
+- `GET /api/admin/security`: chỉ ADMIN và chỉ khi `DEMO_SECURITY_ENABLED=true`; mặc định tắt/404, kể cả production. Không có alias `/api/v1` cho endpoint security.
+- Gateway dùng `Customer.ListCustomers`, `Driver.ListDrivers`, `Auth.GetPasswordAtRestEvidence` và `Driver.GetLicenseAtRestEvidence` qua các kết nối ingress gRPC hiện có; không truy cập DB hoặc thêm domain gRPC edge.
+- Auth kiểm tra toàn bộ định dạng `user_account.pw_hash`; Driver xác thực các `lic_enc` không NULL bằng AES-256-GCM helper hiện hành. Chỉ trả số lượng/metadata đã che, không trả hash, ciphertext, IV/tag, plaintext hoặc khóa.
+- PASS chỉ phản ánh phạm vi kiểm tra được ghi trong tài liệu; response đã rút gọn không còn trường Scope dài. Thiếu dữ liệu/dependency là UNVERIFIED; dữ liệu sai là FAIL. Key từ ENV và hợp lệ không chứng minh không có hardcoded key: việc chưa kiểm toán source/Git hoặc nguồn gốc khóa phải ghi UNVERIFIED. Đây không phải kiểm toán bảo mật toàn diện.
+- Cập nhật trình bày: endpoint hiện hành là `/api/admin/security`; URL cũ có `/at-rest` trả 404. Phạm vi chi tiết được giữ trong tài liệu, JSON chỉ giữ ba nhóm ngắn. `Plaintext Stored=false` chỉ giới hạn trong pw_hash đã kiểm tra; các cờ Exposed=false chỉ nói về dữ liệu endpoint trả ra. `Encrypted` của Password đếm hash hợp lệ, không gọi bcrypt là mã hóa giải mã được.
+
 ---
 
 # 10. Non-Functional Requirements & Architecture Constraints

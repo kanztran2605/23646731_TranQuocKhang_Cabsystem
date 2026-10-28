@@ -9,7 +9,11 @@ service CustomerService {
   rpc GetCustomer(GetCustomerRequest) returns (Customer);
   rpc GetCustomerByUserId(GetCustomerByUserIdRequest) returns (Customer);
   rpc ValidateCustomer(ValidateCustomerRequest) returns (CustomerValidation);
+  rpc ListCustomers(ListCustomersRequest) returns (CustomerList);
 }
+
+message ListCustomersRequest { cab.common.v1.RequestContext context = 1; }
+message CustomerList { repeated Customer items = 1; }
 
 message Customer {
   string customer_id = 1;

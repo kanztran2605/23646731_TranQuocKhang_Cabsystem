@@ -16,4 +16,7 @@ async function claimRegistration(uid, previous, next) {
 async function completeRegistration(uid, registrationId) {
   return (await query("UPDATE user_account SET s='ACTIVE',registration_done=true WHERE uid=$1 AND registration_id=$2 AND role='DRIVER' AND (registration_done=false OR s='ACTIVE') RETURNING uid,email,role,s,c_at", [uid,registrationId])).rows[0];
 }
-module.exports = { createAccount, findByEmail, claimRegistration, completeRegistration };
+async function passwordEvidenceRows() {
+  return (await query('SELECT pw_hash FROM user_account')).rows;
+}
+module.exports = { createAccount, findByEmail, claimRegistration, completeRegistration, passwordEvidenceRows };

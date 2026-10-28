@@ -33,6 +33,7 @@ const fixtures = {
   'customer.createCustomerProfile': { customerId: '5', userId: '5', name: 'C' },
   'customer.getCustomer': { customerId: '1', userId: '1', name: 'C', address: 'HCMC' },
   'customer.getCustomerByUserId': { customerId: '7', userId: '1', name: 'C', address: 'HCMC' },
+  'customer.listCustomers': { items:[{ customerId:'1',userId:'1',name:'C' }] },
   'driver.requestOtp': { otp: '123' },
   'driver.registerDriver': { ...driver, driverId: '5', userId: '5', approvalStatus: 'PENDING_APPROVAL' },
   'driver.getDriver': driver,
@@ -43,6 +44,10 @@ const fixtures = {
   'driver.updateLocation': { driverId: '1', ...pickup },
   'driver.getNearbyDrivers': { page: 1, limit: 5, total: '1', items: [driver] },
   'driver.listVehicleTypes': { items: [{ vehicleType: 'CAR', name: 'Car' }] },
+  'driver.listDrivers': { items:[driver] },
+  'auth.getPasswordAtRestEvidence': { status:'PASS',algorithm:'bcrypt',checkedCount:2,bcryptCount:2,invalidCount:0,maskedFormat:'$2b$10$[đã che]',plaintextCheck:'Không phát hiện trong pw_hash',scope:'auth_db.user_account.pw_hash' },
+  'driver.getLicenseAtRestEvidence': { status:'PASS',dataName:'Driver license',algorithm:'AES-256-GCM',checkedCount:1,missingCount:1,authenticatedCount:1,invalidCount:0,maskedFormat:'v1:[đã che]',storage:'ciphertext',scope:'driver_db.driver_profile.lic_enc',
+    keyManagement:{status:'UNVERIFIED',source:'ENV DATA_ENCRYPTION_KEY_BASE64',configured:true,valid:true,hardcodedKeyCheck:'UNVERIFIED',scope:'Không kiểm toán toàn bộ source/Git'} },
   'booking.createBooking': booking,
   'booking.getBooking': booking,
   'booking.listMyBookings': { page: 1, limit: 2, total: '1', items: [booking] },
@@ -126,6 +131,76 @@ test('Gateway configuration and registry match the locked baseline', () => {
   }
 });
 
+test('Admin list Customer/Driver đầy đủ, Customer/Driver bị 403 và thiếu token 401',async t=>{
+  const {request}=await harness(t);
+  for(const path of ['/customers','/drivers']){
+    const result=await request('/api'+path,{role:'ADMIN'});
+    assert.equal(result.status,200);assert.equal(result.body.Total,1);assert.equal(result.body.Items.length,1);
+    for(const role of ['CUSTOMER','DRIVER'])assert.equal((await request('/api'+path,{role})).status,403);
+    assert.equal((await request('/api'+path,{role:null})).status,401);
+  }
+});
+test('Security demo mặc định 404 và không tạo alias URL /api/v1',async t=>{
+  const off=await harness(t,{demoSecurityEnabled:false});
+  for(const role of ['ADMIN','CUSTOMER','DRIVER',null])assert.equal((await off.request('/api/admin/security',{role})).status,404);
+  assert.equal(off.calls.length,0);
+  const on=await harness(t,{demoSecurityEnabled:true});
+  assert.equal((await on.request('/api/v1/admin/security',{role:'ADMIN'})).status,404);
+  assert.equal((await on.request('/api/admin/security/at-rest',{role:'ADMIN'})).status,404);
+  assert.equal((await on.request('/api/admin/security/at-rest',{role:null})).status,404);
+  assert.equal(on.calls.length,0);
+  const {spawnSync}=require('node:child_process');
+  const result=spawnSync(process.execPath,['-e',"console.log(require('./src/config/env').DEMO_SECURITY_ENABLED)"],{
+    cwd:require('node:path').resolve(__dirname,'..'),encoding:'utf8',env:{...process.env,NODE_ENV:'production',DEMO_SECURITY_ENABLED:''},
+  });
+  assert.equal(result.status,0);assert.equal(result.stdout.trim(),'false');
+});
+test('Security demo ADMIN nhận metadata qua 2 RPC; role khác 403, JWT thiếu/sai 401',async t=>{
+  const {request,calls}=await harness(t,{demoSecurityEnabled:true});
+  const result=await request('/api/admin/security',{role:'ADMIN'});
+  assert.equal(result.status,200);assert.equal(result.headers.get('cache-control'),'no-store');
+  assert.deepEqual(Object.keys(result.body),['Password','Sensitive Data','Key Management']);
+  assert.deepEqual(result.body,{
+    Password:{Status:'PASS',Algorithm:'bcrypt','Checked Records':2,Encrypted:'2/2 password hashes','Plaintext Stored':false},
+    'Sensitive Data':{Status:'PASS',Algorithm:'AES-256-GCM',Data:'Driver License','Encrypted Records':1,'Missing Records':1,'Plaintext Exposed':false},
+    'Key Management':{Status:'UNVERIFIED',Source:'Environment Variable','Key Configured':true,'Key Valid':true,'Key Exposed':false},
+  });
+  assert.deepEqual(calls.map(c=>c.method).sort(),['getLicenseAtRestEvidence','getPasswordAtRestEvidence']);
+  assert.ok(calls.every(c=>c.wire.context.actorRole==='ADMIN'));
+  calls.length=0;
+  for(const role of ['CUSTOMER','DRIVER'])assert.equal((await request('/api/admin/security',{role})).status,403);
+  assert.equal((await request('/api/admin/security',{role:null})).status,401);
+  assert.equal((await request('/api/admin/security',{bearer:'tampered',role:'ADMIN'})).status,401);
+  assert.equal(calls.length,0);
+});
+test('Security demo downstream lỗi là UNVERIFIED, không giả PASS hoặc lộ lỗi/field thừa',async t=>{
+  const {request}=await harness(t,{demoSecurityEnabled:true,callRpc:async(service)=>{
+    if(service==='auth')throw new Error('SECRET-DATABASE-CREDENTIAL');
+    return {...fixtures['driver.getLicenseAtRestEvidence'],license:'PLAINTEXT-CANARY',ciphertext:'CIPHER-CANARY',
+      keyManagement:{...fixtures['driver.getLicenseAtRestEvidence'].keyManagement,key:'SECRET-KEY-CANARY'}};
+  }});
+  const result=await request('/api/admin/security',{role:'ADMIN'});
+  assert.equal(result.status,200);assert.equal(result.body.Password.Status,'UNVERIFIED');
+  assert.equal(result.body.Password['Checked Records'],'UNVERIFIED');
+  assert.equal(result.body.Password.Encrypted,'UNVERIFIED');
+  assert.equal(result.body.Password['Plaintext Stored'],'UNVERIFIED');
+  for(const secret of ['SECRET-DATABASE-CREDENTIAL','PLAINTEXT-CANARY','CIPHER-CANARY','SECRET-KEY-CANARY'])assert.ok(!JSON.stringify(result.body).includes(secret));
+});
+
+test('Security compact giữ FAIL/UNVERIFIED, không kết luận plaintext false khi dữ liệu chưa đủ',async t=>{
+  const {request}=await harness(t,{demoSecurityEnabled:true,rpcResults:{
+    'auth.getPasswordAtRestEvidence':{...fixtures['auth.getPasswordAtRestEvidence'],status:'FAIL',checkedCount:3,bcryptCount:2,invalidCount:1},
+    'driver.getLicenseAtRestEvidence':{...fixtures['driver.getLicenseAtRestEvidence'],status:'UNVERIFIED',authenticatedCount:0,
+      keyManagement:{status:'FAIL',source:'ENV DATA_ENCRYPTION_KEY_BASE64',configured:false,valid:false,hardcodedKeyCheck:'UNVERIFIED'}},
+  }});
+  const {body}=await request('/api/admin/security',{role:'ADMIN'});
+  assert.equal(body.Password.Status,'FAIL');assert.equal(body.Password.Encrypted,'2/3 password hashes');
+  assert.equal(body.Password['Plaintext Stored'],'UNVERIFIED');
+  assert.equal(body['Sensitive Data'].Status,'UNVERIFIED');assert.equal(body['Sensitive Data']['Encrypted Records'],'UNVERIFIED');
+  assert.equal(body['Key Management'].Status,'FAIL');assert.equal(body['Key Management']['Key Valid'],false);
+  assert.ok(!JSON.stringify(body).includes('Scope'));
+});
+
 test('JWT signature/expiry and required claims are verified before any RPC', async (t) => {
   const { request, calls } = await harness(t);
   assert.equal((await request('/api/v1/customers/1')).status, 200);
@@ -160,6 +235,8 @@ test('the same Driver-by-ID endpoint enforces Admin 200 and Customer 403', async
 });
 
 const routeCases = [
+  ['GET', '/customers', 'ADMIN', undefined, 'customer', 'listCustomers', {}, 200, null, null],
+  ['GET', '/drivers', 'ADMIN', undefined, 'driver', 'listDrivers', {}, 200, null, null],
   ['POST', '/register', null, { email: 'n@c.com', pw: '123', name: 'C' }, 'customer', 'createCustomerProfile', { userId: '5', name: 'C' }, 201, 'cid', 5],
   ['POST', '/login', null, { email: 'c@c.com', pw: '123' }, 'auth', 'login', { email: 'c@c.com', password: '123' }, 200, 'token', 'test-token'],
   ['GET', '/customers/1', 'CUSTOMER', undefined, 'customer', 'getCustomer', { customerId: '1' }, 200, 'cid', 1],
@@ -498,6 +575,32 @@ test('business ownership/state conflicts are delegated and never replaced with G
   assert.equal(calls[2][2].comment, '<script>alert(1)</script>'); // Review service owns storage safety.
 });
 
+for (const [input, canonical] of Object.entries({ A:'ARRIVED', I_G:'IN_PROGRESS', C:'COMPLETED', ARRIVED:'ARRIVED', IN_PROGRESS:'IN_PROGRESS', COMPLETED:'COMPLETED' })) {
+  test('Trip REST status ' + input + ' uses canonical proto and response ' + canonical, async t => {
+    const { request, calls } = await harness(t, { rpcResults: { 'trip.updateTripStatus': { ...trip, status:canonical } } });
+    const result = await request('/api/trips/1/status', { method:'PATCH', role:'DRIVER', body:{ s:input } });
+    assert.equal(result.status,200);
+    assert.equal(result.body.Status,canonical);
+    assert.equal(calls[0].wire.status,canonical);
+    assert.equal(calls[0].wire.context.actorRole,'DRIVER');
+  });
+}
+test('Trip aliases preserve invalid-input, JWT, role and downstream invariant errors', async t => {
+  const { request, calls } = await harness(t, { callRpc:async (...args) => {
+    calls.push(args);
+    if (args[2].status === 'COMPLETED') throw AppError.conflict('Invalid transition');
+    throw AppError.forbidden();
+  } });
+  for (const s of ['X','CANCELED','a','I','']) {
+    assert.equal((await request('/api/trips/1/status',{method:'PATCH',role:'DRIVER',body:{s}})).status,400);
+  }
+  assert.equal(calls.length,0);
+  assert.equal((await request('/api/trips/1/status',{method:'PATCH',role:null,body:{s:'A'}})).status,401);
+  assert.equal((await request('/api/trips/1/status',{method:'PATCH',role:'CUSTOMER',body:{s:'A'}})).status,403);
+  assert.equal((await request('/api/trips/1/status',{method:'PATCH',role:'DRIVER',body:{s:'A'}})).status,403);
+  assert.equal((await request('/api/trips/1/status',{method:'PATCH',role:'DRIVER',body:{s:'C'}})).status,409);
+});
+
 test('safe correlation IDs are reused, invalid values replaced, and query credentials omitted from error logs', async (t) => {
   const { request, calls } = await harness(t);
   const writes = [];
@@ -567,6 +670,71 @@ test('callback không nhận status giả/Payment ID từ body và Pay không nh
  assert.equal((await request('/api/payments/1/callback',{method:'POST',body:{s:'COMPLETED',pid:2}})).status,400);
  assert.equal((await request('/api/payments/1/pay',{method:'POST',body:{x:1},headers:{'Idempotency-Key':'P1'}})).status,400);
  assert.equal(calls.length,0);
+});
+
+for (const s of ['C','COMPLETED']) {
+  test('Payment callback '+s+' gửi COMPLETED qua Proto và trả tên đầy đủ',async t=>{
+    const {request,calls}=await harness(t);
+    const result=await request('/api/payments/1/callback',{method:'POST',body:{s}});
+    assert.equal(result.status,200);
+    assert.equal(result.body.Status,'COMPLETED');
+    assert.equal(calls[0].wire.status,'COMPLETED');
+    assert.equal(calls[0].wire.context.actorRole,'CUSTOMER');
+  });
+}
+test('Pay nhận header đầy đủ hoặc K, kể cả key số và hai header giống nhau',async t=>{
+  const {request,calls}=await harness(t);
+  for (const [headers,key] of [
+    [{K:'P55'},'P55'],[{'Idempotency-Key':'P55'},'P55'],[{k:'55'},'55'],
+    [{'Idempotency-Key':'P55',K:'P55'},'P55'],
+    [{'Idempotency-Key':' P55 ',K:'P55'},'P55'],[{K:'x'.repeat(100)},'x'.repeat(100)],
+  ]) {
+    assert.equal((await request('/api/payments/1/pay',{method:'POST',headers})).status,200);
+    assert.equal(calls.at(-1).wire.idempotencyKey,key);
+  }
+});
+test('Pay thiếu/rỗng/quá dài/mâu thuẫn key trả 400 trước RPC; callback alias vẫn strict',async t=>{
+  const {request,calls}=await harness(t);
+  for (const headers of [{},{K:''},{K:'   '},{'Idempotency-Key':''},{K:'x'.repeat(101)},
+    {'Idempotency-Key':'x'.repeat(101)},{K:'P55','Idempotency-Key':'P56'},
+    {K:'','Idempotency-Key':'P55'},{K:'P55','Idempotency-Key':''}]) {
+    assert.equal((await request('/api/payments/1/pay',{method:'POST',headers})).status,400);
+  }
+  for (const body of [{s:'X'},{s:'c'},{s:'PENDING'},{s:'C',pid:2},{}]) {
+    assert.equal((await request('/api/payments/1/callback',{method:'POST',body})).status,400);
+  }
+  // K không được dùng làm body hoặc thay thế JWT ở bất kỳ route nào.
+  assert.equal((await request('/api/payments/1/pay',{method:'POST',body:{K:'P55'}})).status,400);
+  assert.equal(calls.length,0);
+});
+test('Payment aliases giữ kiểm tra JWT và RBAC trước RPC',async t=>{
+  const {request,calls}=await harness(t);
+  for (const [path,body,headers] of [['pay',undefined,{K:'P55'}],['callback',{s:'C'},{}]]) {
+    const options={method:'POST',body,headers};
+    assert.equal((await request('/api/payments/1/'+path,{...options,role:null})).status,401);
+    assert.equal((await request('/api/payments/1/'+path,{...options,bearer:'tampered'})).status,401);
+    assert.equal((await request('/api/payments/1/'+path,{...options,role:'DRIVER'})).status,403);
+  }
+  assert.equal((await request('/api/payments/1/pay',{method:'POST',role:'ADMIN',headers:{K:'P55'}})).status,403);
+  assert.equal(calls.length,0);
+});
+test('Payment aliases truyền nguyên response replay và lỗi precondition/ownership từ downstream',async t=>{
+  const {request,calls}=await harness(t,{rpcResults:{
+    'payment.payExistingPayment':{...payment,eligible:true,idempotencyKey:'P55'},
+  }});
+  const first=await request('/api/payments/1/pay',{method:'POST',headers:{K:'P55'}});
+  assert.equal(first.status,200);
+  assert.equal((await request('/api/payments/1/callback',{method:'POST',body:{s:'C'}})).body.Status,'COMPLETED');
+  const replay=await request('/api/payments/1/pay',{method:'POST',headers:{'Idempotency-Key':'P55'}});
+  assert.equal(replay.status,200);assert.deepEqual(replay.body,first.body);
+  assert.equal(first.body.Status,'PENDING');
+  assert.equal(calls[0].wire.idempotencyKey,calls[2].wire.idempotencyKey);
+  const errors=await harness(t,{callRpc:async()=>{throw {code:9};}});
+  assert.equal((await errors.request('/api/payments/1/callback',{method:'POST',body:{s:'C'}})).status,409);
+  const forbidden=await harness(t,{callRpc:async()=>{throw {code:7};}});
+  for (const [path,options] of [
+    ['pay',{method:'POST',headers:{K:'P55'}}],['callback',{method:'POST',body:{s:'C'}}],
+  ]) assert.equal((await forbidden.request('/api/payments/1/'+path,options)).status,403);
 });
 
 test('/api hiển thị Phone và Driver summary đầy đủ nhưng request vẫn dùng tên ngắn',async t=>{

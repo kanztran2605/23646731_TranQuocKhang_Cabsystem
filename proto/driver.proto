@@ -23,6 +23,34 @@ service DriverService {
   // Trip đã kiểm tra ownership trước khi lấy thông tin tài xế/xe được gán.
   rpc GetAssignedDriver(GetAssignedDriverRequest) returns (DriverInfo);
   rpc ListVehicleTypes(ListVehicleTypesRequest) returns (VehicleTypeList);
+  rpc ListDrivers(ListDriversRequest) returns (DriverList);
+  // Bằng chứng local demo, chỉ đọc, không trả license/ciphertext/key.
+  rpc GetLicenseAtRestEvidence(GetLicenseAtRestEvidenceRequest) returns (LicenseAtRestEvidence);
+}
+
+message ListDriversRequest { cab.common.v1.RequestContext context = 1; }
+message DriverList { repeated Driver items = 1; }
+message GetLicenseAtRestEvidenceRequest { cab.common.v1.RequestContext context = 1; }
+message LicenseAtRestEvidence {
+  string status = 1;
+  string data_name = 2;
+  string algorithm = 3;
+  int32 checked_count = 4;
+  int32 missing_count = 5;
+  int32 authenticated_count = 6;
+  int32 invalid_count = 7;
+  string masked_format = 8;
+  string storage = 9;
+  string scope = 10;
+  KeyManagementEvidence key_management = 11;
+}
+message KeyManagementEvidence {
+  string status = 1;
+  string source = 2;
+  bool configured = 3;
+  bool valid = 4;
+  string hardcoded_key_check = 5;
+  string scope = 6;
 }
 
 message RequestOtpRequest {

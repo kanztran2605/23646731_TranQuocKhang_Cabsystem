@@ -9,6 +9,20 @@ service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
   // Chỉ Gateway hoàn tất đăng ký sau khi Driver đã lưu hồ sơ.
   rpc CompleteDriverRegistration(CompleteDriverRegistrationRequest) returns (Account);
+  // Chỉ đọc, ADMIN + DEMO_SECURITY_ENABLED=true; không trả hash thật.
+  rpc GetPasswordAtRestEvidence(GetPasswordAtRestEvidenceRequest) returns (PasswordAtRestEvidence);
+}
+
+message GetPasswordAtRestEvidenceRequest { cab.common.v1.RequestContext context = 1; }
+message PasswordAtRestEvidence {
+  string status = 1;
+  string algorithm = 2;
+  int32 checked_count = 3;
+  int32 bcrypt_count = 4;
+  int32 invalid_count = 5;
+  string masked_format = 6;
+  string plaintext_check = 7;
+  string scope = 8;
 }
 
 message CreateAccountRequest {

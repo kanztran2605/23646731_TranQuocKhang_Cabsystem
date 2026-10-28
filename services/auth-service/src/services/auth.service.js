@@ -5,10 +5,16 @@ const { ROLES, normalizeEmail, toAccount } = require('../domain/user');
 const { issueAccessToken } = require('./token.service');
 const { text } = require('../../../../shared/validation');
 const { AppError } = require('../../../../shared/errors/app-error');
-const { id } = require('../../../../shared/validation');
+const { id, actor } = require('../../../../shared/validation');
+const { passwordEvidence } = require('./password-evidence');
 const { registrationId } = require('../../../../shared/demo-input');
 function createAuthService(repo = repository) {
   return {
+    async getPasswordAtRestEvidence(request) {
+      if (process.env.DEMO_SECURITY_ENABLED !== 'true') throw AppError.notFound();
+      actor(request.context,['ADMIN']);
+      return passwordEvidence(await repo.passwordEvidenceRows());
+    },
     async createAccount(request) {
       const email = normalizeEmail(text(request.email, 100));
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !Object.values(ROLES).includes(request.role)) throw AppError.badRequest();

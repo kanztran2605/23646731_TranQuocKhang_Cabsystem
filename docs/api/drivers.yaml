@@ -228,6 +228,20 @@ components:
           type: string
           format: date-time
 paths:
+  /drivers:
+    get:
+      summary: Admin xem toàn bộ Driver
+      description: 'Chỉ đọc, tất cả trạng thái, sắp theo Driver ID; không trả phone hoặc giấy phép.'
+      security:
+      - bearerAuth: []
+      x-roles: [ADMIN]
+      responses:
+        '200':
+          description: 'JSON gồm Total và Items (toàn bộ Driver, không phân trang).'
+        '401':
+          description: Thiếu hoặc sai JWT
+        '403':
+          description: Chỉ ADMIN được xem danh sách
   /drivers/otp:
     post:
       tags:

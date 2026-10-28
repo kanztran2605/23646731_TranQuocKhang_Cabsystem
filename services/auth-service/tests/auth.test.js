@@ -65,9 +65,9 @@ test('login rejects appended input beyond bcrypt 72-byte limit',async () => {
   assert.equal((await service.login({ email:'bounded@c.com',password })).role,'CUSTOMER');
   await assert.rejects(service.login({ email:'bounded@c.com',password:password+'wrong' }),(e) => e.statusCode === 401);
 });
-test('Auth chỉ lộ RPC tài khoản và hoàn tất đăng ký nội bộ',() => {
-  assert.deepEqual(Object.keys(createAuthGrpcHandlers(service)).sort(),['completeDriverRegistration','createAccount','login']);
-  assert.deepEqual(Object.keys(service).sort(),['completeDriverRegistration','createAccount','login']);
+test('Auth chỉ lộ RPC tài khoản và bằng chứng demo chỉ đọc đã khai báo',() => {
+  assert.deepEqual(Object.keys(createAuthGrpcHandlers(service)).sort(),['completeDriverRegistration','createAccount','getPasswordAtRestEvidence','login']);
+  assert.deepEqual(Object.keys(service).sort(),['completeDriverRegistration','createAccount','getPasswordAtRestEvidence','login']);
 });
 test('real Auth gRPC uses current contract, error codes and HealthService UP/DOWN',async (t) => {
   let healthy = true;

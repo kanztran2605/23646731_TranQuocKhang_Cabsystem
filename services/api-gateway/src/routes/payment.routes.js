@@ -17,18 +17,23 @@ module.exports = function paymentRoutes({ call }) {
     res.json(responses.payment(result));
   }));
   router.post('/payments/:pid/pay', authenticate, requireRole('CUSTOMER'), asyncHandler(async (req, res) => {
-    const key = parse(z.string().trim().min(1), req.get('Idempotency-Key'));
+    // K chỉ là alias REST tại Pay; Payment Service vẫn nhận một idempotencyKey.
+    const keySchema = z.string().trim().min(1).max(100).optional();
+    const keys = parse(z.object({ full: keySchema, short: keySchema }).refine(value =>
+      (value.full !== undefined || value.short !== undefined) &&
+      (value.full === undefined || value.short === undefined || value.full === value.short)
+    ), { full: req.get('Idempotency-Key'), short: req.get('K') });
     const body = parse(z.object({ amt:z.number().finite().positive().optional() }).strict(),req.body ?? {});
     const result = await call('payment', 'payExistingPayment', {
-      context: context(req), paymentId: pathId(req, 'pid'), idempotencyKey: key,
+      context: context(req), paymentId: pathId(req, 'pid'), idempotencyKey: keys.full ?? keys.short,
       ...(body.amt !== undefined ? { amount:body.amt } : {}),
     }, req.correlationId);
     res.json(responses.payment(result));
   }));
   router.post('/payments/:pid/callback', authenticate, requireRole('CUSTOMER', 'ADMIN'), asyncHandler(async (req, res) => {
-    const body = parse(z.object({ s: z.literal('COMPLETED') }).strict(), req.body);
+    parse(z.object({ s: z.enum(['C', 'COMPLETED']) }).strict(), req.body);
     const result = await call('payment', 'paymentCallback', {
-      context: context(req), paymentId: pathId(req, 'pid'), status: body.s,
+      context: context(req), paymentId: pathId(req, 'pid'), status: 'COMPLETED',
     }, req.correlationId);
     res.json(responses.payment(result));
   }));

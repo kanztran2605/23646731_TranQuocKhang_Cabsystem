@@ -96,7 +96,11 @@ components:
       properties:
         s:
           type: string
+          description: 'Alias đầu vào REST: A=ARRIVED, I_G=IN_PROGRESS, C=COMPLETED. Response luôn trả trạng thái đầy đủ; hủy chuyến dùng API cancel riêng.'
           enum:
+          - A
+          - I_G
+          - C
           - ARRIVED
           - IN_PROGRESS
           - COMPLETED

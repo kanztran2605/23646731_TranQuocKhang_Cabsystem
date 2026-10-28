@@ -89,4 +89,6 @@ async function releaseAfterTrip(driverId, terminalAt) {
   // An old terminal event must not release a newer assignment.
   await pool.query("UPDATE driver SET av='AVAILABLE',u_at=CURRENT_TIMESTAMP WHERE did=$1 AND ap='APPROVED' AND av='BUSY' AND u_at<=$2::timestamptz", [driverId,terminalAt]);
 }
-module.exports = { findById,findByUserId,register,requestOtp,prepareRegistration,assignedDriver,pending,approve,availability,markBusy,updateLocation,location,nearby,eligible,releaseAfterTrip };
+async function listAll() { return (await pool.query(projection + ' ORDER BY d.did')).rows; }
+async function licenseEvidenceRows() { return (await pool.query('SELECT lic_enc FROM driver_profile')).rows; }
+module.exports = { findById,findByUserId,register,requestOtp,prepareRegistration,assignedDriver,pending,approve,availability,markBusy,updateLocation,location,nearby,eligible,releaseAfterTrip,listAll,licenseEvidenceRows };

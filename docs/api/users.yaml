@@ -66,6 +66,20 @@ components:
           type: string
           format: date-time
 paths:
+  /customers:
+    get:
+      summary: Admin xem toàn bộ Customer Profile
+      description: 'Chỉ đọc, sắp theo Customer ID; không trả phone hoặc thông tin xác thực.'
+      security:
+      - bearerAuth: []
+      x-roles: [ADMIN]
+      responses:
+        '200':
+          description: 'JSON gồm Total và Items (toàn bộ Customer, không phân trang).'
+        '401':
+          description: Thiếu hoặc sai JWT
+        '403':
+          description: Chỉ ADMIN được xem danh sách
   /customers/{cid}:
     get:
       tags:

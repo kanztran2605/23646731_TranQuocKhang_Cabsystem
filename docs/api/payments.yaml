@@ -37,10 +37,23 @@ components:
     IdemKey:
       name: Idempotency-Key
       in: header
-      required: true
+      required: false
+      description: 'Bắt buộc có Idempotency-Key hoặc K tại Pay. Key được trim, dài 1–100 ký tự; ví dụ P55 hoặc 55. Nếu gửi cả hai phải giống nhau sau trim.'
       schema:
         type: string
+        minLength: 1
+        maxLength: 100
         example: P1
+    IdemKeyAlias:
+      name: K
+      in: header
+      required: false
+      description: 'Alias của Idempotency-Key, chỉ áp dụng endpoint Pay. Replay dùng đúng key đầu tiên; cùng key cho Payment khác vẫn bị từ chối.'
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+        example: P55
   schemas:
     Payment:
       type: object
@@ -93,7 +106,9 @@ components:
       properties:
         s:
           type: string
+          description: 'C là alias đầu vào REST của COMPLETED; gRPC, database, response và event giữ COMPLETED. Callback vẫn yêu cầu đã Pay hợp lệ.'
           enum:
+          - C
           - COMPLETED
           example: COMPLETED
     Error:
@@ -191,6 +206,7 @@ paths:
       - Payment
       summary: Thanh toán Payment đã tồn tại (idempotent)
       operationId: payExistingPayment
+      description: 'Gửi Idempotency-Key hoặc header ngắn K. Thiếu cả hai, key rỗng/quá dài hoặc hai header mâu thuẫn trả 400. Không đổi body hay cơ chế idempotency.'
       security:
       - bearerAuth: []
       x-roles:
@@ -199,6 +215,7 @@ paths:
       parameters:
       - $ref: '#/components/parameters/Pid'
       - $ref: '#/components/parameters/IdemKey'
+      - $ref: '#/components/parameters/IdemKeyAlias'
       requestBody:
         required: false
         content:
@@ -218,6 +235,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Payment'
+        '400':
+          description: 'Key thiếu/rỗng/quá dài, hai header mâu thuẫn hoặc request không hợp lệ'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: JWT không hợp lệ
           content:

@@ -4,6 +4,6 @@ const service = require('../services/driver.service');
 function createDriverGrpcHandlers(implementation = service) {
   return handlers(implementation,['requestOtp','prepareDriverRegistration','registerDriver','getDriver','getDriverByUserId','getAssignedDriver','listPendingDrivers',
     'reviewDriverApproval','setAvailability','updateLocation','getNearbyDrivers','findEligibleDrivers',
-    'markBusyForAssignment','getDriverLocation','listVehicleTypes']);
+    'markBusyForAssignment','getDriverLocation','listVehicleTypes','listDrivers','getLicenseAtRestEvidence']);
 }
 module.exports = { createDriverGrpcHandlers };

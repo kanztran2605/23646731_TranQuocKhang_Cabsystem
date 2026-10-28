@@ -2,6 +2,6 @@
 const { handlers } = require('../../../../shared/grpc/handlers');
 const service = require('../services/customer.service');
 function createCustomerGrpcHandlers(implementation = service) {
-  return handlers(implementation, ['createCustomerProfile', 'getCustomer', 'getCustomerByUserId', 'validateCustomer']);
+  return handlers(implementation, ['createCustomerProfile', 'getCustomer', 'getCustomerByUserId', 'validateCustomer', 'listCustomers']);
 }
 module.exports = { createCustomerGrpcHandlers };

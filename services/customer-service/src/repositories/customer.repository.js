@@ -14,4 +14,7 @@ async function findByUserId(userId) {
   const { rows } = await pool.query('SELECT cid,uid,name,addr,c_at,u_at FROM customer_profile WHERE uid=$1', [userId]);
   return rows[0];
 }
-module.exports = { createProfile, findById, findByUserId };
+async function listAll() {
+  return (await pool.query('SELECT cid,uid,name,addr,c_at,u_at FROM customer_profile ORDER BY cid')).rows;
+}
+module.exports = { createProfile, findById, findByUserId, listAll };

@@ -89,6 +89,7 @@ services:
     env_file: [.env]
     environment:
       SERVICE_NAME: api-gateway
+      DEMO_SECURITY_ENABLED: ${DEMO_SECURITY_ENABLED:-false}
       PORT: ${GATEWAY_PORT}
       API_GATEWAY_PORT: ${GATEWAY_PORT}
     ports:
@@ -112,6 +113,7 @@ services:
     env_file: [.env]
     environment:
       SERVICE_NAME: auth-service
+      DEMO_SECURITY_ENABLED: ${DEMO_SECURITY_ENABLED:-false}
       HTTP_PORT: 3001
       GRPC_PORT: ${AUTH_GRPC_PORT}
       DB_NAME: ${AUTH_DB_NAME}
@@ -142,6 +144,7 @@ services:
     env_file: [.env]
     environment:
       SERVICE_NAME: driver-service
+      DEMO_SECURITY_ENABLED: ${DEMO_SECURITY_ENABLED:-false}
       HTTP_PORT: 3003
       GRPC_PORT: ${DRIVER_GRPC_PORT}
       DB_NAME: ${DRIVER_DB_NAME}

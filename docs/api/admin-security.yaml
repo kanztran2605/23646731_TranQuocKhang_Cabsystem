@@ -1,0 +1,50 @@
+openapi: 3.0.3
+info:
+  title: CAB — Bằng chứng bảo vệ dữ liệu lưu trữ (local demo #24)
+  version: 1.0.0
+  description: 'Chỉ đọc dữ liệu thật qua Auth/Driver gRPC; không trả hash/ciphertext/key nguyên bản. Không thay thế kiểm toán bảo mật toàn hệ thống.'
+servers:
+- url: http://localhost:8080/api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /admin/security:
+    get:
+      summary: Admin xem bằng chứng bcrypt và AES-256-GCM
+      security:
+      - bearerAuth: []
+      x-roles: [ADMIN]
+      x-demo-only: true
+      description: >-
+        Chỉ bật khi DEMO_SECURITY_ENABLED=true tại Gateway, Auth và Driver. Mặc định false,
+        kể cả NODE_ENV=production. Không có URL alias /api/v1. Không body.
+        Password kiểm tra định dạng toàn bộ pw_hash; bcrypt là hash một chiều.
+        Sensitive Data xác thực các lic_enc không NULL bằng helper AES-GCM thực tế.
+        Key Management kiểm tra ENV/độ dài khóa, không trả giá trị khóa. Chưa kiểm toán
+        toàn source/Git hoặc nguồn gốc khóa nên trạng thái Key Management vẫn UNVERIFIED.
+        Dữ liệu trống hoặc downstream không cung cấp bằng chứng là UNVERIFIED; không giả PASS.
+        URL /admin/security/at-rest đã bỏ và trả 404, không redirect/alias.
+        Response rút gọn: Password (Status, Algorithm, Checked Records, Encrypted, Plaintext Stored),
+        Sensitive Data (Status, Algorithm, Data, Encrypted Records, Missing Records, Plaintext Exposed),
+        Key Management (Status, Source, Key Configured, Key Valid, Key Exposed).
+        Encrypted của Password chỉ là tỷ lệ hash bcrypt hợp lệ, không phải mã hóa giải mã được.
+        Plaintext Stored=false chỉ khi mọi giá trị pw_hash đã kiểm tra là bcrypt hợp lệ;
+        nếu chưa kết luận được thì UNVERIFIED. Encrypted Records là số ciphertext GCM
+        xác thực thành công (UNVERIFIED nếu chưa xác minh được); Missing Records chỉ đếm NULL.
+        Plaintext Exposed=false và Key Exposed=false chỉ nói API không trả các giá trị đó,
+        không khẳng định dữ liệu/source khác đã được kiểm toán.
+      responses:
+        '200':
+          description: 'JSON ngắn gồm Password, Sensitive Data, Key Management; không Scope/Storage/Masked Format/Reason dài. Có thể trả 200 với bằng chứng UNVERIFIED nếu không kiểm tra được dependency.'
+        '401':
+          description: Thiếu hoặc sai JWT khi route đã bật
+        '403':
+          description: CUSTOMER hoặc DRIVER không được truy cập
+        '404':
+          description: Gateway chưa bật chế độ demo
+        '429':
+          description: Vẫn tuân thủ rate limit Gateway 3 request / 10 giây

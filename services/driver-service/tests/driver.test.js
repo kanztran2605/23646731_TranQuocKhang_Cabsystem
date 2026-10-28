@@ -21,6 +21,7 @@ beforeEach(() => {
     lat:10.76,lng:106.68,rec_at:new Date(),distance_km:0 };
   published = []; captured = null;
   service = createDriverService({
+    async listAll() { return [row]; },
     async requestOtp() {},
     async prepareRegistration() {return onboarding.registrationToken;},
     async assignedDriver(){return row;},
@@ -45,6 +46,15 @@ beforeEach(() => {
   }, async (event) => { published.push(event); });
 });
 test('Driver OTP is deterministic from ENV',async () => { assert.deepEqual(await service.requestOtp({ phone:'0901234567' }),{ otp:'123' }); });
+
+test('Admin list Drivers chỉ đọc và giữ RBAC tại service',async()=>{
+  const before=structuredClone(row);
+  const result=await service.listDrivers({context:admin});
+  assert.equal(result.items.length,1);assert.equal(result.items[0].driverId,'1');
+  assert.deepEqual(row,before);
+  for(const context of [owner,{actorUserId:'9',actorRole:'CUSTOMER'}])await assert.rejects(service.listDrivers({context}),{statusCode:403});
+  await assert.rejects(service.listDrivers({}),{statusCode:401});
+});
 test('wrong OTP cannot persist onboarding',async () => {
   await assert.rejects(service.prepareDriverRegistration({ ...onboarding,otp:'wrong' }),(e) => e.statusCode === 400);
   assert.equal(captured,null);

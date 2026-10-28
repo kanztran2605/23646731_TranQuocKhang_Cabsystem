@@ -34,6 +34,7 @@ function csv(name, fallback = '') {
 const env = Object.freeze({
   NODE_ENV: process.env.NODE_ENV || 'development',
   SERVICE_NAME: process.env.SERVICE_NAME || 'api-gateway',
+  DEMO_SECURITY_ENABLED: process.env.DEMO_SECURITY_ENABLED === 'true',
 
   API_GATEWAY_HOST:
     process.env.API_GATEWAY_HOST || '0.0.0.0',

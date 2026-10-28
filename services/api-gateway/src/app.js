@@ -18,6 +18,7 @@ function createApp({
   checkServiceHealth = grpcClients.checkServiceHealth,
   pingRedis = redis.pingRedis,
   redisClient = redis.getRedisClient,
+  demoSecurityEnabled = env.DEMO_SECURITY_ENABLED,
 } = {}) {
   const app = express();
   app.disable('x-powered-by');
@@ -45,6 +46,8 @@ function createApp({
   for (const name of ['auth', 'booking', 'customer', 'driver', 'vehicle', 'trip', 'payment', 'notification', 'review']) {
     app.use(apiPrefixes, require('./routes/' + name + '.routes')({ call }));
   }
+  // Chỉ có một URL demo mới, không tạo alias /api/v1 cho endpoint này.
+  app.use('/api', require('./routes/admin-security.routes')({ call, enabled:demoSecurityEnabled }));
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;

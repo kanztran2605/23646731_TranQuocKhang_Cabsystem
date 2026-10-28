@@ -17,9 +17,11 @@ module.exports = function tripRoutes({ call }) {
     res.json(responses.trip(result));
   }));
   router.patch('/trips/:tid/status', authenticate, requireRole('DRIVER'), asyncHandler(async (req, res) => {
-    const body = parse(z.object({ s: z.enum(['ARRIVED', 'IN_PROGRESS', 'COMPLETED']) }), req.body);
+    // Alias chỉ ở đầu vào REST; gRPC, database và event giữ trạng thái chuẩn.
+    const statusAliases = { A: 'ARRIVED', I_G: 'IN_PROGRESS', C: 'COMPLETED' };
+    const body = parse(z.object({ s: z.enum(['A', 'I_G', 'C', 'ARRIVED', 'IN_PROGRESS', 'COMPLETED']) }), req.body);
     const result = await call('trip', 'updateTripStatus', {
-      context: context(req), tripId: pathId(req, 'tid'), status: body.s,
+      context: context(req), tripId: pathId(req, 'tid'), status: statusAliases[body.s] || body.s,
     }, req.correlationId);
     res.json(responses.trip(result));
   }));

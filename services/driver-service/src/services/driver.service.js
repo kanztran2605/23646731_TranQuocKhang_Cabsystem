@@ -5,6 +5,7 @@ const { AppError } = require('../../../../shared/errors/app-error');
 const { id, text, actor, coordinates, paging } = require('../../../../shared/validation');
 const { toDriver, toLocation } = require('../domain/driver');
 const { encryptLicense } = require('../security/license');
+const { licenseEvidence } = require('../security/at-rest-evidence');
 const { phone, vehicleType, licensePlate, registrationId } = require('../../../../shared/demo-input');
 const { createHash } = require('node:crypto');
 function registrationInput(request) {
@@ -29,6 +30,15 @@ function createDriverService(repo = repository, publish = publishEvent) {
     return row;
   }
   return {
+    async listDrivers(request) {
+      actor(request.context,['ADMIN']);
+      return { items:(await repo.listAll()).map(toDriver) };
+    },
+    async getLicenseAtRestEvidence(request) {
+      if (process.env.DEMO_SECURITY_ENABLED !== 'true') throw AppError.notFound();
+      actor(request.context,['ADMIN']);
+      return licenseEvidence(await repo.licenseEvidenceRows());
+    },
     async requestOtp(request) {
       const value = phone(request.phone), ttl = Number(process.env.DRIVER_OTP_TTL_SECONDS || 300);
       if (!Number.isInteger(ttl) || ttl < 1 || ttl > 900) throw new Error('Cấu hình thời hạn OTP không hợp lệ');
